@@ -21,7 +21,7 @@ index a89cf84..dbabf06 100644
      registerModuleCleanup('imageJobRecovery', stopImageJobRecovery);
  }
 diff --git a/modules/draw/providers/comfyui/comfy-draw.html b/modules/draw/providers/comfyui/comfy-draw.html
-index 52b44c6..71a6337 100644
+index 52b44c6..2675dfd 100644
 --- a/modules/draw/providers/comfyui/comfy-draw.html
 +++ b/modules/draw/providers/comfyui/comfy-draw.html
 @@ -303,11 +303,12 @@ select.input { cursor: pointer; }
@@ -93,7 +93,26 @@ index 52b44c6..71a6337 100644
  .planner-retry-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
  .planner-retry-row .input { width: 72px; padding: 4px 8px; }
  .character-enabled-control { min-height: 32px; padding: 6px 10px; font-size: 12px; white-space: nowrap; }
-@@ -1068,6 +1114,8 @@ select.input { cursor: pointer; }
+@@ -517,9 +563,18 @@ select.input { cursor: pointer; }
+             <div class="nav-divider"></div>
+             <div class="nav-item" data-comfy-view="characters"><i class="fa-solid fa-user-group"></i>角色标签</div>
+             <div class="nav-item" data-comfy-view="gallery"><i class="fa-solid fa-images"></i>图片管理</div>
++            <div class="nav-item" data-comfy-view="errors"><i class="fa-solid fa-circle-exclamation"></i>错误日志</div>
+         </nav>
+ 
+         <main class="app-main">
++            <section class="view" data-comfy-view-panel="errors">
++                <div class="view-header"><h2 class="view-title">错误日志</h2>
++                    <p class="view-desc">最近最多300条失败记录，包含错误原因和当时提示词。单独保存，不随图片重试而消失。</p></div>
++                <div class="card"><div class="input-row">
++                    <button id="comfy-error-log-open" class="btn btn-primary" type="button">查看错误日志</button>
++                    <button id="comfy-error-log-clear" class="btn" type="button">清空错误日志</button>
++                </div><p id="comfy-error-log-status" class="status-text"></p></div>
++            </section>
+             <section class="view active" data-comfy-view-panel="test">
+                 <div class="view-header">
+                     <h2 class="view-title">快速测试</h2>
+@@ -1068,6 +1123,8 @@ select.input { cursor: pointer; }
                          <div class="card">
                              <div class="card-title">🧰 批量操作</div>
                              <div class="btn-group">
@@ -102,7 +121,7 @@ index 52b44c6..71a6337 100644
                                  <button id="comfy-shared-char-add" class="btn btn-primary btn-sm" type="button"><i class="fa-solid fa-plus"></i> 添加角色</button>
                                  <button id="comfy-shared-char-clear" class="btn btn-danger btn-sm" type="button"><i class="fa-solid fa-trash-can"></i> 清除全部</button>
                                  <button id="comfy-shared-char-export" class="btn btn-sm" type="button"><i class="fa-solid fa-upload"></i> 导出</button>
-@@ -1079,7 +1127,7 @@ select.input { cursor: pointer; }
+@@ -1079,7 +1136,7 @@ select.input { cursor: pointer; }
                          <div class="card">
                              <div id="comfy-group-preset-root"></div>
                          </div>
@@ -111,7 +130,7 @@ index 52b44c6..71a6337 100644
                              <div class="card-title">🔎 Danbooru 资源库</div>
                              <label class="check-row">
                                  <input type="checkbox" id="comfy-danbooru-local">
-@@ -1097,9 +1145,18 @@ select.input { cursor: pointer; }
+@@ -1097,9 +1154,18 @@ select.input { cursor: pointer; }
                                      <div class="card-title">👥 角色列表</div>
                                      <p class="form-hint" style="margin-top:6px;">角色底稿定好后，出图只需补当前动作、表情和互动</p>
                                  </div>
@@ -131,10 +150,10 @@ index 52b44c6..71a6337 100644
                                  <div id="comfy-shared-character-list" class="char-grid"></div>
                              </div>
 diff --git a/modules/draw/providers/comfyui/comfy-draw.js b/modules/draw/providers/comfyui/comfy-draw.js
-index fd60a6e..7e7002b 100644
+index fd60a6e..e3e9f5e 100644
 --- a/modules/draw/providers/comfyui/comfy-draw.js
 +++ b/modules/draw/providers/comfyui/comfy-draw.js
-@@ -33,10 +33,11 @@ import {
+@@ -33,10 +33,12 @@ import {
      updateSharedDrawSettingsPersistent,
      normalizeSharedCacheDays,
  } from "../../shared/draw-settings.js";
@@ -144,10 +163,11 @@ index fd60a6e..7e7002b 100644
  import { attachDrawAgentSettingsSurface } from "../../shared/agent-settings-surface.js";
  import { createSerialImageRequestQueue } from "../../shared/serial-image-request-queue.js";
 +import { applyRolePhotoReference } from './role-photo-reference.js';
++import { workflowPromptTrace, openImageDiagnostics, readImageErrors, clearImageErrors, writeImageError } from '../../shared/image-diagnostics.js';
  import {
      buildComfyImageRequest,
      buildSimpleWorkflow,
-@@ -62,6 +63,19 @@ import { submitProviderDrawRun } from "../../shared/draw-run-production.js";
+@@ -62,6 +64,19 @@ import { submitProviderDrawRun } from "../../shared/draw-run-production.js";
  import { cancelFloorDrawWork, captureDrawCancellationTarget } from "../../shared/draw-run-controls.js";
  import { createCharacterEnabledControl, getCharacterEnabledFromCard } from "../../shared/character-enabled-control.js";
  import { createCharacterLibraryUi } from "../../shared/character-library-ui.js";
@@ -167,7 +187,7 @@ index fd60a6e..7e7002b 100644
  import { bindGroupPresetPanel } from "../../shared/character-group-presets-draft-binding.js";
  import {
      applyGroupPresetForCurrentChat,
-@@ -137,6 +151,8 @@ const DEFAULT_COMFY_DRAW_SETTINGS = {
+@@ -137,6 +152,8 @@ const DEFAULT_COMFY_DRAW_SETTINGS = {
      auth: '',
      timeout: 120000,
      useImageBackendJobs: false,
@@ -176,7 +196,7 @@ index fd60a6e..7e7002b 100644
      mode: 'manual',
      overrideSize: 'default',
      showFloorButton: true,
-@@ -191,6 +207,43 @@ let resizeHandler = null;
+@@ -191,6 +208,43 @@ let resizeHandler = null;
  let eventsBound = false;
  let agentSettingsSurface = null;
  let characterLibraryUi = null;
@@ -220,7 +240,7 @@ index fd60a6e..7e7002b 100644
  let groupPresetBinding = null;
  let promptChainPreviewFrame = 0;
  let ensureComfyDrawPanelRef = null;
-@@ -395,6 +448,8 @@ function normalizeSettings(raw = {}) {
+@@ -395,6 +449,8 @@ function normalizeSettings(raw = {}) {
          auth: String(raw.auth ?? ''),
          timeout: normalizeNumber(raw.timeout, DEFAULT_COMFY_DRAW_SETTINGS.timeout, 10000, 600000),
          useImageBackendJobs: raw.useImageBackendJobs === true,
@@ -229,7 +249,7 @@ index fd60a6e..7e7002b 100644
          selectedPresetId,
          selectedWorkflowPresetId,
          builtinWorkflowId,
-@@ -1095,10 +1150,40 @@ async function requestComfyImage({ prompt, negativePrompt = '', params = {}, pre
+@@ -1095,10 +1151,40 @@ async function requestComfyImage({ prompt, negativePrompt = '', params = {}, pre
              prompt,
              negativePrompt,
              params: effective,
@@ -272,7 +292,7 @@ index fd60a6e..7e7002b 100644
          if (isDirectConnection(settings) && request.preferredSaveImageNodeId) requestBody.preferredSaveImageNodeId = request.preferredSaveImageNodeId;
  
          const response = await requestComfyTransport('generate', requestBody, {
-@@ -1138,7 +1223,7 @@ async function runComfyImageBatch({
+@@ -1138,7 +1224,7 @@ async function runComfyImageBatch({
              return request.prepared || buildComfyImageRequest({
                  ...request,
                  params: effective,
@@ -281,7 +301,24 @@ index fd60a6e..7e7002b 100644
                  seed: request.seed ?? createComfySeed(),
              });
          });
-@@ -1836,6 +1921,11 @@ function bindOverlayEvents() {
+@@ -1387,6 +1473,16 @@ function bindOverlayEvents() {
+         event.stopPropagation();
+         switchSettingsView(button.dataset.comfyView || 'test');
+     });
++    querySettings('#comfy-error-log-open')?.addEventListener('click', async () => {
++        try {
++            openImageDiagnostics(null,{errors:true,items:await readImageErrors(100)});
++        } catch (error) { toastr.error(error?.message||'读取错误日志失败'); }
++    });
++    querySettings('#comfy-error-log-clear')?.addEventListener('click', async () => {
++        if (!confirm('确定清空绘图错误日志？这不会删除任何图片。')) return;
++        await clearImageErrors();
++        updateStatusText('comfy-error-log-status','success','错误日志已清空');
++    });
+     querySettings('#comfy-gallery-refresh')?.addEventListener('click', async () => {
+         await renderGalleryManagement();
+     });
+@@ -1836,6 +1932,11 @@ function bindOverlayEvents() {
          });
          if (ok) fillForm(getSettings());
      });
@@ -293,7 +330,7 @@ index fd60a6e..7e7002b 100644
      querySettings('#comfy-shared-char-add')?.addEventListener('click', () => {
          addCharacterTagDraft();
      });
-@@ -2092,16 +2182,50 @@ function bindOverlayEvents() {
+@@ -2092,16 +2193,50 @@ function bindOverlayEvents() {
              await saveAllSettings({ notify: true, triggerButton: event.currentTarget, statusElementId });
          });
      });
@@ -348,7 +385,7 @@ index fd60a6e..7e7002b 100644
      });
  }
  
-@@ -2121,6 +2245,8 @@ function fillForm(settings) {
+@@ -2121,6 +2256,8 @@ function fillForm(settings) {
      setValue('comfy-connection-mode', settings.connectionMode || 'proxy');
      setValue('comfy-draw-auth', settings.auth || '');
      setChecked('comfy-use-image-backend-jobs', settings.useImageBackendJobs === true);
@@ -357,7 +394,7 @@ index fd60a6e..7e7002b 100644
      updateConnectionModeUI(settings.connectionMode || 'proxy', settings.useImageBackendJobs === true);
      setValue('comfy-draw-host', settings.host);
      setValue('comfy-draw-timeout', settings.timeout);
-@@ -2191,6 +2317,8 @@ function readForm() {
+@@ -2191,6 +2328,8 @@ function readForm() {
          auth: getValue('comfy-draw-auth').trim(),
          timeout: normalizeNumber(getValue('comfy-draw-timeout'), current.timeout, 10000, 600000),
          useImageBackendJobs: getChecked('comfy-use-image-backend-jobs'),
@@ -366,7 +403,38 @@ index fd60a6e..7e7002b 100644
          builtinWorkflowId: getValue('comfy-builtin-workflow') || current.builtinWorkflowId || DEFAULT_COMFY_DRAW_SETTINGS.builtinWorkflowId,
          presets: current.presets.map(item => item.id === current.selectedPresetId ? { ...preset, id: item.id, name: item.name } : item),
      };
-@@ -2627,10 +2755,15 @@ function readCharacterCardsFromForm({ keepEmpty = false } = {}) {
+@@ -2550,6 +2689,21 @@ async function renderGalleryManagement() {
+     chars.sort((a, b) => (summary[b].latestTimestamp || 0) - (summary[a].latestTimestamp || 0));
+     container.replaceChildren();
+ 
++    const managementSlots=chars.flatMap(name=>Object.keys(summary[name]?.slots||{})
++        .sort((a,b)=>(summary[name]?.slots?.[b]?.latestTimestamp||0)-(summary[name]?.slots?.[a]?.latestTimestamp||0)));
++    const callbacksForSlot=async slot=>{
++        const name=chars.find(character=>(summary[character]?.slots||{})[slot]);
++        const row=name?summary[name].slots[slot]:null;
++        const latest=row?.latestImgId ? await getPreview(row.latestImgId).catch(()=>null) : null;
++        const messageId=Number(latest?.messageId||0);
++        const sameChat=latest?.chatId && String(latest.chatId)===String(getContext()?.chatId);
++        return {
++            ...(sameChat ? buildSharedGalleryCallbacks(slot,messageId) : {}),
++            managementMessageId:messageId,
++            managementSlots,
++            createManagementCallbacks:callbacksForSlot,
++        };
++    };
+     for (const charName of chars) {
+         const charSummary = summary[charName];
+         const slotSummaries = charSummary.slots || {};
+@@ -2578,7 +2732,7 @@ async function renderGalleryManagement() {
+             button.className = 'gallery-slot-btn';
+             button.addEventListener('click', async () => {
+                 const latest = await getPreview(slotSummaries[slotId]?.latestImgId).catch(() => null);
+-                await openGallery(slotId, Number(latest?.messageId || 0), buildSharedGalleryCallbacks(slotId, Number(latest?.messageId || 0)));
++                await openGallery(slotId, Number(latest?.messageId || 0), await callbacksForSlot(slotId));
+             });
+ 
+             const img = document.createElement('img');
+@@ -2627,10 +2781,15 @@ function readCharacterCardsFromForm({ keepEmpty = false } = {}) {
                  .filter(Boolean),
              type: String(card.querySelector('[data-sd-char-field="type"]')?.value || 'girl').trim() || 'girl',
              appearance: String(card.querySelector('[data-sd-char-field="appearance"]')?.value || '').trim(),
@@ -385,7 +453,7 @@ index fd60a6e..7e7002b 100644
          };
      }).filter((item) => keepEmpty || item.name || item.appearance || item.danbooruTag || item.negativeTags || item.aliases.length || item.outfits?.length || item.dynamicStates?.length);
  }
-@@ -2738,6 +2871,307 @@ function createCharacterEmptyState() {
+@@ -2738,6 +2897,307 @@ function createCharacterEmptyState() {
      return empty;
  }
  
@@ -693,7 +761,7 @@ index fd60a6e..7e7002b 100644
  function renderCharacterCard({ character: tag, ordinal }) {
      const index = ordinal - 1;
      const card = document.createElement('div');
-@@ -2748,11 +3182,42 @@ function renderCharacterCard({ character: tag, ordinal }) {
+@@ -2748,11 +3208,42 @@ function renderCharacterCard({ character: tag, ordinal }) {
      top.className = 'sd-char-card-header';
      const title = document.createElement('div');
      title.className = 'sd-char-card-title';
@@ -739,7 +807,7 @@ index fd60a6e..7e7002b 100644
      const delButton = document.createElement('button');
      delButton.className = 'btn btn-danger btn-sm';
      delButton.type = 'button';
-@@ -2762,19 +3227,39 @@ function renderCharacterCard({ character: tag, ordinal }) {
+@@ -2762,19 +3253,39 @@ function renderCharacterCard({ character: tag, ordinal }) {
      const delText = document.createElement('span');
      delText.textContent = '删除';
      delButton.append(delIcon, delText);
@@ -792,7 +860,7 @@ index fd60a6e..7e7002b 100644
  
      const actions = document.createElement('div');
      actions.className = 'btn-group';
-@@ -2782,7 +3267,14 @@ function renderCharacterCard({ character: tag, ordinal }) {
+@@ -2782,7 +3293,14 @@ function renderCharacterCard({ character: tag, ordinal }) {
          enabled: tag.enabled !== false,
          label: `角色 ${index + 1}${tag.name ? ` ${tag.name}` : ''}`,
      });
@@ -808,7 +876,7 @@ index fd60a6e..7e7002b 100644
      top.append(title, actions);
  
      const grid = document.createElement('div');
-@@ -2792,23 +3284,52 @@ function renderCharacterCard({ character: tag, ordinal }) {
+@@ -2792,23 +3310,52 @@ function renderCharacterCard({ character: tag, ordinal }) {
          createCharacterField('类型', 'type', tag.type || 'girl', '例如 girl / boy'),
      );
  
@@ -871,7 +939,7 @@ index fd60a6e..7e7002b 100644
  function createCharacterField(labelText, fieldName, value, placeholder, options = {}) {
      const field = document.createElement('div');
      field.className = 'form-group';
-@@ -2820,6 +3341,7 @@ function createCharacterField(labelText, fieldName, value, placeholder, options
+@@ -2820,6 +3367,7 @@ function createCharacterField(labelText, fieldName, value, placeholder, options
      input.className = 'input';
      input.dataset.sdCharField = fieldName;
      input.placeholder = placeholder;
@@ -879,7 +947,7 @@ index fd60a6e..7e7002b 100644
      if (options.multiline) {
          input.rows = 3;
          input.textContent = String(value || '');
-@@ -3318,10 +3840,104 @@ function fillSharedDrawForm() {
+@@ -3318,10 +3866,104 @@ function fillSharedDrawForm() {
      void ensureComfyDanbooruLoadedForForm(sharedDrawSettings);
  }
  
@@ -987,7 +1055,7 @@ index fd60a6e..7e7002b 100644
          settings.useWorldInfo = getChecked('comfy-shared-use-worldinfo');
          settings.messageFilterRules = collectFilterRules();
          settings.characterTags = characterTags;
-@@ -3333,6 +3949,31 @@ async function saveSharedDrawSettings({ notify = false } = {}) {
+@@ -3333,6 +3975,31 @@ async function saveSharedDrawSettings({ notify = false } = {}) {
              keywordFilterMode: getValue('comfy-wb-filter-mode') || 'auto',
          };
      }, '共享规划设置已保存', { notify, silent: false });
@@ -1019,7 +1087,7 @@ index fd60a6e..7e7002b 100644
  }
  
  async function saveAllSettings({ notify = false, triggerButton = null, statusElementId = '' } = {}) {
-@@ -3391,6 +4032,470 @@ async function saveAllSettings({ notify = false, triggerButton = null, statusEle
+@@ -3391,6 +4058,470 @@ async function saveAllSettings({ notify = false, triggerButton = null, statusEle
      return ok;
  }
  
@@ -1490,7 +1558,7 @@ index fd60a6e..7e7002b 100644
  function addCharacterTagDraft() {
      ensureCharacterLibraryUi()?.addCharacter();
  }
-@@ -3884,6 +4989,50 @@ async function buildComfyScenePlannerOptions({
+@@ -3884,6 +5015,50 @@ async function buildComfyScenePlannerOptions({
      };
  }
  
@@ -1541,7 +1609,7 @@ index fd60a6e..7e7002b 100644
  async function buildTasksFromMessage({ message, messageId, signal, promptOverride = '', useWorldbook = true, stripImageMarkers = true, onStateChange }) {
      if (promptOverride.trim()) {
          return {
-@@ -3900,6 +5049,7 @@ async function buildTasksFromMessage({ message, messageId, signal, promptOverrid
+@@ -3900,6 +5075,7 @@ async function buildTasksFromMessage({ message, messageId, signal, promptOverrid
          onStateChange,
      });
      const tasks = await generateAndParseScenePlan(plannerOptions);
@@ -1549,6 +1617,55 @@ index fd60a6e..7e7002b 100644
  
      console.log('[ComfyDraw] LLM plan ready for message %s: %d task(s)', messageId, tasks.length);
      return { tasks, sceneSource };
+@@ -4017,6 +5193,7 @@ export async function generateImagesFromText(options = {}) {
+                 positive: promptData.positive,
+                 characterPrompts: promptData.characterPrompts,
+                 negativePrompt: promptData.negative,
++                promptTrace: workflowPromptTrace(compiledBatch.items[index]?.request, promptData),
+                 // 整图正向提示词追加位随图落盘，画廊编辑重生成时才能重建
+                 postPrompt: task.post_prompt || '',
+             });
+@@ -4044,9 +5221,10 @@ export async function generateImagesFromText(options = {}) {
+                 tags: task.scene || options.promptOverride || '',
+                 positive: promptData.positive,
+                 errorType: errorType.code,
+-                errorMessage: errorType.desc,
++                errorMessage: (errorType.desc || '生成失败') + (error?.message ? '：' + String(error.message).slice(0,1800) : ''),
+                 characterPrompts: promptData.characterPrompts,
+                 negativePrompt: promptData.negative,
++                promptTrace: workflowPromptTrace(compiledBatch.items[index]?.request, promptData),
+             });
+             images.push({
+                 slotId,
+@@ -4285,6 +5463,16 @@ async function handleImageDelegatedClick(event) {
+         return;
+     }
+ 
++    if (action === 'view-prompt-log') {
++        container.querySelector('.xb-nd-menu-wrap')?.classList.remove('open');
++        const id=container.dataset.imgId;
++        const record=id ? await getPreview(id).catch(()=>null) : null;
++        openImageDiagnostics(record || {
++            imgId:id||'',timestamp:Date.now(),
++            positive:container.dataset.positive||'',negativePrompt:'',
++        });
++        return;
++    }
+     if (action === 'open-gallery') {
+         await openGallery(
+             container.dataset.slotId,
+@@ -4663,6 +5851,11 @@ async function testGenerateFromSettingsPanel() {
+         return true;
+     } catch (error) {
+         if (resultEl) resultEl.textContent = '';
++        void writeImageError({
++            stage:'快速测试',errorType:error?.name || '生成失败',
++            errorMessage:error?.message || '未知错误',
++            positive:prompt,negativePrompt:getValue('comfy-draw-test-negative'),
++        }).catch(e=>console.warn('[ComfyDraw] Error log failed:',e));
+         toastr.error(error?.message || '生成失败', 'ComfyUI');
+         return false;
+     } finally {
 diff --git a/modules/draw/providers/comfyui/compiler.js b/modules/draw/providers/comfyui/compiler.js
 index 7228ed5..9ed7696 100644
 --- a/modules/draw/providers/comfyui/compiler.js
@@ -1693,6 +1810,276 @@ index a209ef8..93702d7 100644
                  diagnostic.fail(error, {
                      stage: protocolFailure ? 'parse' : 'request',
                      attempts,
+diff --git a/modules/draw/shared/draw-common.js b/modules/draw/shared/draw-common.js
+index e24907a..bbd73f6 100644
+--- a/modules/draw/shared/draw-common.js
++++ b/modules/draw/shared/draw-common.js
+@@ -290,6 +290,7 @@ export function buildImageHtml({ slotId, imgId, url, tags, positive, messageId,
+         <div class="xb-nd-dropdown">
+             ${isPreview ? IMAGE_SAVE_BUTTON_HTML : ''}
+             <button data-action="refresh-image" title="重新生成">⟳</button>
++            <button data-action="view-prompt-log" title="本张图片提示词日志">日志</button>
+             <button data-action="edit-tags" title="编辑TAG">✐️</button>
+             <button data-action="delete-image" title="删除">✕</button>
+         </div>
+@@ -588,6 +589,7 @@ export function buildFailedPlaceholderHtml({ slotId, imgId = '', messageId, tags
+ <div class="xb-nd-failed-btns">
+     <button class="xb-nd-retry-btn" data-action="retry-image">⟳ 重新生成</button>
+     <button class="xb-nd-retry-btn" data-action="retry-floor-failed" title="重新生成本楼层所有失败或结果未知的图片，已成功的不受影响">⟳ 重生本楼失败项</button>
++    <button class="xb-nd-edit-btn" data-action="view-prompt-log">提示词日志</button>
+     <button class="xb-nd-edit-btn" data-action="edit-tags">✐ 编辑TAG</button>
+     ${historyCount > 0 ? `<button class="xb-nd-edit-btn" data-action="restore-image">${DRAW_SLOT_COPY.restoreImage}</button>` : ''}
+     <button class="xb-nd-remove-btn" data-action="remove-placeholder">✕ 移除</button>
+diff --git a/modules/draw/shared/draw-run-adoption.js b/modules/draw/shared/draw-run-adoption.js
+index be67663..f5f8b96 100644
+--- a/modules/draw/shared/draw-run-adoption.js
++++ b/modules/draw/shared/draw-run-adoption.js
+@@ -54,6 +54,7 @@ function normalizeMetadata(source) {
+         characterPrompts: source?.characterPrompts ?? null,
+         negativePrompt: source?.negativePrompt ?? null,
+         postPrompt: source?.postPrompt ?? null,
++        promptTrace: source?.promptTrace ?? null,
+         providerMetadata,
+     };
+ }
+diff --git a/modules/draw/shared/gallery-cache.js b/modules/draw/shared/gallery-cache.js
+index 134dbaa..daf36ae 100644
+--- a/modules/draw/shared/gallery-cache.js
++++ b/modules/draw/shared/gallery-cache.js
+@@ -5,6 +5,7 @@ import { getContext } from "../../../../../../extensions.js";
+ import { saveBase64AsFile } from "../../../../../../utils.js";
+ import { hasPreviewImage, DRAW_SLOT_COPY, PreviewStatus } from './image-record.js';
+ import { IMAGE_SAVE_LABEL_HTML } from './image-save-ui.js';
++import { writeImageError, openImageDiagnostics } from './image-diagnostics.js';
+ 
+ // ═══════════════════════════════════════════════════════════════════════════
+ // 常量
+@@ -610,6 +611,7 @@ export async function storePreview(opts) {
+         negativePrompt = null,
+         // 整图正向提示词追加位（ComfyUI 编译器拼在最后），落盘以便画廊编辑重生成时重建
+         postPrompt = null,
++        promptTrace = null,
+         source = '',
+         chatId = '',
+         characterName = '',
+@@ -648,9 +650,16 @@ export async function storePreview(opts) {
+                 characterPrompts,
+                 negativePrompt,
+                 postPrompt,
++                promptTrace,
+                 timestamp: Date.now()
+             });
+             tx.oncomplete = () => {
++                if (status === 'failed' && errorType !== 'deleted') {
++                    void writeImageError({
++                        imgId, slotId: resolvedSlotId, messageId, chatId: resolvedChatId,
++                        positive, negativePrompt, errorType, errorMessage,
++                    }).catch(error => console.warn('[ComfyDraw] Error log write failed:', error));
++                }
+                 invalidateCache(resolvedSlotId);
+                 publishCacheChange([resolvedSlotId]);
+                 resolve();
+@@ -683,6 +692,7 @@ export async function storeFailedPlaceholder(opts) {
+         characterPrompts: opts.characterPrompts ?? null,
+         negativePrompt: opts.negativePrompt ?? null,
+         postPrompt: opts.postPrompt ?? null,
++        promptTrace: opts.promptTrace ?? null,
+     });
+ }
+ 
+@@ -1268,7 +1278,8 @@ function ensureGalleryStyles() {
+     if (document.getElementById('nd-gallery-styles')) return;
+     const style = document.createElement('style');
+     style.id = 'nd-gallery-styles';
+-    style.textContent = `#nd-gallery-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:100000;display:none;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px)}#nd-gallery-overlay.visible{display:flex;flex-direction:column;align-items:center;justify-content:center}.nd-gallery-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:20px;cursor:pointer;z-index:10}.nd-gallery-close:hover{background:rgba(255,255,255,0.2)}.nd-gallery-main{display:flex;align-items:center;gap:16px;max-width:90vw;max-height:70vh}.nd-gallery-nav{width:48px;height:48px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:24px;cursor:pointer;flex-shrink:0}.nd-gallery-nav:hover{background:rgba(255,255,255,0.2)}.nd-gallery-nav:disabled{opacity:0.3;cursor:not-allowed}.nd-gallery-img-wrap{position:relative;max-width:calc(90vw - 140px);max-height:70vh}.nd-gallery-img{max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5)}.nd-gallery-saved-badge{position:absolute;top:12px;left:12px;background:rgba(62,207,142,0.9);padding:4px 10px;border-radius:6px;font-size:11px;color:#fff;font-weight:600}.nd-gallery-thumbs{display:flex;gap:8px;margin-top:20px;padding:12px;background:rgba(0,0,0,0.3);border-radius:12px;max-width:90vw;overflow-x:auto}.nd-gallery-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.6;transition:all 0.15s;flex-shrink:0}.nd-gallery-thumb:hover{opacity:0.9}.nd-gallery-thumb.active{border-color:#d4a574;opacity:1}.nd-gallery-thumb.saved{border-color:rgba(62,207,142,0.8)}.nd-gallery-actions{display:flex;gap:12px;margin-top:16px}.nd-gallery-btn{padding:10px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;font-size:13px;cursor:pointer;transition:all 0.15s}.nd-gallery-btn:hover{background:rgba(255,255,255,0.2)}.nd-gallery-btn.primary{background:rgba(212,165,116,0.3);border-color:rgba(212,165,116,0.5)}.nd-gallery-btn.danger{color:#f87171;border-color:rgba(248,113,113,0.3)}.nd-gallery-btn.danger:hover{background:rgba(248,113,113,0.15)}.nd-gallery-info{text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,0.6)}`;
++    style.textContent = `#nd-gallery-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:100008;display:none;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px)}#nd-gallery-overlay.visible{display:flex;flex-direction:column;align-items:center;justify-content:center}.nd-gallery-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:20px;cursor:pointer;z-index:10}.nd-gallery-close:hover{background:rgba(255,255,255,0.2)}.nd-gallery-main{display:flex;align-items:center;gap:16px;max-width:90vw;max-height:70vh}.nd-gallery-nav{width:48px;height:48px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:24px;cursor:pointer;flex-shrink:0}.nd-gallery-nav:hover{background:rgba(255,255,255,0.2)}.nd-gallery-nav:disabled{opacity:0.3;cursor:not-allowed}.nd-gallery-img-wrap{position:relative;max-width:calc(90vw - 140px);max-height:70vh}.nd-gallery-img{max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5)}.nd-gallery-saved-badge{position:absolute;top:12px;left:12px;background:rgba(62,207,142,0.9);padding:4px 10px;border-radius:6px;font-size:11px;color:#fff;font-weight:600}.nd-gallery-thumbs{display:flex;gap:8px;margin-top:20px;padding:12px;background:rgba(0,0,0,0.3);border-radius:12px;max-width:90vw;overflow-x:auto}.nd-gallery-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.6;transition:all 0.15s;flex-shrink:0}.nd-gallery-thumb:hover{opacity:0.9}.nd-gallery-thumb.active{border-color:#d4a574;opacity:1}.nd-gallery-thumb.saved{border-color:rgba(62,207,142,0.8)}.nd-gallery-actions{display:flex;gap:12px;margin-top:16px}.nd-gallery-btn{padding:10px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;font-size:13px;cursor:pointer;transition:all 0.15s}.nd-gallery-btn:hover{background:rgba(255,255,255,0.2)}.nd-gallery-btn.primary{background:rgba(212,165,116,0.3);border-color:rgba(212,165,116,0.5)}.nd-gallery-btn.danger{color:#f87171;border-color:rgba(248,113,113,0.3)}.nd-gallery-btn.danger:hover{background:rgba(248,113,113,0.15)}.nd-gallery-info{text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,0.6)}`;
++    style.textContent += '#nd-gallery-overlay .nd-gallery-img-wrap{overflow:hidden;display:flex;align-items:center;justify-content:center;width:min(76vw,1200px);height:min(72vh,900px);max-width:min(76vw,1200px);max-height:72vh;touch-action:none;cursor:grab}#nd-gallery-overlay .nd-gallery-img-wrap:active{cursor:grabbing}#nd-gallery-overlay .nd-gallery-img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center;transition:transform .08s linear;user-select:none;pointer-events:none}#nd-gallery-overlay .nd-gallery-actions{flex-wrap:wrap;justify-content:center;margin-top:9px}#nd-gallery-overlay .nd-gallery-main{max-width:98vw;gap:9px}#nd-gallery-overlay .nd-gallery-thumbs{max-height:80px;margin-top:8px}#nd-gallery-overlay .nd-gallery-btn{padding:8px 13px}';
+     document.head.appendChild(style);
+ }
+ 
+@@ -1281,18 +1292,73 @@ function createGalleryOverlay() {
+     overlay.id = 'nd-gallery-overlay';
+     // Template-only UI markup.
+     // eslint-disable-next-line no-unsanitized/property
+-    overlay.innerHTML = `<button class="nd-gallery-close" id="nd-gallery-close">✕</button><div class="nd-gallery-main"><button class="nd-gallery-nav" id="nd-gallery-prev">‹</button><div class="nd-gallery-img-wrap"><img class="nd-gallery-img" id="nd-gallery-img" src="" alt=""><div class="nd-gallery-saved-badge" id="nd-gallery-saved-badge" style="display:none">已保存</div></div><button class="nd-gallery-nav" id="nd-gallery-next">›</button></div><div class="nd-gallery-thumbs" id="nd-gallery-thumbs"></div><div class="nd-gallery-actions" id="nd-gallery-actions"><button class="nd-gallery-btn primary" id="nd-gallery-use">使用此图</button><button class="nd-gallery-btn" id="nd-gallery-save">${IMAGE_SAVE_LABEL_HTML}</button><button class="nd-gallery-btn danger" id="nd-gallery-delete">🗑️ 删除</button></div><div class="nd-gallery-info" id="nd-gallery-info"></div>`;
++    overlay.innerHTML = `<button class="nd-gallery-close" id="nd-gallery-close">✕</button><div class="nd-gallery-main"><button class="nd-gallery-nav" id="nd-gallery-prev">‹</button><div class="nd-gallery-img-wrap"><img class="nd-gallery-img" id="nd-gallery-img" src="" alt=""><div class="nd-gallery-saved-badge" id="nd-gallery-saved-badge" style="display:none">已保存</div></div><button class="nd-gallery-nav" id="nd-gallery-next">›</button></div><div class="nd-gallery-thumbs" id="nd-gallery-thumbs"></div><div class="nd-gallery-actions" id="nd-gallery-actions"><button class="nd-gallery-btn" id="nd-gallery-zoom-out" title="缩小">－</button><button class="nd-gallery-btn" id="nd-gallery-zoom-reset" title="复位">100%</button><button class="nd-gallery-btn" id="nd-gallery-zoom-in" title="放大">＋</button><button class="nd-gallery-btn" id="nd-gallery-prompt-log">提示词日志</button><button class="nd-gallery-btn primary" id="nd-gallery-use">使用此图</button><button class="nd-gallery-btn" id="nd-gallery-save">${IMAGE_SAVE_LABEL_HTML}</button><button class="nd-gallery-btn danger" id="nd-gallery-delete">🗑️ 删除</button></div><div class="nd-gallery-info" id="nd-gallery-info"></div>`;
+     document.body.appendChild(overlay);
+ 
+     document.getElementById('nd-gallery-close').addEventListener('click', closeGallery);
+-    document.getElementById('nd-gallery-prev').addEventListener('click', () => navigateGallery(-1));
+-    document.getElementById('nd-gallery-next').addEventListener('click', () => navigateGallery(1));
++    document.getElementById('nd-gallery-prev').addEventListener('click', () => navigateGallery(1));
++    document.getElementById('nd-gallery-next').addEventListener('click', () => navigateGallery(-1));
+     document.getElementById('nd-gallery-use').addEventListener('click', useCurrentGalleryImage);
+     document.getElementById('nd-gallery-save').addEventListener('click', saveCurrentGalleryImage);
+     document.getElementById('nd-gallery-delete').addEventListener('click', deleteCurrentGalleryImage);
++    document.getElementById('nd-gallery-zoom-in').addEventListener('click', () => zoomGallery(1.25));
++    document.getElementById('nd-gallery-zoom-out').addEventListener('click', () => zoomGallery(0.8));
++    document.getElementById('nd-gallery-zoom-reset').addEventListener('click', resetGalleryZoom);
++    document.getElementById('nd-gallery-prompt-log').addEventListener('click', () => {
++        const current=currentGalleryData?.previews?.[currentGalleryData.currentIndex];
++        if (current) openImageDiagnostics(current);
++    });
++    const imageWrap = document.getElementById('nd-gallery-overlay').querySelector('.nd-gallery-img-wrap');
++    imageWrap.addEventListener('wheel', event => {
++        if (!currentGalleryData) return;
++        event.preventDefault();
++        zoomGallery(event.deltaY < 0 ? 1.16 : 1 / 1.16);
++    }, { passive: false });
++    imageWrap.addEventListener('pointerdown', event => {
++        if (!currentGalleryData || galleryZoom.scale <= 1 || event.button !== 0) return;
++        galleryZoom.dragging = { x:event.clientX - galleryZoom.x, y:event.clientY - galleryZoom.y };
++        imageWrap.setPointerCapture(event.pointerId);
++    });
++    imageWrap.addEventListener('pointermove', event => {
++        if (!galleryZoom.dragging) return;
++        galleryZoom.x=event.clientX-galleryZoom.dragging.x;
++        galleryZoom.y=event.clientY-galleryZoom.dragging.y;
++        applyGalleryZoom();
++    });
++    for(const name of ['pointerup','pointercancel','lostpointercapture']) {
++        imageWrap.addEventListener(name,()=>{galleryZoom.dragging=null;});
++    }
++    document.addEventListener('keydown',onGalleryKeydown,true);
+     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeGallery(); });
+ }
+ 
++const galleryZoom={scale:1,x:0,y:0,dragging:null};
++function applyGalleryZoom() {
++    const img=document.getElementById('nd-gallery-img');
++    if (!img) return;
++    img.style.transform='translate('+galleryZoom.x+'px,'+galleryZoom.y+'px) scale('+galleryZoom.scale+')';
++    const label=document.getElementById('nd-gallery-zoom-reset');
++    if(label)label.textContent=Math.round(galleryZoom.scale*100)+'%';
++}
++function resetGalleryZoom() {
++    galleryZoom.scale=1;galleryZoom.x=0;galleryZoom.y=0;galleryZoom.dragging=null;
++    applyGalleryZoom();
++}
++function zoomGallery(factor) {
++    galleryZoom.scale=Math.min(5,Math.max(1,galleryZoom.scale*factor));
++    if(galleryZoom.scale===1){galleryZoom.x=0;galleryZoom.y=0;}
++    applyGalleryZoom();
++}
++function onGalleryKeydown(event) {
++    if(!currentGalleryData||!document.getElementById('nd-gallery-overlay')?.classList.contains('visible'))return;
++    if(document.getElementById('xb-draw-diagnostics-overlay'))return;
++    if(event.key==='Escape'){event.preventDefault();closeGallery();}
++    else if(event.key==='ArrowLeft'){event.preventDefault();void navigateGallery(1);}
++    else if(event.key==='ArrowRight'){event.preventDefault();void navigateGallery(-1);}
++    else if(event.key==='+'||event.key==='='){event.preventDefault();zoomGallery(1.25);}
++    else if(event.key==='-'){event.preventDefault();zoomGallery(0.8);}
++    else if(event.key==='0'){event.preventDefault();resetGalleryZoom();}
++}
+ export async function openGallery(slotId, messageId, callbacks = {}) {
+     createGalleryOverlay();
+ 
+@@ -1312,6 +1378,7 @@ export async function openGallery(slotId, messageId, callbacks = {}) {
+     }
+ 
+     currentGalleryData = { slotId, messageId, previews: validPreviews, currentIndex: startIndex, callbacks };
++    resetGalleryZoom();
+     renderGalleryThumbs();
+     renderGallery();
+     document.getElementById('nd-gallery-overlay').classList.add('visible');
+@@ -1321,6 +1388,7 @@ export function closeGallery() {
+     const el = document.getElementById('nd-gallery-overlay');
+     if (el) el.classList.remove('visible');
+     currentGalleryData = null;
++    resetGalleryZoom();
+ }
+ 
+ function renderGalleryThumbs() {
+@@ -1342,6 +1410,7 @@ function renderGalleryThumbs() {
+     thumbsContainer.querySelectorAll('.nd-gallery-thumb').forEach(thumb => {
+         thumb.addEventListener('click', () => {
+             currentGalleryData.currentIndex = parseInt(thumb.dataset.index);
++            resetGalleryZoom();
+             renderGallery();
+         });
+     });
+@@ -1371,8 +1440,12 @@ function renderGallery() {
+     document.getElementById('nd-gallery-saved-badge').style.display = current.savedUrl ? 'block' : 'none';
+     updateGalleryThumbState();
+ 
+-    document.getElementById('nd-gallery-prev').disabled = currentIndex >= previews.length - 1;
+-    document.getElementById('nd-gallery-next').disabled = currentIndex <= 0;
++    const groups=currentGalleryData?.callbacks?.managementSlots;
++    const groupIndex=Array.isArray(groups)?groups.indexOf(currentGalleryData.slotId):-1;
++    document.getElementById('nd-gallery-prev').disabled = currentIndex >= previews.length-1
++        && !(groupIndex>=0&&groupIndex<groups.length-1);
++    document.getElementById('nd-gallery-next').disabled = currentIndex<=0
++        && !(groupIndex>0);
+ 
+     const saveBtn = document.getElementById('nd-gallery-save');
+     if (current.savedUrl) {
+@@ -1390,13 +1463,24 @@ function renderGallery() {
+     document.getElementById('nd-gallery-info').textContent = `版本 ${displayVersion} / ${previews.length} · ${date}`;
+ }
+ 
+-function navigateGallery(delta) {
++async function navigateGallery(delta) {
+     if (!currentGalleryData) return;
+     const newIndex = currentGalleryData.currentIndex - delta;
+     if (newIndex >= 0 && newIndex < currentGalleryData.previews.length) {
+         currentGalleryData.currentIndex = newIndex;
++        resetGalleryZoom();
+         renderGallery();
++        return;
+     }
++    const old=currentGalleryData;
++    const list=old.callbacks?.managementSlots;
++    if(!Array.isArray(list)||list.length<2)return;
++    const at=list.indexOf(old.slotId);
++    const adjacent=list[at+(delta>0?1:-1)];
++    if(!adjacent)return;
++    const maker=old.callbacks.createManagementCallbacks;
++    const nextCallbacks=typeof maker==='function'?await maker(adjacent):old.callbacks;
++    await openGallery(adjacent,Number(nextCallbacks.managementMessageId||0),nextCallbacks);
+ }
+ 
+ async function useCurrentGalleryImage() {
+@@ -1486,6 +1570,7 @@ export function destroyGalleryCache() {
+     invalidateCache();
+     clearPreviewObjectUrls();
+ 
++    document.removeEventListener('keydown',onGalleryKeydown,true);
+     document.getElementById('nd-gallery-overlay')?.remove();
+     document.getElementById('nd-gallery-styles')?.remove();
+     galleryOverlayCreated = false;
+diff --git a/modules/draw/shared/image-job-recovery-runtime.js b/modules/draw/shared/image-job-recovery-runtime.js
+index de7f113..0a71dd4 100644
+--- a/modules/draw/shared/image-job-recovery-runtime.js
++++ b/modules/draw/shared/image-job-recovery-runtime.js
+@@ -135,6 +135,7 @@ function previewOptions(record, item, target) {
+         characterPrompts: item.previewMetadata?.characterPrompts ?? null,
+         negativePrompt: item.previewMetadata?.negativePrompt ?? null,
+         postPrompt: item.previewMetadata?.postPrompt ?? null,
++        promptTrace: item.previewMetadata?.promptTrace ?? null,
+     };
+ }
+ 
+@@ -231,7 +232,7 @@ function createDeliveryAdapter() {
+                         ...previewOptions(record, item, target),
+                         imgId: failedImgId,
+                         errorType: errorType.label,
+-                        errorMessage: errorType.desc,
++                        errorMessage: (errorType.desc || '失败') + (error?.message ? '：' + String(error.message).slice(0,1800) : ''),
+                     });
+                 },
+                 remove: () => deletePreview(failedImgId),
+diff --git a/modules/draw/shared/pending-image-jobs.js b/modules/draw/shared/pending-image-jobs.js
+index 1fbe532..073cb1c 100644
+--- a/modules/draw/shared/pending-image-jobs.js
++++ b/modules/draw/shared/pending-image-jobs.js
+@@ -186,6 +186,7 @@ function normalizeItem(source) {
+             characterPrompts: metadata.characterPrompts ?? null,
+             negativePrompt: metadata.negativePrompt ?? null,
+             postPrompt: metadata.postPrompt ?? null,
++            promptTrace: metadata.promptTrace ?? null,
+             providerMetadata,
+         },
+     };
 diff --git a/modules/draw/shared/planner-retry.js b/modules/draw/shared/planner-retry.js
 index 70d6d98..6c4ec78 100644
 --- a/modules/draw/shared/planner-retry.js
@@ -1705,6 +2092,52 @@ index 70d6d98..6c4ec78 100644
      'AGENT_CORE_LOAD_FAILED',
      'AGENT_SETTINGS_LOAD_FAILED',
      'HOST_REQUEST_HEADERS_LOAD_FAILED',
+diff --git a/modules/draw/shared/prepared-image-input.js b/modules/draw/shared/prepared-image-input.js
+index 9f9d27f..be45678 100644
+--- a/modules/draw/shared/prepared-image-input.js
++++ b/modules/draw/shared/prepared-image-input.js
+@@ -2,6 +2,8 @@ import { compile as compileNovel } from '../providers/novelai/compiler.js';
+ import { compile as compileSd } from '../providers/sd-webui/compiler.js';
+ import { compile as compileComfy } from '../providers/comfyui/compiler.js';
+ 
++import { workflowPromptTrace } from './image-diagnostics.js';
++
+ const compilers = { novelai: compileNovel, 'sd-webui': compileSd, comfyui: compileComfy };
+ 
+ // Provider preparation is local and deterministic for the captured recipe.
+@@ -16,13 +18,17 @@ export function prepareImageInput(provider, tasks, recipe) {
+         negativePrompt: novel ? promptData.negativePrompt : promptData.negative,
+         params: recipe.params,
+     }));
+-    const metadata = compiledBatch.artifacts.map(({ task, promptData }) => ({
++    const metadata = compiledBatch.artifacts.map(({ task, promptData }, index) => ({
+         tags: task.scene || '',
+         positive: novel ? promptData.scene : promptData.positive,
+         characterPrompts: promptData.characterPrompts,
+         negativePrompt: novel ? promptData.negativePrompt : promptData.negative,
+         // ComfyUI 的整图追加位（post_prompt 已被编译器拼进 positive，这里单独带上供编辑重建）
+         postPrompt: task.post_prompt || '',
++        ...(provider === 'comfyui' ? { promptTrace: workflowPromptTrace(
++            compiledBatch.items?.[index]?.request,
++            { positive: promptData.positive, negative: promptData.negative },
++        ) } : {}),
+     }));
+     return { compiledBatch, requests, metadata };
+ }
+diff --git a/modules/draw/shared/prepared-slot-executor.js b/modules/draw/shared/prepared-slot-executor.js
+index 21d5d9d..a31e6ae 100644
+--- a/modules/draw/shared/prepared-slot-executor.js
++++ b/modules/draw/shared/prepared-slot-executor.js
+@@ -96,7 +96,8 @@ export async function executePreparedSlots({ items, backend, store, remove, sele
+                         characterName: items[0].characterName },
+                     items: items.map((item, index) => ({ index, slotId: item.slotId, imgId: item.imgId, discarded: item.discarded,
+                         previewMetadata: { tags: item.tags, positive: item.positive, postPrompt: item.postPrompt,
+-                            characterPrompts: item.characterPrompts, negativePrompt: item.negativePrompt } })),
++                            characterPrompts: item.characterPrompts, negativePrompt: item.negativePrompt,
++                            promptTrace: item.promptTrace ?? null } })),
+                 },
+                 commitPlacements: async () => {
+                     // Deletion may precede journal creation while this batch waits
 diff --git a/modules/draw/shared/scene-plan-contract.js b/modules/draw/shared/scene-plan-contract.js
 index 41af9d1..915528f 100644
 --- a/modules/draw/shared/scene-plan-contract.js
