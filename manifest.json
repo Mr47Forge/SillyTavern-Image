@@ -1,0 +1,13 @@
+{
+  "display_name": "SillyTavern Image · 独立文生图",
+  "loading_order": 65,
+  "requires": [],
+  "optional": [],
+  "js": "extension/index.js",
+  "css": "extension/style.css",
+  "author": "Mr47Forge",
+  "version": "0.1.0",
+  "homePage": "https://github.com/Mr47Forge/SillyTavern-Image",
+  "auto_update": false,
+  "minimum_client_version": "1.13.0"
+}

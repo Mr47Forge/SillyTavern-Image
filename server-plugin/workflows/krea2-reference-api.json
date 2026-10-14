@@ -1,0 +1,13 @@
+{
+  "1": {"class_type":"UNETLoader","inputs":{"unet_name":"Moody\\moodyAmateurMixFreeKrea2_5ProsumerShots_int4.safetensors","weight_dtype":"default"}},
+  "2": {"class_type":"CLIPLoader","inputs":{"clip_name":"qwen3vl_4b_bf16.safetensors","type":"krea2","device":"default"}},
+  "10": {"class_type":"VAELoader","inputs":{"vae_name":"qwen_image_vae.safetensors"}},
+  "15": {"class_type":"LoadImage","inputs":{"image":"__ST_IMAGE_ROLE__"}},
+  "5": {"class_type":"TextEncodeKrea2Reference","inputs":{"clip":["2",0],"image1":["15",0],"image1_detail":"high","layout_split":0.25,"prompt":"character1 from image1 in a realistic photo"}},
+  "18": {"class_type":"CLIPTextEncode","inputs":{"clip":["2",0],"text":"A realistic photograph of one adult person."}},
+  "6": {"class_type":"CLIPTextEncode","inputs":{"clip":["2",0],"text":"anime, CGI, exaggerated retouching, distorted anatomy"}},
+  "7": {"class_type":"EmptySD3LatentImage","inputs":{"width":768,"height":1152,"batch_size":1}},
+  "8": {"class_type":"KSampler","inputs":{"model":["1",0],"positive":["5",0],"negative":["6",0],"latent_image":["7",0],"seed":584101,"steps":8,"cfg":1,"sampler_name":"euler_ancestral","scheduler":"beta","denoise":1}},
+  "9": {"class_type":"VAEDecode","inputs":{"samples":["8",0],"vae":["10",0]}},
+  "11": {"class_type":"SaveImage","inputs":{"images":["9",0],"filename_prefix":"SillyTavernImage_Krea2"}}
+}

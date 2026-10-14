@@ -1,0 +1,7 @@
+{
+  "name": "sillytavern-image-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "engines": { "node": ">=20" }
+}

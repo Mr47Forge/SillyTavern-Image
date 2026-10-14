@@ -1,46 +1,75 @@
 # SillyTavern-Image
 
-此仓库备份 H28K 上 SillyTavern + LittleWhiteBox（小白 X）与 Windows ComfyUI 的本地自定义代码、修改补丁、测试文件以及可公开的工作流配置模板。
+独立的 **SillyTavern → ComfyUI 文生图插件**。目前开发中的 **v0.1.0 手动生图版本**，不依赖 LittleWhiteBox（小白 X），可以与现有小白 X 并存。
 
-**不包含**上游第三方完整项目、真实运行配置、聊天记录、角色照片、API 密钥、SSH 私钥或模型文件。本仓库为公开仓库。
+> 本次仅在 GitHub 研发和测试代码，**尚未安装到 H28K 或验证完整的酒馆图形界面**。历史自定义备份仍保留在仓库的其他目录中。
 
-## 目录
+## 第一版已实现
 
-| 路径 | 用途 |
+- 独立插件入口和中文深色设置界面；可以在酒馆中打开，不使用小白 X 的 UI。
+- 连接现有的 Windows ComfyUI；内置 **Krea2 纯脸参考，无后期换脸** 的 API 工作流。
+- 手动输入场景提示词，或读取当前聊天的最新消息后再编辑。
+- 角色照片按酒馆用户隔离存储，并关联到当前酒馆角色；也可在没有上传照片时选择从该角色头像尝试读取。
+- 人物照片在 Krea2 生成阶段参与绘图；没有照片时真正走纯文本编码，避免缺图报错。
+- 可导入额外的 ComfyUI **API 格式 JSON 工作流**，设置正向、负向、随机种子、尺寸和保存节点。
+- 生图后显示结果、耗时与随机种子；支持保存 PNG 到本机。
+- 独立服务端负责上传图片、提交任务、查询 ComfyUI 历史记录和取回图片，避免浏览器跨域问题。
+
+### 暂未实现
+
+- 随酒馆 AI 回复自动触发剧情生图，以及楼层图片管理。
+- 浏览器断线后恢复旧任务、后台任务持久化。
+- 多人分别锁定身份。
+- 自动裁脸（此前第三方裁脸节点在现有环境报错，未采用）。
+- H28K 实机安装、浏览器端完整联调（将在后续阶段进行）。
+
+## 安装方式（待在 H28K 验证）
+
+**前端扩展**：在 SillyTavern 扩展管理中使用仓库地址安装：
+
+https://github.com/Mr47Forge/SillyTavern-Image
+
+本仓库根目录的 `manifest.json` 是前端安装入口，加载 `extension/index.js` 和 `extension/style.css`。
+
+**服务端插件**：仓库的 `server-plugin/` 是另一个独立组件，应放在 SillyTavern 安装目录下的 `plugins/sillytavern-image-server/`。可以参考 `scripts/install-server.sh`，脚本只复制文件、备份已存在的同名插件，不会自动重启酒馆。
+
+服务端插件需要在 SillyTavern 的配置中允许加载 Server Plugins，复制后还需重启 SillyTavern 才能生效。
+
+**ComfyUI**：需要已安装 Krea2 相应的模型与 `TextEncodeKrea2Reference` 自定义节点。启动 ComfyUI，并从 H28K 确认能够访问其 API 地址。运行时在独立插件里填写实际地址及模型文件名；仓库不会存真实服务器地址。
+
+**个人角色参考图**：在酒馆选中某张角色卡 → 打开独立绘图面板 → 上传清晰的脸部参考照。图片按当前 SillyTavern 用户单独存储，仓库不会上传任何真实照片。
+
+请先在测试环境联调，再启用正式工作流。当前用户的小白 X 和现有绘图预设不应被覆盖或卸载。
+
+## 开发与测试
+
+需要 Node.js 20 或以上版本，无外部 npm 运行时依赖。
+
+```bash
+npm test
+npm run check
+```
+
+测试覆盖：Krea2 人物参考、无照片安全回退、自定义工作流、私有照片隔离、ComfyUI 任务上传/采样/结果返回模拟，以及前端设置处理。**模拟测试通过不等于 H28K 实机安装验证通过**。
+
+目录：
+
+| 目录 | 功能 |
 | --- | --- |
-| custom-files/LittleWhiteBox/ | 自己新增的角色卡、中文外貌、剧情提示词及角色测试模块和回归测试 |
-| custom-files/littlewhitebox-server/ | 服务器端自己新增的照片上传模块和集成测试 |
-| patches/LittleWhiteBox-customizations.patch | 当前客户端相对原版 LittleWhiteBox 的修改 |
-| patches/littlewhitebox-server-live-customizations.patch | 服务器插件当前运行代码相对插件内置版的修改 |
-| workflows/ | Krea2 角色参考工作流及保留的旧工作流 |
-| config/role-photo-workflow-preset.example.json | 新工作流的小白 X 预设模板，非个人配置 |
-| metadata/ | 原版基线提交号和导出校验摘要 |
+| `manifest.json` | 仓库根目录 SillyTavern 扩展安装入口 |
+| `extension/` | 独立前端界面、用户设置和前端测试 |
+| `server-plugin/` | 独立 ComfyUI 服务端插件、照片存储、工作流及测试 |
+| `scripts/` | 安装辅助脚本（不会自动重启酒馆） |
+| `docs/` | 技术说明、分阶段计划 |
+| `custom-files/`、`patches/` | 前期 H28K 小白 X 的本地自定义备份，不是独立版运行依赖 |
+| `workflows/`、`config/`、`metadata/` | 历史工作流、配置模板及校验信息 |
 
-## 当前功能
+## 两套代码的关系
 
-酒馆剧情自动生图；角色中文外貌保存和转换；角色图片识别及测试；角色照片保存在 H28K 后在出图时自动传输给 ComfyUI；Krea2 参考生图，不做后期换脸；缺少角色照片时自动使用纯文字生成。现有版本仅支持为单个匹配角色引用身份照片，多位固定角色同框尚未完成身份一致性验证。
+独立版本为新写的前后端模块，**不会导入或者要求安装 LittleWhiteBox**。此前小白 X 的定制代码以补丁/快照形式保留，供对照、追溯和后续逐项迁移，不直接复制其运行时依赖。
 
-注意：自动裁脸插件实际运行报错，因此未启用。建议上传清楚的头肩照作为参考。手动按钮入口已部署，但浏览器端完整端到端测试尚未完成；照片参考和纯文字回退路径均已完成真实出图测试。
+小白 X 上游代码及相关插件、模型各有各自许可证；恢复历史备份时请遵守相应授权条件。
 
-## 恢复方法
+## 隐私
 
-1. **先备份现有酒馆完整数据与代码。** 此仓库不是独立可运行的酒馆安装包。
-2. 安装匹配版本的 LittleWhiteBox，原版提交号见 metadata/upstream-commit.txt。
-3. 把 custom-files/LittleWhiteBox/ 中的文件按同名相对路径放进扩展目录。
-4. 检查 patches/LittleWhiteBox-customizations.patch，先执行 git apply --check，确认版本匹配后再应用。
-5. 服务器插件则先核对内置基线，再审查 patches/littlewhitebox-server-live-customizations.patch 和 custom-files/littlewhitebox-server/；切勿盲目覆盖新版本。
-6. 使用 workflows/Krea2_角色照片自动匹配_API.json 和 config/role-photo-workflow-preset.example.json，在小白 X 新增可切换的工作流预设。占位符 __LWB_ROLE_PHOTO__ 由运行时动态替换，不能当作图片路径手填。
-7. 测试保存角色照片、参考生图及无照片的回退路径后，再选择新预设投入使用。
-
-## 已验证（2026-10-14）
-
-- H28K 和 Windows ComfyUI 8188 API 连接成功。
-- 正确匹配角色照片、上传照片到 ComfyUI、返回生图结果成功。
-- 没有照片时普通文生图实际运行成功。
-- 原来的三份工作流与当前选中预设未被替换。
-- SillyTavern 服务正常。
-- 自动裁脸暂未启用。
-
-## 声明与隐私
-
-本仓库保存的是第三方 LittleWhiteBox 的本地修改，不是该项目官方版本。上游代码与模型许可仍分别适用。禁止把个人角色照片、真实配置 LittleWhiteBox_ComfyDraw.json、访问密钥、聊天记录、私人地址等提交到公开仓库。
+**不要提交**实际运行配置、API 密钥、私钥、个人角色照片、聊天记录、账号密码或模型文件。本仓库为公开仓库。v0.1.0 不内置真实账号、令牌和设备地址。

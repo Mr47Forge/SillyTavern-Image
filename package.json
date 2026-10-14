@@ -1,0 +1,11 @@
+{
+  "name": "sillytavern-image",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone SillyTavern ComfyUI image extension, plus custom integration backups",
+  "scripts": {
+    "test": "node --test server-plugin/tests/integration.test.cjs extension/settings.test.mjs",
+    "check": "node --check extension/index.js && node --check server-plugin/index.js"
+  },
+  "engines": { "node": ">=20" }
+}
