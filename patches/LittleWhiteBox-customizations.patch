@@ -1811,10 +1811,26 @@ index a209ef8..93702d7 100644
                      stage: protocolFailure ? 'parse' : 'request',
                      attempts,
 diff --git a/modules/draw/shared/draw-common.js b/modules/draw/shared/draw-common.js
-index e24907a..bbd73f6 100644
+index e24907a..196f08a 100644
 --- a/modules/draw/shared/draw-common.js
 +++ b/modules/draw/shared/draw-common.js
-@@ -290,6 +290,7 @@ export function buildImageHtml({ slotId, imgId, url, tags, positive, messageId,
+@@ -22,6 +22,7 @@ import {
+ } from "./scene-plan-contract.js";
+ import { ScenePlacementError } from './scene-placement.js';
+ import { getRenderedSceneSlotIds, replaceSceneSlotElements } from './scene-slot-dom.js';
++import { protectDrawImageMarkers, restoreDrawImageMarkers } from './scene-slot-protection.js';
+ import { getPendingImageJobSlots, PendingJobState } from './pending-image-jobs.js';
+ import { findImageJobDeliverySlot } from './image-job-delivery-target.js';
+ import { createDrawImageSlotRegex } from './image-marker-syntax.js';
+@@ -49,6 +50,7 @@ let drawPreviewRuntimeGeneration = 0;
+ let drawPreviewCacheSyncCleanup = null;
+ const drawPreviewPendingTimers = new Set();
+ const drawPreviewRenderQueues = new WeakMap();
++const drawPreviewRepairAttempts = new WeakMap();
+ 
+ export const ImageState = {
+     PREVIEW: 'preview',
+@@ -290,6 +292,7 @@ export function buildImageHtml({ slotId, imgId, url, tags, positive, messageId,
          <div class="xb-nd-dropdown">
              ${isPreview ? IMAGE_SAVE_BUTTON_HTML : ''}
              <button data-action="refresh-image" title="重新生成">⟳</button>
@@ -1822,7 +1838,7 @@ index e24907a..bbd73f6 100644
              <button data-action="edit-tags" title="编辑TAG">✐️</button>
              <button data-action="delete-image" title="删除">✕</button>
          </div>
-@@ -588,6 +589,7 @@ export function buildFailedPlaceholderHtml({ slotId, imgId = '', messageId, tags
+@@ -588,6 +591,7 @@ export function buildFailedPlaceholderHtml({ slotId, imgId = '', messageId, tags
  <div class="xb-nd-failed-btns">
      <button class="xb-nd-retry-btn" data-action="retry-image">⟳ 重新生成</button>
      <button class="xb-nd-retry-btn" data-action="retry-floor-failed" title="重新生成本楼层所有失败或结果未知的图片，已成功的不受影响">⟳ 重生本楼失败项</button>
@@ -1830,6 +1846,59 @@ index e24907a..bbd73f6 100644
      <button class="xb-nd-edit-btn" data-action="edit-tags">✐ 编辑TAG</button>
      ${historyCount > 0 ? `<button class="xb-nd-edit-btn" data-action="restore-image">${DRAW_SLOT_COPY.restoreImage}</button>` : ''}
      <button class="xb-nd-remove-btn" data-action="remove-placeholder">✕ 移除</button>
+@@ -625,8 +629,12 @@ async function rebuildRenderedMessageFromState(messageId, {
+         || live.chat?.[messageId] !== message || isMessageBeingEdited(messageId)) return false;
+     const mesTextEl = getMesTextElement(messageId);
+     if (!mesTextEl) return false;
++    // Image markers are not Markdown links and must retain their exact source
++    // position. Protect each marker before formatting, restore as plain text,
++    // then replace each with its own DOM image card. Never mutate message.mes.
++    const protectedSlots = protectDrawImageMarkers(message.mes);
+     const formatted = messageFormatting(
+-        message.mes,
++        protectedSlots.text,
+         message.name,
+         message.is_system,
+         message.is_user,
+@@ -635,6 +643,7 @@ async function rebuildRenderedMessageFromState(messageId, {
+     // Host-generated message markup.
+     // eslint-disable-next-line no-unsanitized/property
+     mesTextEl.innerHTML = formatted;
++    restoreDrawImageMarkers(mesTextEl, protectedSlots.markers);
+     mountImageSlotShells(mesTextEl, messageId, message);
+     await notifyMessageRewritten(messageId);
+     return true;
+@@ -661,7 +670,29 @@ async function renderPreviewsForMessageNow(messageId, {
+     if (!mesTextEl || (content && content !== mesTextEl)) return;
+     // Projection observes the host's DOM, including filtered/hidden markers.
+     // Only an explicit text commit may request a whole-message rebuild.
+-    const renderedSlots = getRenderedSceneSlotIds(mesTextEl);
++    let renderedSlots = getRenderedSceneSlotIds(mesTextEl);
++    // The chat's persisted text is authoritative: if the Markdown formatter
++    // hid a marker, a refresh must not silently lose the corresponding card.
++    // Repair the CURRENT message once per source slot signature, never invent
++    // a deleted slot, and do not repeatedly rewrite other extensions' markup.
++    const missingSlots = [...slotIds].filter(slotId => !renderedSlots.has(slotId));
++    if (missingSlots.length && !isMessageBeingEdited(messageId)) {
++        const signature = [ctx.chatId, swipeIndex, ...slotIds].join('|');
++        if (drawPreviewRepairAttempts.get(message) !== signature) {
++            drawPreviewRepairAttempts.set(message, signature);
++            const repaired = await rebuildRenderedMessageFromState(messageId, {
++                chatId: expectedChatId, expectedMessage,
++            });
++            if (repaired) renderedSlots = getRenderedSceneSlotIds(mesTextEl);
++            const stillMissing = [...slotIds].filter(slotId => !renderedSlots.has(slotId));
++            if (stillMissing.length) {
++                console.warn('[ComfyDraw] Some saved image positions are missing from chat DOM', {
++                    expected: slotIds.size, present: renderedSlots.size,
++                    missing: stillMissing.length, messageId,
++                });
++            }
++        }
++    }
+     const refreshSlots = new Set((Array.isArray(refreshSlotIds) ? refreshSlotIds : [])
+         .map(slotId => String(slotId || '').trim())
+         .filter(Boolean));
 diff --git a/modules/draw/shared/draw-run-adoption.js b/modules/draw/shared/draw-run-adoption.js
 index be67663..f5f8b96 100644
 --- a/modules/draw/shared/draw-run-adoption.js
@@ -1843,7 +1912,7 @@ index be67663..f5f8b96 100644
      };
  }
 diff --git a/modules/draw/shared/gallery-cache.js b/modules/draw/shared/gallery-cache.js
-index 134dbaa..daf36ae 100644
+index 134dbaa..56b8235 100644
 --- a/modules/draw/shared/gallery-cache.js
 +++ b/modules/draw/shared/gallery-cache.js
 @@ -5,6 +5,7 @@ import { getContext } from "../../../../../../extensions.js";
@@ -1887,17 +1956,41 @@ index 134dbaa..daf36ae 100644
      });
  }
  
-@@ -1268,7 +1278,8 @@ function ensureGalleryStyles() {
+@@ -1268,7 +1278,32 @@ function ensureGalleryStyles() {
      if (document.getElementById('nd-gallery-styles')) return;
      const style = document.createElement('style');
      style.id = 'nd-gallery-styles';
 -    style.textContent = `#nd-gallery-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:100000;display:none;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px)}#nd-gallery-overlay.visible{display:flex;flex-direction:column;align-items:center;justify-content:center}.nd-gallery-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:20px;cursor:pointer;z-index:10}.nd-gallery-close:hover{background:rgba(255,255,255,0.2)}.nd-gallery-main{display:flex;align-items:center;gap:16px;max-width:90vw;max-height:70vh}.nd-gallery-nav{width:48px;height:48px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:24px;cursor:pointer;flex-shrink:0}.nd-gallery-nav:hover{background:rgba(255,255,255,0.2)}.nd-gallery-nav:disabled{opacity:0.3;cursor:not-allowed}.nd-gallery-img-wrap{position:relative;max-width:calc(90vw - 140px);max-height:70vh}.nd-gallery-img{max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5)}.nd-gallery-saved-badge{position:absolute;top:12px;left:12px;background:rgba(62,207,142,0.9);padding:4px 10px;border-radius:6px;font-size:11px;color:#fff;font-weight:600}.nd-gallery-thumbs{display:flex;gap:8px;margin-top:20px;padding:12px;background:rgba(0,0,0,0.3);border-radius:12px;max-width:90vw;overflow-x:auto}.nd-gallery-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.6;transition:all 0.15s;flex-shrink:0}.nd-gallery-thumb:hover{opacity:0.9}.nd-gallery-thumb.active{border-color:#d4a574;opacity:1}.nd-gallery-thumb.saved{border-color:rgba(62,207,142,0.8)}.nd-gallery-actions{display:flex;gap:12px;margin-top:16px}.nd-gallery-btn{padding:10px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;font-size:13px;cursor:pointer;transition:all 0.15s}.nd-gallery-btn:hover{background:rgba(255,255,255,0.2)}.nd-gallery-btn.primary{background:rgba(212,165,116,0.3);border-color:rgba(212,165,116,0.5)}.nd-gallery-btn.danger{color:#f87171;border-color:rgba(248,113,113,0.3)}.nd-gallery-btn.danger:hover{background:rgba(248,113,113,0.15)}.nd-gallery-info{text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,0.6)}`;
 +    style.textContent = `#nd-gallery-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:100008;display:none;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px)}#nd-gallery-overlay.visible{display:flex;flex-direction:column;align-items:center;justify-content:center}.nd-gallery-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:20px;cursor:pointer;z-index:10}.nd-gallery-close:hover{background:rgba(255,255,255,0.2)}.nd-gallery-main{display:flex;align-items:center;gap:16px;max-width:90vw;max-height:70vh}.nd-gallery-nav{width:48px;height:48px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:24px;cursor:pointer;flex-shrink:0}.nd-gallery-nav:hover{background:rgba(255,255,255,0.2)}.nd-gallery-nav:disabled{opacity:0.3;cursor:not-allowed}.nd-gallery-img-wrap{position:relative;max-width:calc(90vw - 140px);max-height:70vh}.nd-gallery-img{max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5)}.nd-gallery-saved-badge{position:absolute;top:12px;left:12px;background:rgba(62,207,142,0.9);padding:4px 10px;border-radius:6px;font-size:11px;color:#fff;font-weight:600}.nd-gallery-thumbs{display:flex;gap:8px;margin-top:20px;padding:12px;background:rgba(0,0,0,0.3);border-radius:12px;max-width:90vw;overflow-x:auto}.nd-gallery-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.6;transition:all 0.15s;flex-shrink:0}.nd-gallery-thumb:hover{opacity:0.9}.nd-gallery-thumb.active{border-color:#d4a574;opacity:1}.nd-gallery-thumb.saved{border-color:rgba(62,207,142,0.8)}.nd-gallery-actions{display:flex;gap:12px;margin-top:16px}.nd-gallery-btn{padding:10px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;font-size:13px;cursor:pointer;transition:all 0.15s}.nd-gallery-btn:hover{background:rgba(255,255,255,0.2)}.nd-gallery-btn.primary{background:rgba(212,165,116,0.3);border-color:rgba(212,165,116,0.5)}.nd-gallery-btn.danger{color:#f87171;border-color:rgba(248,113,113,0.3)}.nd-gallery-btn.danger:hover{background:rgba(248,113,113,0.15)}.nd-gallery-info{text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,0.6)}`;
 +    style.textContent += '#nd-gallery-overlay .nd-gallery-img-wrap{overflow:hidden;display:flex;align-items:center;justify-content:center;width:min(76vw,1200px);height:min(72vh,900px);max-width:min(76vw,1200px);max-height:72vh;touch-action:none;cursor:grab}#nd-gallery-overlay .nd-gallery-img-wrap:active{cursor:grabbing}#nd-gallery-overlay .nd-gallery-img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center;transition:transform .08s linear;user-select:none;pointer-events:none}#nd-gallery-overlay .nd-gallery-actions{flex-wrap:wrap;justify-content:center;margin-top:9px}#nd-gallery-overlay .nd-gallery-main{max-width:98vw;gap:9px}#nd-gallery-overlay .nd-gallery-thumbs{max-height:80px;margin-top:8px}#nd-gallery-overlay .nd-gallery-btn{padding:8px 13px}';
++
++    style.textContent += `
++#nd-gallery-overlay.visible{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;box-sizing:border-box;padding:8px 10px 5px;overflow:hidden}
++#nd-gallery-overlay .nd-gallery-main{display:flex;flex:1 1 0;min-height:0;min-width:0;overflow:hidden;width:100%;max-width:100%;max-height:none;justify-content:center;align-items:center;gap:8px;margin:0 auto;padding:0}
++#nd-gallery-overlay .nd-gallery-img-wrap{position:relative;display:flex;flex:1 1 0;min-width:0;min-height:0;width:100%;height:100%;max-height:100%;max-width:calc(100% - 112px);align-items:center;justify-content:center;overflow:hidden;touch-action:none;cursor:grab;user-select:none}
++#nd-gallery-overlay .nd-gallery-img-wrap.is-dragging{cursor:grabbing}
++#nd-gallery-overlay .nd-gallery-img{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;transition:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
++#nd-gallery-overlay .nd-gallery-thumbs{display:flex;flex:0 0 auto;gap:5px;margin:3px auto 2px;padding:3px 7px;max-width:100%;max-height:57px;min-height:0;overflow-x:auto;overflow-y:hidden}
++#nd-gallery-overlay .nd-gallery-thumb{width:48px;height:48px;border-radius:6px;flex:0 0 48px}
++#nd-gallery-overlay .nd-gallery-actions{display:flex;flex:0 0 auto;justify-content:center;flex-wrap:nowrap;gap:6px;margin:0 auto;padding:2px 4px;max-width:100%;min-height:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
++#nd-gallery-overlay .nd-gallery-btn{padding:6px 9px;font-size:12px;white-space:nowrap;flex:0 0 auto}
++#nd-gallery-overlay .nd-gallery-info{flex:0 0 auto;min-height:16px;line-height:16px;font-size:11px;margin:0 auto;padding:0;text-align:center}
++#nd-gallery-overlay .nd-gallery-nav{width:42px;height:42px;flex:0 0 42px}
++#nd-gallery-overlay .nd-gallery-close{top:10px;right:12px;z-index:12}
++@media(max-width:580px){
++ #nd-gallery-overlay.visible{padding:5px 5px 3px}
++ #nd-gallery-overlay .nd-gallery-main{gap:3px}
++ #nd-gallery-overlay .nd-gallery-img-wrap{max-width:calc(100% - 66px)}
++ #nd-gallery-overlay .nd-gallery-nav{width:30px;height:40px;flex-basis:30px}
++ #nd-gallery-overlay .nd-gallery-thumb{width:40px;height:40px;flex-basis:40px}
++ #nd-gallery-overlay .nd-gallery-thumbs{max-height:49px}
++ #nd-gallery-overlay .nd-gallery-btn{padding:6px 7px}
++}
++`;
      document.head.appendChild(style);
  }
  
-@@ -1281,18 +1292,73 @@ function createGalleryOverlay() {
+@@ -1281,18 +1316,118 @@ function createGalleryOverlay() {
      overlay.id = 'nd-gallery-overlay';
      // Template-only UI markup.
      // eslint-disable-next-line no-unsanitized/property
@@ -1926,34 +2019,79 @@ index 134dbaa..daf36ae 100644
 +        event.preventDefault();
 +        zoomGallery(event.deltaY < 0 ? 1.16 : 1 / 1.16);
 +    }, { passive: false });
++    // Drag works at 100% too. Track pointer identity and keep image in frame.
 +    imageWrap.addEventListener('pointerdown', event => {
-+        if (!currentGalleryData || galleryZoom.scale <= 1 || event.button !== 0) return;
-+        galleryZoom.dragging = { x:event.clientX - galleryZoom.x, y:event.clientY - galleryZoom.y };
-+        imageWrap.setPointerCapture(event.pointerId);
++        if (!currentGalleryData || (event.pointerType === 'mouse' && event.button !== 0)) return;
++        event.preventDefault();
++        galleryZoom.dragging = {
++            pointerId:event.pointerId,
++            startX:event.clientX,
++            startY:event.clientY,
++            originX:galleryZoom.x,
++            originY:galleryZoom.y,
++        };
++        imageWrap.classList.add('is-dragging');
++        try { imageWrap.setPointerCapture(event.pointerId); } catch (_) {}
 +    });
 +    imageWrap.addEventListener('pointermove', event => {
-+        if (!galleryZoom.dragging) return;
-+        galleryZoom.x=event.clientX-galleryZoom.dragging.x;
-+        galleryZoom.y=event.clientY-galleryZoom.dragging.y;
++        const drag=galleryZoom.dragging;
++        if (!drag || drag.pointerId !== event.pointerId) return;
++        event.preventDefault();
++        galleryZoom.x=drag.originX+event.clientX-drag.startX;
++        galleryZoom.y=drag.originY+event.clientY-drag.startY;
 +        applyGalleryZoom();
 +    });
-+    for(const name of ['pointerup','pointercancel','lostpointercapture']) {
-+        imageWrap.addEventListener(name,()=>{galleryZoom.dragging=null;});
++    function endGalleryPointer(event) {
++        const drag=galleryZoom.dragging;
++        if (!drag || drag.pointerId !== event.pointerId) return;
++        galleryZoom.dragging=null;
++        imageWrap.classList.remove('is-dragging');
++        try { if(imageWrap.hasPointerCapture(event.pointerId)) imageWrap.releasePointerCapture(event.pointerId); } catch (_) {}
 +    }
++    imageWrap.addEventListener('pointerup',endGalleryPointer);
++    imageWrap.addEventListener('pointercancel',endGalleryPointer);
++    imageWrap.addEventListener('lostpointercapture',event=>{
++        if(galleryZoom.dragging?.pointerId===event.pointerId){
++            galleryZoom.dragging=null;
++            imageWrap.classList.remove('is-dragging');
++        }
++    });
++    window.addEventListener('blur',()=>{galleryZoom.dragging=null;imageWrap.classList.remove('is-dragging');});
 +    document.addEventListener('keydown',onGalleryKeydown,true);
      overlay.addEventListener('click', (e) => { if (e.target === overlay) closeGallery(); });
  }
  
 +const galleryZoom={scale:1,x:0,y:0,dragging:null};
++function constrainGalleryPan() {
++    const img=document.getElementById('nd-gallery-img');
++    const wrap=document.getElementById('nd-gallery-overlay')?.querySelector('.nd-gallery-img-wrap');
++    if (!img || !wrap) return;
++    const imageW=img.offsetWidth || 0;
++    const imageH=img.offsetHeight || 0;
++    const frameW=wrap.clientWidth || 0;
++    const frameH=wrap.clientHeight || 0;
++    if (!imageW || !imageH || !frameW || !frameH) {
++        galleryZoom.x=0;galleryZoom.y=0;return;
++    }
++    const scaledW=imageW*galleryZoom.scale;
++    const scaledH=imageH*galleryZoom.scale;
++    // When fitted, pan within empty margins; when enlarged, stop at the edge.
++    const maxX=Math.abs(frameW-scaledW)/2;
++    const maxY=Math.abs(frameH-scaledH)/2;
++    galleryZoom.x=Math.max(-maxX,Math.min(maxX,galleryZoom.x));
++    galleryZoom.y=Math.max(-maxY,Math.min(maxY,galleryZoom.y));
++}
 +function applyGalleryZoom() {
 +    const img=document.getElementById('nd-gallery-img');
 +    if (!img) return;
++    constrainGalleryPan();
 +    img.style.transform='translate('+galleryZoom.x+'px,'+galleryZoom.y+'px) scale('+galleryZoom.scale+')';
 +    const label=document.getElementById('nd-gallery-zoom-reset');
 +    if(label)label.textContent=Math.round(galleryZoom.scale*100)+'%';
 +}
 +function resetGalleryZoom() {
 +    galleryZoom.scale=1;galleryZoom.x=0;galleryZoom.y=0;galleryZoom.dragging=null;
++    document.querySelector('#nd-gallery-overlay .nd-gallery-img-wrap')?.classList.remove('is-dragging');
 +    applyGalleryZoom();
 +}
 +function zoomGallery(factor) {
@@ -1974,7 +2112,7 @@ index 134dbaa..daf36ae 100644
  export async function openGallery(slotId, messageId, callbacks = {}) {
      createGalleryOverlay();
  
-@@ -1312,6 +1378,7 @@ export async function openGallery(slotId, messageId, callbacks = {}) {
+@@ -1312,6 +1447,7 @@ export async function openGallery(slotId, messageId, callbacks = {}) {
      }
  
      currentGalleryData = { slotId, messageId, previews: validPreviews, currentIndex: startIndex, callbacks };
@@ -1982,7 +2120,7 @@ index 134dbaa..daf36ae 100644
      renderGalleryThumbs();
      renderGallery();
      document.getElementById('nd-gallery-overlay').classList.add('visible');
-@@ -1321,6 +1388,7 @@ export function closeGallery() {
+@@ -1321,6 +1457,7 @@ export function closeGallery() {
      const el = document.getElementById('nd-gallery-overlay');
      if (el) el.classList.remove('visible');
      currentGalleryData = null;
@@ -1990,7 +2128,7 @@ index 134dbaa..daf36ae 100644
  }
  
  function renderGalleryThumbs() {
-@@ -1342,6 +1410,7 @@ function renderGalleryThumbs() {
+@@ -1342,6 +1479,7 @@ function renderGalleryThumbs() {
      thumbsContainer.querySelectorAll('.nd-gallery-thumb').forEach(thumb => {
          thumb.addEventListener('click', () => {
              currentGalleryData.currentIndex = parseInt(thumb.dataset.index);
@@ -1998,7 +2136,15 @@ index 134dbaa..daf36ae 100644
              renderGallery();
          });
      });
-@@ -1371,8 +1440,12 @@ function renderGallery() {
+@@ -1367,12 +1505,19 @@ function renderGallery() {
+     const current = previews[currentIndex];
+     if (!current) return;
+ 
+-    document.getElementById('nd-gallery-img').src = getPreviewDisplayUrl(current);
++    const visibleImage=document.getElementById('nd-gallery-img');
++    visibleImage.onload=()=>{if(currentGalleryData?.previews?.[currentGalleryData.currentIndex]?.imgId===current.imgId) applyGalleryZoom();};
++    visibleImage.src = getPreviewDisplayUrl(current);
++    applyGalleryZoom();
      document.getElementById('nd-gallery-saved-badge').style.display = current.savedUrl ? 'block' : 'none';
      updateGalleryThumbState();
  
@@ -2013,7 +2159,7 @@ index 134dbaa..daf36ae 100644
  
      const saveBtn = document.getElementById('nd-gallery-save');
      if (current.savedUrl) {
-@@ -1390,13 +1463,24 @@ function renderGallery() {
+@@ -1390,13 +1535,24 @@ function renderGallery() {
      document.getElementById('nd-gallery-info').textContent = `版本 ${displayVersion} / ${previews.length} · ${date}`;
  }
  
@@ -2039,7 +2185,7 @@ index 134dbaa..daf36ae 100644
  }
  
  async function useCurrentGalleryImage() {
-@@ -1486,6 +1570,7 @@ export function destroyGalleryCache() {
+@@ -1486,6 +1642,7 @@ export function destroyGalleryCache() {
      invalidateCache();
      clearPreviewObjectUrls();
  
