@@ -85,7 +85,7 @@
  const novelai = require('./providers/novelai/adapter.js');
  const sdWebUi = require('./providers/sd-webui/adapter.js');
  const comfyui = require('./providers/comfyui/adapter.js');
-+const { injectSavedRolePhotos } = require('./providers/comfyui/role-photo-upload.js');
++const { injectSavedRolePhotos, stripUnresolvedRolePhoto } = require('./providers/comfyui/role-photo-upload.js');
  const pluginManifest = require('./manifest.json');
  const { createRequestAbortScope } = require('./request-abort.js');
  const { registerWebRoutes, EXA_BACKEND_CAPABILITY } = require('./web/routes.js');
@@ -114,7 +114,7 @@
 +        }
 +        const scope = createRequestAbortScope(req, res);
 +        try {
-+            const resolved = await injectSavedRolePhotos(body.workflow, {
++            const resolved = await injectSavedRolePhotos(stripUnresolvedRolePhoto(body.workflow), {
 +                url, auth: String(body.auth || ''), signal: scope.signal,
 +            });
 +            if (!scope.signal.aborted) res.status(200).send({ ok: true, workflow: resolved });
@@ -137,7 +137,7 @@
      readJsonResponse,
      readResponseBuffer,
  } = require('../upstream.js');
-+const { injectSavedRolePhotos } = require('./role-photo-upload.js');
++const { injectSavedRolePhotos, stripUnresolvedRolePhoto } = require('./role-photo-upload.js');
  
  const SUCCESS_WITHOUT_IMAGE_GRACE_MS = 15_000;
  const CANCEL_REQUEST_TIMEOUT_MS = 5_000;
@@ -145,7 +145,7 @@
      };
      signal.addEventListener('abort', dropQueuedPrompt, { once: true });
      try {
-+        const submittedWorkflow = await injectSavedRolePhotos(item.request.workflow, {
++        const submittedWorkflow = await injectSavedRolePhotos(stripUnresolvedRolePhoto(item.request.workflow), {
 +            url: context.url, auth: context.auth, signal,
 +        });
          const promptResponse = await fetch(promptUrl, {

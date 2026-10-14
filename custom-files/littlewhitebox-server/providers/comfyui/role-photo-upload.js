@@ -51,4 +51,29 @@ async function injectSavedRolePhotos(workflow, { url, auth = '', signal, fetchIm
     }
     return result;
 }
-module.exports = { injectSavedRolePhotos, PHOTO_PREFIX };
+// A template may be submitted directly from a preset editor or through a stale
+// compiled job. Never send its placeholder as a ComfyUI image filename.
+// With no resolved photograph the only safe behavior is genuine text-only mode.
+function stripUnresolvedRolePhoto(workflow) {
+    const result = structuredClone(workflow);
+    const unresolved = Object.entries(result).filter(([_, node]) =>
+        node?.class_type === 'LoadImage' && node.inputs?.image === '__LWB_ROLE_PHOTO__');
+    if (!unresolved.length) return result;
+    if (unresolved.length !== 1 || unresolved[0][0] !== '15'
+        || result['5']?.class_type !== 'TextEncodeKrea2Reference'
+        || result['18']?.class_type !== 'CLIPTextEncode'
+        || result['8']?.class_type !== 'KSampler') {
+        throw new Error('Krea2 reference photo was unresolved and has no safe text-only fallback');
+    }
+    const scene = String(result['5'].inputs?.prompt || result['18'].inputs?.text || '').trim();
+    if (!scene || scene.length > 12000) {
+        throw new Error('Krea2 scene text is missing; cannot fall back safely');
+    }
+    result['18'].inputs.text = scene;
+    result['8'].inputs.positive = ['18', 0];
+    delete result['15'];
+    delete result['5'];
+    console.warn('[ComfyUI] unresolved role-photo placeholder removed; using text-only generation');
+    return result;
+}
+module.exports = { injectSavedRolePhotos, stripUnresolvedRolePhoto, PHOTO_PREFIX };

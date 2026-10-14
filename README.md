@@ -73,3 +73,10 @@ npm run check
 ## 隐私
 
 **不要提交**实际运行配置、API 密钥、私钥、个人角色照片、聊天记录、账号密码或模型文件。本仓库为公开仓库。v0.1.0 不内置真实账号、令牌和设备地址。
+
+
+### 小白 X 人物参考占位符修复（2026-10-14）
+
+此前部分生图路径把 __LWB_ROLE_PHOTO__ 原样交给 ComfyUI，导致第 15 号 LoadImage 节点验证失败。现已增加前端二次匹配、后台兜底和提交前检查：有明确匹配照片时继续上传照片并作为 Krea2 参考；没有可匹配照片时删掉无效图片节点，转成纯文生图。**占位符只供小白 X 动态预设使用，不可直接当作 ComfyUI 真实图片文件名。**
+
+修复后的历史代码见 custom-files/littlewhitebox-server/providers/comfyui/role-photo-upload.js 和 patches/ 里的最新补丁。独立版使用自己的 __ST_IMAGE_ROLE__ 占位符，处理方式独立于该修复。

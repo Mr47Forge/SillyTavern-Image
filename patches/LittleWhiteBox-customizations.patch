@@ -131,10 +131,10 @@ index 52b44c6..71a6337 100644
                                  <div id="comfy-shared-character-list" class="char-grid"></div>
                              </div>
 diff --git a/modules/draw/providers/comfyui/comfy-draw.js b/modules/draw/providers/comfyui/comfy-draw.js
-index fd60a6e..86b3c62 100644
+index fd60a6e..7e7002b 100644
 --- a/modules/draw/providers/comfyui/comfy-draw.js
 +++ b/modules/draw/providers/comfyui/comfy-draw.js
-@@ -33,7 +33,7 @@ import {
+@@ -33,10 +33,11 @@ import {
      updateSharedDrawSettingsPersistent,
      normalizeSharedCacheDays,
  } from "../../shared/draw-settings.js";
@@ -143,7 +143,11 @@ index fd60a6e..86b3c62 100644
  import { characterLibraryFromSettings, selectEnabledCharacters } from "../../shared/character-library.js";
  import { attachDrawAgentSettingsSurface } from "../../shared/agent-settings-surface.js";
  import { createSerialImageRequestQueue } from "../../shared/serial-image-request-queue.js";
-@@ -62,6 +62,19 @@ import { submitProviderDrawRun } from "../../shared/draw-run-production.js";
++import { applyRolePhotoReference } from './role-photo-reference.js';
+ import {
+     buildComfyImageRequest,
+     buildSimpleWorkflow,
+@@ -62,6 +63,19 @@ import { submitProviderDrawRun } from "../../shared/draw-run-production.js";
  import { cancelFloorDrawWork, captureDrawCancellationTarget } from "../../shared/draw-run-controls.js";
  import { createCharacterEnabledControl, getCharacterEnabledFromCard } from "../../shared/character-enabled-control.js";
  import { createCharacterLibraryUi } from "../../shared/character-library-ui.js";
@@ -163,7 +167,7 @@ index fd60a6e..86b3c62 100644
  import { bindGroupPresetPanel } from "../../shared/character-group-presets-draft-binding.js";
  import {
      applyGroupPresetForCurrentChat,
-@@ -137,6 +150,8 @@ const DEFAULT_COMFY_DRAW_SETTINGS = {
+@@ -137,6 +151,8 @@ const DEFAULT_COMFY_DRAW_SETTINGS = {
      auth: '',
      timeout: 120000,
      useImageBackendJobs: false,
@@ -172,7 +176,7 @@ index fd60a6e..86b3c62 100644
      mode: 'manual',
      overrideSize: 'default',
      showFloorButton: true,
-@@ -191,6 +206,43 @@ let resizeHandler = null;
+@@ -191,6 +207,43 @@ let resizeHandler = null;
  let eventsBound = false;
  let agentSettingsSurface = null;
  let characterLibraryUi = null;
@@ -216,7 +220,7 @@ index fd60a6e..86b3c62 100644
  let groupPresetBinding = null;
  let promptChainPreviewFrame = 0;
  let ensureComfyDrawPanelRef = null;
-@@ -395,6 +447,8 @@ function normalizeSettings(raw = {}) {
+@@ -395,6 +448,8 @@ function normalizeSettings(raw = {}) {
          auth: String(raw.auth ?? ''),
          timeout: normalizeNumber(raw.timeout, DEFAULT_COMFY_DRAW_SETTINGS.timeout, 10000, 600000),
          useImageBackendJobs: raw.useImageBackendJobs === true,
@@ -225,7 +229,7 @@ index fd60a6e..86b3c62 100644
          selectedPresetId,
          selectedWorkflowPresetId,
          builtinWorkflowId,
-@@ -1095,10 +1149,30 @@ async function requestComfyImage({ prompt, negativePrompt = '', params = {}, pre
+@@ -1095,10 +1150,40 @@ async function requestComfyImage({ prompt, negativePrompt = '', params = {}, pre
              prompt,
              negativePrompt,
              params: effective,
@@ -237,6 +241,16 @@ index fd60a6e..86b3c62 100644
 +        // Uploaded role photographs live on H28K, not in the Windows ComfyUI input folder.
 +        // Resolve them only for the new Krea2 role-photo preset; old presets keep their path.
 +        let submittedWorkflow = request.workflow;
++        // Some manual/test/recovery paths pass a saved API template instead of
++        // a freshly compiled request. Resolve it here too, before ComfyUI sees it.
++        if (submittedWorkflow?.['15']?.inputs?.image === '__LWB_ROLE_PHOTO__') {
++            submittedWorkflow = applyRolePhotoReference(
++                structuredClone(submittedWorkflow), {
++                    prompt,
++                    knownCharacters: selectEnabledCharacters(
++                        characterLibraryFromSettings(getSharedDrawSettings())),
++                });
++        }
 +        const needsPhotoTransfer = Object.values(submittedWorkflow || {}).some(node =>
 +            node?.class_type === 'LoadImage'
 +            && String(node?.inputs?.image || '').startsWith('lwb-role-photo:'));
@@ -258,7 +272,7 @@ index fd60a6e..86b3c62 100644
          if (isDirectConnection(settings) && request.preferredSaveImageNodeId) requestBody.preferredSaveImageNodeId = request.preferredSaveImageNodeId;
  
          const response = await requestComfyTransport('generate', requestBody, {
-@@ -1138,7 +1212,7 @@ async function runComfyImageBatch({
+@@ -1138,7 +1223,7 @@ async function runComfyImageBatch({
              return request.prepared || buildComfyImageRequest({
                  ...request,
                  params: effective,
@@ -267,7 +281,7 @@ index fd60a6e..86b3c62 100644
                  seed: request.seed ?? createComfySeed(),
              });
          });
-@@ -1836,6 +1910,11 @@ function bindOverlayEvents() {
+@@ -1836,6 +1921,11 @@ function bindOverlayEvents() {
          });
          if (ok) fillForm(getSettings());
      });
@@ -279,7 +293,7 @@ index fd60a6e..86b3c62 100644
      querySettings('#comfy-shared-char-add')?.addEventListener('click', () => {
          addCharacterTagDraft();
      });
-@@ -2092,16 +2171,50 @@ function bindOverlayEvents() {
+@@ -2092,16 +2182,50 @@ function bindOverlayEvents() {
              await saveAllSettings({ notify: true, triggerButton: event.currentTarget, statusElementId });
          });
      });
@@ -334,7 +348,7 @@ index fd60a6e..86b3c62 100644
      });
  }
  
-@@ -2121,6 +2234,8 @@ function fillForm(settings) {
+@@ -2121,6 +2245,8 @@ function fillForm(settings) {
      setValue('comfy-connection-mode', settings.connectionMode || 'proxy');
      setValue('comfy-draw-auth', settings.auth || '');
      setChecked('comfy-use-image-backend-jobs', settings.useImageBackendJobs === true);
@@ -343,7 +357,7 @@ index fd60a6e..86b3c62 100644
      updateConnectionModeUI(settings.connectionMode || 'proxy', settings.useImageBackendJobs === true);
      setValue('comfy-draw-host', settings.host);
      setValue('comfy-draw-timeout', settings.timeout);
-@@ -2191,6 +2306,8 @@ function readForm() {
+@@ -2191,6 +2317,8 @@ function readForm() {
          auth: getValue('comfy-draw-auth').trim(),
          timeout: normalizeNumber(getValue('comfy-draw-timeout'), current.timeout, 10000, 600000),
          useImageBackendJobs: getChecked('comfy-use-image-backend-jobs'),
@@ -352,7 +366,7 @@ index fd60a6e..86b3c62 100644
          builtinWorkflowId: getValue('comfy-builtin-workflow') || current.builtinWorkflowId || DEFAULT_COMFY_DRAW_SETTINGS.builtinWorkflowId,
          presets: current.presets.map(item => item.id === current.selectedPresetId ? { ...preset, id: item.id, name: item.name } : item),
      };
-@@ -2627,10 +2744,15 @@ function readCharacterCardsFromForm({ keepEmpty = false } = {}) {
+@@ -2627,10 +2755,15 @@ function readCharacterCardsFromForm({ keepEmpty = false } = {}) {
                  .filter(Boolean),
              type: String(card.querySelector('[data-sd-char-field="type"]')?.value || 'girl').trim() || 'girl',
              appearance: String(card.querySelector('[data-sd-char-field="appearance"]')?.value || '').trim(),
@@ -371,7 +385,7 @@ index fd60a6e..86b3c62 100644
          };
      }).filter((item) => keepEmpty || item.name || item.appearance || item.danbooruTag || item.negativeTags || item.aliases.length || item.outfits?.length || item.dynamicStates?.length);
  }
-@@ -2738,6 +2860,307 @@ function createCharacterEmptyState() {
+@@ -2738,6 +2871,307 @@ function createCharacterEmptyState() {
      return empty;
  }
  
@@ -679,7 +693,7 @@ index fd60a6e..86b3c62 100644
  function renderCharacterCard({ character: tag, ordinal }) {
      const index = ordinal - 1;
      const card = document.createElement('div');
-@@ -2748,11 +3171,42 @@ function renderCharacterCard({ character: tag, ordinal }) {
+@@ -2748,11 +3182,42 @@ function renderCharacterCard({ character: tag, ordinal }) {
      top.className = 'sd-char-card-header';
      const title = document.createElement('div');
      title.className = 'sd-char-card-title';
@@ -725,7 +739,7 @@ index fd60a6e..86b3c62 100644
      const delButton = document.createElement('button');
      delButton.className = 'btn btn-danger btn-sm';
      delButton.type = 'button';
-@@ -2762,19 +3216,39 @@ function renderCharacterCard({ character: tag, ordinal }) {
+@@ -2762,19 +3227,39 @@ function renderCharacterCard({ character: tag, ordinal }) {
      const delText = document.createElement('span');
      delText.textContent = '删除';
      delButton.append(delIcon, delText);
@@ -778,7 +792,7 @@ index fd60a6e..86b3c62 100644
  
      const actions = document.createElement('div');
      actions.className = 'btn-group';
-@@ -2782,7 +3256,14 @@ function renderCharacterCard({ character: tag, ordinal }) {
+@@ -2782,7 +3267,14 @@ function renderCharacterCard({ character: tag, ordinal }) {
          enabled: tag.enabled !== false,
          label: `角色 ${index + 1}${tag.name ? ` ${tag.name}` : ''}`,
      });
@@ -794,7 +808,7 @@ index fd60a6e..86b3c62 100644
      top.append(title, actions);
  
      const grid = document.createElement('div');
-@@ -2792,23 +3273,52 @@ function renderCharacterCard({ character: tag, ordinal }) {
+@@ -2792,23 +3284,52 @@ function renderCharacterCard({ character: tag, ordinal }) {
          createCharacterField('类型', 'type', tag.type || 'girl', '例如 girl / boy'),
      );
  
@@ -857,7 +871,7 @@ index fd60a6e..86b3c62 100644
  function createCharacterField(labelText, fieldName, value, placeholder, options = {}) {
      const field = document.createElement('div');
      field.className = 'form-group';
-@@ -2820,6 +3330,7 @@ function createCharacterField(labelText, fieldName, value, placeholder, options
+@@ -2820,6 +3341,7 @@ function createCharacterField(labelText, fieldName, value, placeholder, options
      input.className = 'input';
      input.dataset.sdCharField = fieldName;
      input.placeholder = placeholder;
@@ -865,7 +879,7 @@ index fd60a6e..86b3c62 100644
      if (options.multiline) {
          input.rows = 3;
          input.textContent = String(value || '');
-@@ -3318,10 +3829,104 @@ function fillSharedDrawForm() {
+@@ -3318,10 +3840,104 @@ function fillSharedDrawForm() {
      void ensureComfyDanbooruLoadedForForm(sharedDrawSettings);
  }
  
@@ -973,7 +987,7 @@ index fd60a6e..86b3c62 100644
          settings.useWorldInfo = getChecked('comfy-shared-use-worldinfo');
          settings.messageFilterRules = collectFilterRules();
          settings.characterTags = characterTags;
-@@ -3333,6 +3938,31 @@ async function saveSharedDrawSettings({ notify = false } = {}) {
+@@ -3333,6 +3949,31 @@ async function saveSharedDrawSettings({ notify = false } = {}) {
              keywordFilterMode: getValue('comfy-wb-filter-mode') || 'auto',
          };
      }, '共享规划设置已保存', { notify, silent: false });
@@ -1005,7 +1019,7 @@ index fd60a6e..86b3c62 100644
  }
  
  async function saveAllSettings({ notify = false, triggerButton = null, statusElementId = '' } = {}) {
-@@ -3391,6 +4021,470 @@ async function saveAllSettings({ notify = false, triggerButton = null, statusEle
+@@ -3391,6 +4032,470 @@ async function saveAllSettings({ notify = false, triggerButton = null, statusEle
      return ok;
  }
  
@@ -1476,7 +1490,7 @@ index fd60a6e..86b3c62 100644
  function addCharacterTagDraft() {
      ensureCharacterLibraryUi()?.addCharacter();
  }
-@@ -3884,6 +4978,50 @@ async function buildComfyScenePlannerOptions({
+@@ -3884,6 +4989,50 @@ async function buildComfyScenePlannerOptions({
      };
  }
  
@@ -1527,7 +1541,7 @@ index fd60a6e..86b3c62 100644
  async function buildTasksFromMessage({ message, messageId, signal, promptOverride = '', useWorldbook = true, stripImageMarkers = true, onStateChange }) {
      if (promptOverride.trim()) {
          return {
-@@ -3900,6 +5038,7 @@ async function buildTasksFromMessage({ message, messageId, signal, promptOverrid
+@@ -3900,6 +5049,7 @@ async function buildTasksFromMessage({ message, messageId, signal, promptOverrid
          onStateChange,
      });
      const tasks = await generateAndParseScenePlan(plannerOptions);
