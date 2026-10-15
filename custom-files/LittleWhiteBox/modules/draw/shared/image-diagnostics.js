@@ -1,9 +1,30 @@
+import { getRequestHeaders } from '../../../../../../../script.js';
 // Image diagnostics for LittleWhiteBox ComfyUI. No API keys, host URLs,
 // character images or raw entire workflow files are included in these records.
 const ERROR_DB = 'xb_comfy_draw_error_logs';
 const ERROR_STORE = 'errors';
 const ERROR_LIMIT = 300;
 let errorDatabase = null;
+const ERROR_SERVER_ENDPOINT = '/api/plugins/littlewhitebox-server/v1/diagnostics/errors';
+async function serverDiagnosticRequest(method, data = null) {
+    const res = await fetch(ERROR_SERVER_ENDPOINT, {
+        method,
+        headers: { ...getRequestHeaders(), 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        signal: AbortSignal.timeout(7000),
+        ...(data === null ? {} : { body: JSON.stringify(data) }),
+    });
+    if (!res.ok) throw new Error('H28K 日志服务 HTTP ' + res.status);
+    const answer = await res.json();
+    if (!answer.ok) throw new Error('H28K 未确认日志操作');
+    return answer;
+}
+function errorMetadata(entry) {
+    return {
+        stage: entry.stage, errorType: entry.errorType, message: entry.message,
+        provider: entry.provider, model: entry.model, source: entry.source,
+    };
+}
 function dbOpen() {
     if (errorDatabase) return Promise.resolve(errorDatabase);
     if (typeof indexedDB === 'undefined') return Promise.resolve(null);
@@ -49,16 +70,24 @@ export function workflowPromptTrace(request = {}, fallback = {}) {
     };
 }
 export async function writeImageError(info={}) {
-    const db=await dbOpen();
-    if (!db) return;
     const entry={
-        time:Date.now(), provider:'ComfyUI',
+        time:Date.now(), provider:safeText(info.provider || 'ComfyUI',65), model:safeText(info.model || '',95), source:safeText(info.source || 'frontend',40),
         slotId:safeText(info.slotId,140),imgId:safeText(info.imgId,140),
         chatId:safeText(info.chatId,140), messageId:safeText(info.messageId,100),
         stage:safeText(info.stage||'生成',100),errorType:safeText(info.errorType||'错误',150),
         message:safeText(info.errorMessage || '未知错误',3000),
         positive:safeText(info.positive,12000),negative:safeText(info.negativePrompt,12000),
     };
+    // Server persistence first; IndexedDB remains a backward compatible local copy.
+    try {
+        const saved = await serverDiagnosticRequest('POST', errorMetadata(entry));
+        if (saved?.item?.time) entry.time = saved.item.time;
+    } catch (error) {
+        console.error('[LittleWhiteBox] Error log was NOT saved on H28K', error);
+        globalThis.toastr?.error?.('H28K 错误日志保存失败：' + String(error?.message || error), '小白 X');
+    }
+    const db=await dbOpen();
+    if (!db) return entry;
     await new Promise((resolve,reject)=>{
         const tx=db.transaction(ERROR_STORE,'readwrite');
         tx.objectStore(ERROR_STORE).add(entry);
@@ -79,12 +108,15 @@ export async function writeImageError(info={}) {
         tx.oncomplete=resolve;
         tx.onerror=tx.onabort=()=>reject(tx.error);
     });
+    return entry;
 }
 export async function readImageErrors(limit=100) {
-    const db=await dbOpen();
-    if (!db) return [];
     const max=Math.min(300,Math.max(1,Number(limit)||100));
-    return new Promise((resolve,reject)=>{
+    // Never pretend logs are empty if the server cannot be reached.
+    const persistent=(await serverDiagnosticRequest('GET')).items || [];
+    const db=await dbOpen();
+    if (!db) return persistent.slice(0,max);
+    const local=await new Promise((resolve,reject)=>{
         const rows=[];
         const tx=db.transaction(ERROR_STORE,'readonly');
         const cursor=tx.objectStore(ERROR_STORE).openCursor(null,'prev');
@@ -96,9 +128,16 @@ export async function readImageErrors(limit=100) {
         };
         tx.oncomplete=()=>resolve(rows);
         tx.onerror=tx.onabort=()=>reject(tx.error);
+    }).catch(error => {
+        console.warn('[LittleWhiteBox] Previous browser logs unreadable',error);
+        return [];
     });
+    const seen=new Set(persistent.map(e=>[e.time,e.stage,e.message].join('|')));
+    return [...persistent,...local.filter(e=>!seen.has([e.time,e.stage,e.message].join('|')))]
+        .sort((a,b)=>Number(b.time||0)-Number(a.time||0)).slice(0,max);
 }
 export async function clearImageErrors() {
+    await serverDiagnosticRequest('DELETE');
     const db=await dbOpen();
     if (!db) return;
     return new Promise((resolve,reject)=>{
@@ -154,7 +193,7 @@ export function openImageDiagnostics(record={},opts={}) {
     const header=doc.createElement('div');
     Object.assign(header.style,{display:'flex',padding:'15px 18px',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid #444b5a'});
     const title=doc.createElement('strong');
-    title.textContent=opts.errors?'ComfyUI · 错误日志':'本张图片 · 提示词日志';
+    title.textContent=opts.errors?'小白 X · 错误日志':'本张图片 · 提示词日志';
     const close=doc.createElement('button');
     close.textContent='关闭';close.type='button';
     Object.assign(close.style,{background:'#293140',color:'#f4f4f5',border:'1px solid #444b5a',borderRadius:'7px',padding:'6px 12px',cursor:'pointer'});
