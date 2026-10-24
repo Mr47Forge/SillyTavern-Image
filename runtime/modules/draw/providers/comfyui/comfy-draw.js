@@ -3042,6 +3042,7 @@ function openCharacterTestPreview(characterId) {
             const output=await generateImagesFromText({
                 text: compiled.positive, promptOverride:compiled.positive,
                 negativePromptOverride:compiled.negative,
+                taskCharacters: [{ name: role.name }],
                 title: compiled.name, source:'character-test',
             });
             const ready=output.images?.find(entry=>entry.success && entry.displayUrl);
@@ -5106,10 +5107,10 @@ export async function applyComfyDrawRunAutoLearn(record = {}) {
     await maybeComfyAutoLearn(tasks, entries.find(meta => meta.autoLearnMode)?.autoLearnMode);
 }
 
-async function buildTasksFromMessage({ message, messageId, signal, promptOverride = '', useWorldbook = true, stripImageMarkers = true, onStateChange }) {
+async function buildTasksFromMessage({ message, messageId, signal, promptOverride = '', taskCharacters = [], useWorldbook = true, stripImageMarkers = true, onStateChange }) {
     if (promptOverride.trim()) {
         return {
-            tasks: [{ scene: promptOverride.trim(), chars: [], characterPrompts: [], placement: { mode: 'tail' } }],
+            tasks: [{ scene: promptOverride.trim(), chars: Array.isArray(taskCharacters) ? structuredClone(taskCharacters) : [], characterPrompts: [], placement: { mode: 'tail' } }],
             sceneSource: null,
         };
     }
@@ -5185,6 +5186,7 @@ export async function generateImagesFromText(options = {}) {
         messageId,
         signal,
         promptOverride: options.promptOverride || '',
+        taskCharacters: options.taskCharacters || [],
         negativePromptOverride: options.negativePromptOverride || '',
         useWorldbook: false,
         stripImageMarkers: false,

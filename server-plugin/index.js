@@ -5,6 +5,7 @@ const { storePhoto, readPhoto } = require('./lib/photos');
 const { checkConnection, runGeneration } = require('./lib/transport');
 const { mountRuntime, closeRuntime } = require('./lib/runtime');
 const { importLegacySettings } = require('./lib/migration');
+const { getCurrentUser } = require('./lib/user-context');
 
 const info = {
   id: manifest.id, name: manifest.name,
@@ -12,8 +13,7 @@ const info = {
 };
 const running = new Set();
 function user(req) {
-  if (!req.user?.profile?.handle || !req.user?.directories?.images) return null;
-  return req.user;
+  return getCurrentUser(req);
 }
 function errorResponse(res, error) {
   const status = Number.isInteger(error?.status) && error.status >= 400 && error.status < 600
@@ -25,7 +25,7 @@ async function init(router) {
   await mountRuntime(router);
   router.post('/v1/migrate-x', async (req, res) => {
     if (!user(req)) return res.status(403).json({ ok: false, error: '请先登录酒馆' });
-    try { res.json(await importLegacySettings(req.user)); }
+    try { res.json(await importLegacySettings(user(req))); }
     catch (error) { errorResponse(res, error); }
   });
   router.get('/status', (req, res) => res.json({ ok: true, version: info.version, plugin: info.id }));

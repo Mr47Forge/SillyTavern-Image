@@ -9,12 +9,17 @@ await build({ entryPoints: ['extension/entry.js'], bundle: true, platform: 'brow
 async function checkAssets(directory) {
   for (const entry of await readdir(directory,{withFileTypes:true})) {
     const p=resolve(directory,entry.name);
-    if(entry.isDirectory()) await checkAssets(p);
+    if(entry.isDirectory() && entry.name !== 'tests') await checkAssets(p);
     else if(entry.name.endsWith('.html')) {
       const text=await readFile(p,'utf8');
       for(const match of text.matchAll(/(?:src|href)=["']([^"']+)["']/g)) {
         if(!match[1].startsWith('.') || match[1].includes('${')) continue;
         await readFile(resolve(directory,match[1]));
+      }
+    } else if (/\.(?:js|mjs)$/.test(entry.name)) {
+      const text=await readFile(p,'utf8');
+      for(const match of text.matchAll(/new URL\(["']([^"']+\.(?:css|html|md|dat))["'],\s*import\.meta\.url\)/g)) {
+        if (match[1].startsWith('.')) await readFile(resolve(directory,match[1]));
       }
     }
   }

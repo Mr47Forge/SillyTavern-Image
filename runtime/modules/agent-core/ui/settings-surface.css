@@ -1,0 +1,282 @@
+.sti-agent-settings-surface .sti-assistant-config,
+.sti-agent-settings-surface .sti-assistant-config-fields,
+.sti-agent-settings-surface .sti-assistant-config-page {
+    display: grid;
+    gap: 14px;
+}
+
+.sti-agent-settings-surface .sti-assistant-config-fields {
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.sti-agent-settings-surface .sti-assistant-config-page[hidden] {
+    display: none;
+}
+
+.sti-agent-settings-surface .sti-assistant-web-settings {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: inherit;
+    gap: inherit;
+    min-width: 0;
+}
+
+.sti-agent-settings-surface .sti-assistant-preset-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--accent-soft), transparent 72%), var(--bg-secondary);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+    border-radius: 12px;
+}
+
+.sti-agent-settings-surface .sti-assistant-preset-field,
+.sti-agent-settings-surface .sti-assistant-config select.sti-assistant-preset-field {
+    min-width: 0;
+    width: 100%;
+    font-weight: 650;
+}
+
+.sti-agent-settings-surface .sti-assistant-preset-tools {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.sti-agent-settings-surface .sti-assistant-icon-button {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: color .16s ease, border-color .16s ease, background .16s ease, transform .16s ease;
+}
+
+.sti-agent-settings-surface .sti-assistant-icon-button svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sti-agent-settings-surface .sti-assistant-icon-button:hover:not(:disabled),
+.sti-agent-settings-surface .sti-assistant-icon-button:focus-visible {
+    color: var(--accent);
+    border-color: var(--border-focus);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+}
+
+.sti-agent-settings-surface .sti-assistant-icon-button:disabled,
+.sti-agent-settings-surface button:disabled {
+    opacity: .42;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.sti-agent-settings-surface .sti-assistant-save-button.is-success {
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--success) 55%, var(--border));
+}
+
+.sti-agent-settings-surface .sti-assistant-save-button.is-error {
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 55%, var(--border));
+}
+
+.sti-agent-settings-surface .sti-assistant-save-spinner {
+    transform-origin: 12px 12px;
+    animation: sti-agent-spin .8s linear infinite;
+}
+
+@keyframes sti-agent-spin {
+    to { transform: rotate(360deg); }
+}
+
+.sti-agent-settings-surface .sti-assistant-config label {
+    min-width: 0;
+    display: grid;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.sti-agent-settings-surface .sti-assistant-config label > span:first-child,
+.sti-agent-settings-surface .sti-assistant-config-note {
+    color: var(--text-secondary);
+}
+
+.sti-agent-settings-surface .sti-assistant-config label small {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.sti-agent-settings-surface .sti-assistant-config input:not([type="checkbox"]):not([type="radio"]),
+.sti-agent-settings-surface .sti-assistant-config select {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 11px;
+    color: var(--text-primary);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    font: inherit;
+    font-weight: 500;
+    transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.sti-agent-settings-surface .sti-assistant-config input:focus,
+.sti-agent-settings-surface .sti-assistant-config select:focus {
+    border-color: var(--border-focus);
+    background: var(--bg-secondary);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.sti-agent-settings-surface .sti-assistant-config select option,
+.sti-agent-settings-surface .sti-assistant-config select optgroup {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+}
+
+.sti-agent-settings-surface .sti-assistant-inline-input,
+.sti-agent-settings-surface .sti-assistant-temperature-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 9px;
+}
+
+.sti-agent-settings-surface .sti-assistant-temperature-row {
+    grid-template-columns: minmax(0, 1fr) minmax(150px, .42fr);
+}
+
+.sti-agent-settings-surface .sti-assistant-grow {
+    min-width: 0;
+}
+
+.sti-agent-settings-surface .sti-assistant-inline-input > button,
+.sti-agent-settings-surface .sti-assistant-model-row > button {
+    min-height: 42px;
+    padding: 0 14px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.sti-agent-settings-surface .sti-assistant-inline-input > button:hover:not(:disabled),
+.sti-agent-settings-surface .sti-assistant-model-row > button:hover:not(:disabled) {
+    color: var(--accent);
+    border-color: var(--border-focus);
+    background: var(--accent-soft);
+}
+
+.sti-agent-settings-surface .sti-assistant-checkbox-row {
+    min-height: 42px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.sti-agent-settings-surface .sti-assistant-checkbox-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.sti-agent-settings-surface .sti-assistant-checkbox-control input {
+    width: 17px;
+    height: 17px;
+    accent-color: var(--accent);
+}
+
+.sti-agent-settings-surface .sti-assistant-inline-status,
+.sti-agent-settings-surface .sti-assistant-runtime,
+.sti-agent-settings-surface .sti-assistant-toast-inline {
+    min-height: 18px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.sti-agent-settings-surface .sti-assistant-inline-status.is-loading {
+    color: var(--warning);
+}
+
+.sti-agent-settings-surface .sti-assistant-inline-status.is-success,
+.sti-agent-settings-surface .sti-assistant-save-button.is-success + * {
+    color: var(--success);
+}
+
+.sti-agent-settings-surface .sti-assistant-inline-status.is-error {
+    color: var(--danger);
+}
+
+.sti-agent-settings-surface .sti-assistant-runtime {
+    padding: 11px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.sti-agent-settings-surface .sti-assistant-toast-inline:empty {
+    display: none;
+}
+
+@media (max-width: 560px) {
+    .sti-agent-settings-surface .sti-assistant-preset-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sti-agent-settings-surface .sti-assistant-preset-tools {
+        justify-content: flex-end;
+    }
+
+    .sti-agent-settings-surface .sti-assistant-temperature-row,
+    .sti-agent-settings-surface .sti-assistant-model-row {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: stretch;
+    }
+
+    .sti-agent-settings-surface .sti-assistant-model-row > button {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sti-agent-settings-surface *,
+    .sti-agent-settings-surface *::before,
+    .sti-agent-settings-surface *::after {
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

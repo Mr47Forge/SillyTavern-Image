@@ -13,7 +13,7 @@ const files = join(directory, 'files'), images = join(directory, 'images');
 await mkdir(files); await mkdir(join(images, 'LittleWhiteBox-role-photos'), { recursive:true });
 await writeFile(join(images, 'LittleWhiteBox-role-photos', 'fixture.jpg'), Buffer.concat([Buffer.from([255,216,255]),Buffer.alloc(300)]));
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j0h0AAAAASUVORK5CYII=', 'base64');
-const submitted = [], uploads = [], errors = [], calls = [];
+const submitted = [], uploads = [], errors = [], calls = [], browserLogs = [];
 const comfy = express(); comfy.use(express.json({limit:'2mb'}));
 comfy.post('/upload/image', async (req,res)=>{ for await (const _ of req) {} uploads.push(true);res.json({name:'stimage-fixture.jpg',subfolder:''}); });
 comfy.post('/prompt',(req,res)=>{submitted.push(req.body.prompt);res.json({prompt_id:'fixture-task-'+submitted.length});});
@@ -23,12 +23,12 @@ const comfyServer = await new Promise(resolve=>{const server=comfy.listen(0,'127
 const comfyURL='http://127.0.0.1:'+comfyServer.address().port;
 const graph=JSON.parse(await readFile('server-plugin/workflows/krea2-identity-api.json','utf8'));
 const workflow={id:'identity',name:'锁脸测试',json:JSON.stringify(graph),nodePositive:'84',nodeNegative:'',nodeWidth:'82',nodeHeight:'82',nodeSeed:'53',nodeSaveImage:'29'};
-const config={host:comfyURL,connectionMode:'proxy',mode:'manual',workflowMode:'custom',workflowPresets:[workflow],selectedWorkflowPresetId:workflow.id,
+const config={host:comfyURL,useImageBackendJobs:true,connectionMode:'proxy',mode:'manual',workflowMode:'custom',workflowPresets:[workflow],selectedWorkflowPresetId:workflow.id,
   presets:[{id:'default',name:'默认',width:768,height:1152,steps:8,cfg:1}],selectedPresetId:'default'};
 await writeFile(join(files,'SillyTavernImage_ComfyDraw.json'),JSON.stringify({config}));
 await writeFile(join(files,'SillyTavernImage_NovelDraw.json'),JSON.stringify({settings:{characterTags:[{id:'alice',name:'测试角色甲',type:'woman',appearance:'adult woman',photoUrl:'user/images/LittleWhiteBox-role-photos/fixture.jpg',enabled:true}],characterGroups:[]}}));
 const app=express(); app.use(express.json({limit:'10mb'}));
-app.use((req,res,next)=>{ req.user={profile:{handle:'fixture'},directories:{files,images,root:directory}};calls.push(req.path);next(); });
+app.use((req,res,next)=>{ req.user={profile:{handle:'fixture'},directories:{files,userImages:images,root:directory}};calls.push(req.path);next(); });
 const router=express.Router(); await plugin.init(router); app.use('/api/plugins/sillytavern-image-server',router);
 app.use('/user/files',express.static(files)); app.use('/user/images',express.static(images));
 app.post('/api/files/upload',async(req,res)=>{const name=String(req.body.name||'');if(!/^[\w.-]+$/.test(name))return res.sendStatus(400);await writeFile(join(files,name),Buffer.from(req.body.data,'base64'));res.json({path:'user/files/'+name});});
@@ -36,6 +36,10 @@ let chat=[];
 app.post('/api/chats/save',(req,res)=>{chat=req.body.chat||[];res.json({ok:true});});
 app.post('/api/chats/get',(_req,res)=>res.json(chat));
 app.post('/api/sd/comfy/:kind',async(req,res)=>{
+  if(req.params.kind==='generate') {
+    submitted.push(JSON.parse(req.body.prompt).prompt);
+    return res.json({data:png.toString('base64')});
+  }
   const response=await fetch(comfyURL+'/'+req.params.kind,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(req.body)});
   res.status(response.status).send(await response.text());
 });
@@ -63,7 +67,9 @@ try {
   browser=await chromium.launch({channel:'chrome',headless:true});
   const page=await browser.newPage({viewport:{width:1280,height:900}});
   page.on('pageerror',error=>errors.push(error.message));
+  page.on('console',message=>browserLogs.push(message.text()));
   await page.goto('http://127.0.0.1:'+server.address().port);
+  await page.evaluate(()=>{const other=document.createElement('button');other.textContent='人物档案';other.style.cssText='position:fixed;right:18px;bottom:70px;width:90px;height:44px;z-index:100001';document.body.append(other);});
   await page.waitForFunction(()=>document.querySelector('#sti-home-status')?.textContent.includes('已启动'),null,{timeout:15000});
   assert(await page.evaluate(()=>window.xiaobaixDraw.sentinel&&window.xbEventCenter.sentinel&&window.xbLog.sentinel));
   await page.click('#sti-home-toggle'); await page.click('#sti-home-open');
@@ -102,9 +108,19 @@ try {
   assert.equal(submitted[0]['53'].inputs.steps,8);
   const response=await fetch('http://127.0.0.1:'+server.address().port+'/api/plugins/sillytavern-image-server/runtime/v1/jobs/'+result.jobId+'/results/0');
   assert.deepEqual(Buffer.from(await response.arrayBuffer()),png);
+  // A role button must bind that exact role even when the prompt contains no name.
+  await frame.locator('[data-comfy-view="characters"]').first().click();
+  await frame.locator('[data-sd-char-test="alice"]').click();
+  await page.getByRole('button',{name:'开始测试',exact:true}).click();
+  await page.waitForFunction(()=>/生成完成|测试失败/.test(document.querySelector('#comfy-role-test-modal [role="status"]')?.textContent||''),null,{timeout:10000});
+  if (!(await page.locator('#comfy-role-test-modal [role="status"]').innerText()).includes('生成完成')) console.log({browserLogs:browserLogs.slice(-5),calls:calls.slice(-15),submitted:submitted.length});
+  assert.match(await page.locator('#comfy-role-test-modal [role="status"]').innerText(),/生成完成/);
+  assert.equal(submitted.length,2); assert.equal(uploads.length,2);
+  assert.equal(submitted[1]['72'].inputs.image,'stimage-fixture.jpg');
   assert.equal(errors.length,0,errors.join('\n'));
+  assert.deepEqual(browserLogs.filter(text=>text.includes('Refused to apply style')&&text.includes('/runtime/')),[],'独立界面样式必须完整可用');
   if(process.env.STI_SCREENSHOT)await page.screenshot({path:process.env.STI_SCREENSHOT,fullPage:true});
-  console.log('浏览器检查通过：独立入口、旧插件共存、角色与工作流页面、手机布局、参考图上传、独立后台任务和取图。');
+  console.log('浏览器检查通过：独立入口、旧插件共存、角色与工作流页面、手机布局、参考图上传、独立后台任务、单角色测试照片绑定和取图。');
 } finally {
   await browser?.close(); await plugin.exit();
   await Promise.all([new Promise(resolve=>server.close(resolve)),new Promise(resolve=>comfyServer.close(resolve))]);

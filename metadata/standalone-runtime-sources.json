@@ -181,7 +181,7 @@
     "runtime/modules/draw/providers/comfyui/comfy-draw.js": {
       "source": "modules/draw/providers/comfyui/comfy-draw.js",
       "sourceSha256": "ce020c55077a4039ff184f2915e8068d5a8dcb77d61f927c6a2c4a2d0fafcf0c",
-      "migratedSha256": "9bbd2dc2d70911b2e9e4cf3ea22a409baad6e650a6b9a8df9cafd9d59c92ece8"
+      "migratedSha256": "505776734827877329e7ac2b1534235cb0d877086451925273fb86ae4abf21bd"
     },
     "runtime/modules/draw/providers/comfyui/comfy-prompts.js": {
       "source": "modules/draw/providers/comfyui/comfy-prompts.js",
@@ -1529,6 +1529,16 @@
     "server-plugin/runtime/COPYRIGHT": {
       "source": "standalone migration addition",
       "migratedSha256": "cffc88a8df4f422997dbab45810e587abb4cd22c1e0346a6aa2d7a7c59bea8c1"
+    },
+    "runtime/modules/agent-core/ui/settings-surface.css": {
+      "source": "modules/agent-core/ui/settings-surface.css",
+      "sourceSha256": "28686820fd811f09acfab3f82dd2bbf96d2d28d6ed3cb10236e2c6341e2fc0a0",
+      "migratedSha256": "44698733e48e29257dbe423c2f7c5746fa84f99701815a81663da37692d58508"
+    },
+    "runtime/modules/agent-core/ui/web-settings.css": {
+      "source": "modules/agent-core/ui/web-settings.css",
+      "sourceSha256": "cd134c8c4157797836ff8e5272951194955c089ffca41d09ee4eb52d93ed9fa9",
+      "migratedSha256": "ee07b1a238dc428f0448c9d16937d627ff5cdfd01c100c67f5738246f6e608d8"
     }
   },
   "digestNormalization": "UTF-8 text CRLF normalized to LF; binary unchanged"
