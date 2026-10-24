@@ -175,6 +175,8 @@ select.input { cursor: pointer; }
     border-radius: 10px; margin-bottom: 16px; flex-wrap: wrap;
 }
 .preset-bar select { flex: 1; min-width: 120px; max-width: 200px; }
+.preset-bar .btn-group { min-width: 0; max-width: 100%; }
+.preset-bar .btn { flex-shrink: 0; }
 .action-status-row {
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px;
 }
@@ -779,10 +781,10 @@ select.input { cursor: pointer; }
                         <div class="preset-bar" style="margin-bottom:16px;">
                             <select id="comfy-workflow-preset-select" class="input"></select>
                             <div class="btn-group">
-                                <button id="comfy-workflow-preset-add" class="btn btn-icon" type="button" title="新建"><i class="fa-solid fa-plus"></i>新建</button>
-                                <button id="comfy-workflow-preset-rename" class="btn btn-icon" type="button" title="重命名"><i class="fa-solid fa-pen"></i>改名</button>
+                                <button id="comfy-workflow-preset-add" class="btn" type="button" title="新建"><i class="fa-solid fa-plus"></i>新建</button>
+                                <button id="comfy-workflow-preset-rename" class="btn" type="button" title="重命名"><i class="fa-solid fa-pen"></i>改名</button>
                                 <button id="comfy-workflow-preset-save" class="btn btn-primary" type="button" title="保存"><i class="fa-solid fa-floppy-disk"></i>保存</button>
-                                <button id="comfy-workflow-preset-delete" class="btn btn-danger btn-icon" type="button" title="删除"><i class="fa-solid fa-trash"></i>删除</button>
+                                <button id="comfy-workflow-preset-delete" class="btn btn-danger" type="button" title="删除"><i class="fa-solid fa-trash"></i>删除</button>
                             </div>
                             <div id="comfy-workflow-preset-status" class="status-text inline-status"></div>
                         </div>
@@ -869,10 +871,10 @@ select.input { cursor: pointer; }
                 <div class="preset-bar">
                     <select id="comfy-draw-preset-select" class="input"></select>
                     <div class="btn-group">
-                        <button id="comfy-draw-preset-add" class="btn btn-icon" type="button" title="新建"><i class="fa-solid fa-plus"></i>新建</button>
-                        <button id="comfy-draw-preset-rename" class="btn btn-icon" type="button" title="重命名"><i class="fa-solid fa-pen"></i>改名</button>
+                        <button id="comfy-draw-preset-add" class="btn" type="button" title="新建"><i class="fa-solid fa-plus"></i>新建</button>
+                        <button id="comfy-draw-preset-rename" class="btn" type="button" title="重命名"><i class="fa-solid fa-pen"></i>改名</button>
                         <button id="comfy-draw-preset-save" class="btn btn-primary" type="button" title="保存"><i class="fa-solid fa-floppy-disk"></i>保存</button>
-                        <button id="comfy-draw-preset-delete" class="btn btn-danger btn-icon" type="button" title="删除"><i class="fa-solid fa-trash"></i>删除</button>
+                        <button id="comfy-draw-preset-delete" class="btn btn-danger" type="button" title="删除"><i class="fa-solid fa-trash"></i>删除</button>
                     </div>
                     <div id="comfy-draw-params-status" class="status-text inline-status"></div>
                 </div>
@@ -960,12 +962,12 @@ select.input { cursor: pointer; }
                 <div class="preset-bar">
                     <select id="comfy-prompt-preset-select" class="input"></select>
                     <div class="btn-group">
-                        <button id="comfy-prompt-preset-add" class="btn btn-icon" type="button" title="新建"><i class="fa-solid fa-plus"></i>新建</button>
-                        <button id="comfy-prompt-preset-rename" class="btn btn-icon" type="button" title="重命名"><i class="fa-solid fa-pen"></i>改名</button>
+                        <button id="comfy-prompt-preset-add" class="btn" type="button" title="新建"><i class="fa-solid fa-plus"></i>新建</button>
+                        <button id="comfy-prompt-preset-rename" class="btn" type="button" title="重命名"><i class="fa-solid fa-pen"></i>改名</button>
                         <button id="comfy-prompt-preset-save" class="btn btn-primary" type="button" title="保存"><i class="fa-solid fa-floppy-disk"></i>保存</button>
                         <label class="btn btn-icon" title="导入为新预设" style="cursor:pointer;"><i class="fa-solid fa-download"></i><input type="file" id="comfy-prompt-preset-import" accept=".json" style="display:none;"></label>
                         <button id="comfy-prompt-preset-export" class="btn btn-icon" type="button" title="导出当前预设"><i class="fa-solid fa-upload"></i></button>
-                        <button id="comfy-prompt-preset-delete" class="btn btn-danger btn-icon" type="button" title="删除"><i class="fa-solid fa-trash"></i>删除</button>
+                        <button id="comfy-prompt-preset-delete" class="btn btn-danger" type="button" title="删除"><i class="fa-solid fa-trash"></i>删除</button>
                     </div>
                     <div id="comfy-prompt-preset-status" class="status-text inline-status"></div>
                 </div>

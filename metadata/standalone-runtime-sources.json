@@ -176,7 +176,7 @@
     "runtime/modules/draw/providers/comfyui/comfy-draw.html": {
       "source": "modules/draw/providers/comfyui/comfy-draw.html",
       "sourceSha256": "c312e668c9d896ee6eede1386c869335ff04d26c62d69f31c4e46b4c5c58709b",
-      "migratedSha256": "b9974b9d3368acafddac1138de042c05259cc1c64a3bf4a8f6f48bd8858fdc77"
+      "migratedSha256": "f2dc3b5b07826cf0f3e4c42b574fc1c4acfa46332821e80a9b27fc59e70910d1"
     },
     "runtime/modules/draw/providers/comfyui/comfy-draw.js": {
       "source": "modules/draw/providers/comfyui/comfy-draw.js",

@@ -78,6 +78,24 @@ try {
   await frame.getByText('测试角色甲',{exact:true}).first().waitFor();
   await frame.locator('[data-comfy-view="workflow"]').first().click();
   assert.equal(await frame.locator('#comfy-workflow-preset-select').inputValue(),'identity');
+  for (const width of [1280,390]) {
+    await page.setViewportSize({width,height:900});
+    for (const view of ['workflow','params','prompts']) {
+      await frame.locator(`[data-comfy-view="${view}"]:visible`).first().click();
+      const escaped = await frame.locator('.view.active .preset-bar button').evaluateAll(buttons=>buttons.flatMap(button=>{
+        const bounds=button.getBoundingClientRect();
+        for (const node of button.childNodes) {
+          if (node.nodeType!==Node.TEXT_NODE || !node.textContent.trim()) continue;
+          const range=document.createRange();range.selectNodeContents(node);
+          const text=range.getBoundingClientRect();
+          if(text.left<bounds.left+1 || text.right>bounds.right-1) return [button.id];
+        }
+        return [];
+      }));
+      assert.deepEqual(escaped,[],`${width}px ${view}：文字必须在按钮边框内`);
+    }
+  }
+  await frame.locator('[data-comfy-view="workflow"]:visible').first().click();
   await page.setViewportSize({width:390,height:844});
   const overflow=await frame.locator('body').evaluate(body=>body.scrollWidth>body.ownerDocument.documentElement.clientWidth+2);
   assert.equal(overflow,false,'手机页面不能横向溢出');
