@@ -1,0 +1,1535 @@
+{
+  "baseline": "9e71caef9ba7b3ca324ce9f1cb06a69ff54d734b",
+  "source": "https://github.com/RT15548/LittleWhiteBox",
+  "customSnapshot": "d75c5f07725206e98a7ff13b3d04118776dda395",
+  "files": {
+    "runtime/core/constants.js": {
+      "source": "core/constants.js",
+      "sourceSha256": "2db504166cbf3838c7b722acbfe50470839eb29e32c3693122ad7f96b0fb64c9",
+      "migratedSha256": "b072ed9e1d6a83e406aafc74388d98859f0ccda1f6acf5652257bf331938d3bb"
+    },
+    "runtime/core/debug-core.js": {
+      "source": "core/debug-core.js",
+      "sourceSha256": "0672fb162902e5822fab5aea3e35eb90aa1bec9bcd21f1744bdaea7f2b63303a",
+      "migratedSha256": "71af11b5ff17060779c4189bf6e2d05547cd17304b548db0aa59295ce2d12a4a"
+    },
+    "runtime/core/error-details.js": {
+      "source": "core/error-details.js",
+      "sourceSha256": "9e939e6f32fc6224deb328d632e2216e3e82bbbd6374dfe4518b4a8b557c602d",
+      "migratedSha256": "9e939e6f32fc6224deb328d632e2216e3e82bbbd6374dfe4518b4a8b557c602d"
+    },
+    "runtime/core/event-manager.js": {
+      "source": "core/event-manager.js",
+      "sourceSha256": "9e19792e924e6dd3f92d58b1a8b4430826aff6e146533b108daeba98b0aeec6a",
+      "migratedSha256": "a5f13213f4b0ea5509b473c2824a8208c6402648bd4e4917671882e4a3c2335c"
+    },
+    "runtime/core/server-storage.js": {
+      "source": "core/server-storage.js",
+      "sourceSha256": "d55b6d6f945ffb3718fafc446952826bd282b1a3daeae77007b7dc5f39df58cb",
+      "migratedSha256": "761a0f2a8afd711435231dc3baa9f9b794848a2d1405f14d67fd989f3e261b9a"
+    },
+    "runtime/core/storage-copy.js": {
+      "source": "core/storage-copy.js",
+      "sourceSha256": "b52728fa57fbad6e7032f67054aa85410d17c49891eb0fe43101555bfbd1f61c",
+      "migratedSha256": "b52728fa57fbad6e7032f67054aa85410d17c49891eb0fe43101555bfbd1f61c"
+    },
+    "runtime/core/storage-file.js": {
+      "source": "core/storage-file.js",
+      "sourceSha256": "3fd5b9dfb033b5bf75b709c11008ed647d0fcdd75056d40093f56f8c512ec19b",
+      "migratedSha256": "3fd5b9dfb033b5bf75b709c11008ed647d0fcdd75056d40093f56f8c512ec19b"
+    },
+    "runtime/core/variable-path.js": {
+      "source": "core/variable-path.js",
+      "sourceSha256": "f759d25849130b37ca1f38660786305328c7ddd0195d59ec55480d9c28370251",
+      "migratedSha256": "f759d25849130b37ca1f38660786305328c7ddd0195d59ec55480d9c28370251"
+    },
+    "runtime/libs/fflate.mjs": {
+      "source": "libs/fflate.mjs",
+      "sourceSha256": "8cc1f687e0159e977addb6b85e274dbd11e622cf151f4fcb7b85d49622ea43e7",
+      "migratedSha256": "8cc1f687e0159e977addb6b85e274dbd11e622cf151f4fcb7b85d49622ea43e7"
+    },
+    "runtime/libs/js-yaml.mjs": {
+      "source": "libs/js-yaml.mjs",
+      "sourceSha256": "16f210b939b359b6ec8dde581eb62c157185711dc7b719b33779c43db5c31a91",
+      "migratedSha256": "16f210b939b359b6ec8dde581eb62c157185711dc7b719b33779c43db5c31a91"
+    },
+    "runtime/modules/agent-core/adapters/request-inspection.js": {
+      "source": "modules/agent-core/adapters/request-inspection.js",
+      "sourceSha256": "b709db303d366bba481760057a4682c526ecee0cd94a5a5a1e4715ec169548c9",
+      "migratedSha256": "b709db303d366bba481760057a4682c526ecee0cd94a5a5a1e4715ec169548c9"
+    },
+    "runtime/modules/agent-core/config.js": {
+      "source": "modules/agent-core/config.js",
+      "sourceSha256": "ec1e6b9eb5109d6d8f867aba9008d5394809bed3b76da83ca20485ff334b1219",
+      "migratedSha256": "ec1e6b9eb5109d6d8f867aba9008d5394809bed3b76da83ca20485ff334b1219"
+    },
+    "runtime/modules/agent-core/dist/agent-core-browser.js": {
+      "source": "modules/agent-core/dist/agent-core-browser.js",
+      "sourceSha256": "158d062afdfecbeb282c335b548ba273766efea8c373e6a2d10bde4e3fc9d98d",
+      "migratedSha256": "2d7ce960d6b80ff0d91bc3f58bee3c894ed988f480be4e9dd5e1998e7e87e0f3"
+    },
+    "runtime/modules/agent-core/model-list-auth.js": {
+      "source": "modules/agent-core/model-list-auth.js",
+      "sourceSha256": "c84e6246d8f3e04eebcfab81d8021d0ad52d3f64237eb70d44e4f2f9b87d4117",
+      "migratedSha256": "c84e6246d8f3e04eebcfab81d8021d0ad52d3f64237eb70d44e4f2f9b87d4117"
+    },
+    "runtime/modules/agent-core/provider-auth.js": {
+      "source": "modules/agent-core/provider-auth.js",
+      "sourceSha256": "aece2c514f50a1a057ab62c8475bbfb14931137b3e5e73aec9f741c2f162da20",
+      "migratedSha256": "aece2c514f50a1a057ab62c8475bbfb14931137b3e5e73aec9f741c2f162da20"
+    },
+    "runtime/modules/agent-core/provider-resolution.js": {
+      "source": "modules/agent-core/provider-resolution.js",
+      "sourceSha256": "2fb86b3a27fdbd842904099d5f3a89cba628971ff0a686f4e4e127b46aba48f8",
+      "migratedSha256": "2fb86b3a27fdbd842904099d5f3a89cba628971ff0a686f4e4e127b46aba48f8"
+    },
+    "runtime/modules/agent-core/reasoning-capabilities.js": {
+      "source": "modules/agent-core/reasoning-capabilities.js",
+      "sourceSha256": "cf1999b17c648eb97ae6e5d047747a60e34a3bb37748e9580a3bcc5d35bad394",
+      "migratedSha256": "cf1999b17c648eb97ae6e5d047747a60e34a3bb37748e9580a3bcc5d35bad394"
+    },
+    "runtime/modules/agent-core/reasoning-config.js": {
+      "source": "modules/agent-core/reasoning-config.js",
+      "sourceSha256": "8e3a91dd393706c63bc2781e12a1b9efb3b80a60d63b55da3892b590043500ca",
+      "migratedSha256": "8e3a91dd393706c63bc2781e12a1b9efb3b80a60d63b55da3892b590043500ca"
+    },
+    "runtime/modules/agent-core/runtime/loose-tool-arguments.js": {
+      "source": "modules/agent-core/runtime/loose-tool-arguments.js",
+      "sourceSha256": "342d064797d7d1128421c431862c005eaaaea901e21b2da7468818c569738025",
+      "migratedSha256": "342d064797d7d1128421c431862c005eaaaea901e21b2da7468818c569738025"
+    },
+    "runtime/modules/agent-core/runtime/protocol.js": {
+      "source": "modules/agent-core/runtime/protocol.js",
+      "sourceSha256": "40fe484e4d0ce666ddd1279a29c7d2440d2ded282e0cef402115b2d0fce9ff1f",
+      "migratedSha256": "40fe484e4d0ce666ddd1279a29c7d2440d2ded282e0cef402115b2d0fce9ff1f"
+    },
+    "runtime/modules/agent-core/settings-repository.js": {
+      "source": "modules/agent-core/settings-repository.js",
+      "sourceSha256": "90b673d3b06bc50ab1052ef6ecad471d306165bae48f4f1b2180434c0d7bdbbf",
+      "migratedSha256": "90b673d3b06bc50ab1052ef6ecad471d306165bae48f4f1b2180434c0d7bdbbf"
+    },
+    "runtime/modules/agent-core/ui/settings-markup.js": {
+      "source": "modules/agent-core/ui/settings-markup.js",
+      "sourceSha256": "443fdf4a8fe1016ee1dfd5cce00e6c5364afbafe628824125602f96a237527e6",
+      "migratedSha256": "f48e6e826cd9ad5ba4ed6d0bd1ecdcac0ca8964d87968ff14f032eabe8fca4e5"
+    },
+    "runtime/modules/agent-core/ui/settings-panel.js": {
+      "source": "modules/agent-core/ui/settings-panel.js",
+      "sourceSha256": "6b7ef28dcc04f51e1d203a561c0fa4b49fa27081db3c1c0b76833ff18885cdb1",
+      "migratedSha256": "63199a0e2a8b13faaf55757c323d002ce83da3ca01778cb1a3e3ae4f8fcb4b73"
+    },
+    "runtime/modules/agent-core/ui/web-settings.js": {
+      "source": "modules/agent-core/ui/web-settings.js",
+      "sourceSha256": "1e95282487d909a4ff627a43758ef60a2b43a2c37cbe96c9c0d87858c7c9abf3",
+      "migratedSha256": "a9379b7c9ed6e7452a0544682c735c30e282009dec810f834a9074c12539ed8e"
+    },
+    "runtime/modules/agent-core/web/settings.js": {
+      "source": "modules/agent-core/web/settings.js",
+      "sourceSha256": "9ba323f66b4d52388f5b63dc0545edf854ad31209c0739d0a4cc842bdd549cb3",
+      "migratedSha256": "9ba323f66b4d52388f5b63dc0545edf854ad31209c0739d0a4cc842bdd549cb3"
+    },
+    "runtime/modules/draw/providers/comfyui/COMFY_TAG缂栧啓鎸囧崡.md": {
+      "source": "modules/draw/providers/comfyui/COMFY_TAG缂栧啓鎸囧崡.md",
+      "sourceSha256": "3f3cfc6b9ddd31d347fb42b13220fdaf00f03a36a70b9a51b3cf3f01a4193901",
+      "migratedSha256": "3f3cfc6b9ddd31d347fb42b13220fdaf00f03a36a70b9a51b3cf3f01a4193901"
+    },
+    "runtime/modules/draw/providers/comfyui/COMFY_TAG编写指南.md": {
+      "source": "modules/draw/providers/comfyui/COMFY_TAG编写指南.md",
+      "sourceSha256": "3f3cfc6b9ddd31d347fb42b13220fdaf00f03a36a70b9a51b3cf3f01a4193901",
+      "migratedSha256": "3f3cfc6b9ddd31d347fb42b13220fdaf00f03a36a70b9a51b3cf3f01a4193901"
+    },
+    "runtime/modules/draw/providers/comfyui/character-appearance-cleanup.js": {
+      "source": "modules/draw/providers/comfyui/character-appearance-cleanup.js",
+      "sourceSha256": "a12600d6fdbfa02ca04e62d3fd0dd50a8424e6868d7896d53bc2eb3130cfb422",
+      "migratedSha256": "a12600d6fdbfa02ca04e62d3fd0dd50a8424e6868d7896d53bc2eb3130cfb422"
+    },
+    "runtime/modules/draw/providers/comfyui/character-autolearn.js": {
+      "source": "modules/draw/providers/comfyui/character-autolearn.js",
+      "sourceSha256": "cd222a336ad6134a950f2b9dce9f788382b465848f32cc659ac880853d0fe33d",
+      "migratedSha256": "cd222a336ad6134a950f2b9dce9f788382b465848f32cc659ac880853d0fe33d"
+    },
+    "runtime/modules/draw/providers/comfyui/character-import.js": {
+      "source": "modules/draw/providers/comfyui/character-import.js",
+      "sourceSha256": "a2eb3caee1cb0f651dc2544a84c8abe0463306bb8e186e8ffaafa471e2fecb5e",
+      "migratedSha256": "a2eb3caee1cb0f651dc2544a84c8abe0463306bb8e186e8ffaafa471e2fecb5e"
+    },
+    "runtime/modules/draw/providers/comfyui/character-test-prompt.js": {
+      "source": "modules/draw/providers/comfyui/character-test-prompt.js",
+      "sourceSha256": "7aafa0d0b3f2da1e1530efc40e4f9fe7edffb0a48e81e1055df4eb47c13133f3",
+      "migratedSha256": "7aafa0d0b3f2da1e1530efc40e4f9fe7edffb0a48e81e1055df4eb47c13133f3"
+    },
+    "runtime/modules/draw/providers/comfyui/character-translation-request.js": {
+      "source": "modules/draw/providers/comfyui/character-translation-request.js",
+      "sourceSha256": "c8ac0ad2dc7b0c34f3f8a3156e64342559410f4a9b41397a9d6b181262a08466",
+      "migratedSha256": "c8ac0ad2dc7b0c34f3f8a3156e64342559410f4a9b41397a9d6b181262a08466"
+    },
+    "runtime/modules/draw/providers/comfyui/character-translation.js": {
+      "source": "modules/draw/providers/comfyui/character-translation.js",
+      "sourceSha256": "e96ce6e988ac6737141e70ac2acc97584cff9bdad149671341e0b59cac3e5f49",
+      "migratedSha256": "e96ce6e988ac6737141e70ac2acc97584cff9bdad149671341e0b59cac3e5f49"
+    },
+    "runtime/modules/draw/providers/comfyui/chinese-named-tags.js": {
+      "source": "modules/draw/providers/comfyui/chinese-named-tags.js",
+      "sourceSha256": "e5ca8d85771562a79109918b3fcb7e70ea9199c04a43163d0e7d0043c5e76e83",
+      "migratedSha256": "e5ca8d85771562a79109918b3fcb7e70ea9199c04a43163d0e7d0043c5e76e83"
+    },
+    "runtime/modules/draw/providers/comfyui/comfy-draw.html": {
+      "source": "modules/draw/providers/comfyui/comfy-draw.html",
+      "sourceSha256": "c312e668c9d896ee6eede1386c869335ff04d26c62d69f31c4e46b4c5c58709b",
+      "migratedSha256": "b9974b9d3368acafddac1138de042c05259cc1c64a3bf4a8f6f48bd8858fdc77"
+    },
+    "runtime/modules/draw/providers/comfyui/comfy-draw.js": {
+      "source": "modules/draw/providers/comfyui/comfy-draw.js",
+      "sourceSha256": "ce020c55077a4039ff184f2915e8068d5a8dcb77d61f927c6a2c4a2d0fafcf0c",
+      "migratedSha256": "9bbd2dc2d70911b2e9e4cf3ea22a409baad6e650a6b9a8df9cafd9d59c92ece8"
+    },
+    "runtime/modules/draw/providers/comfyui/comfy-prompts.js": {
+      "source": "modules/draw/providers/comfyui/comfy-prompts.js",
+      "sourceSha256": "830935782ff210aa359ef3fa821cc9de347cc6da163ac625e32aa2abecfc608a",
+      "migratedSha256": "830935782ff210aa359ef3fa821cc9de347cc6da163ac625e32aa2abecfc608a"
+    },
+    "runtime/modules/draw/providers/comfyui/compiler.js": {
+      "source": "modules/draw/providers/comfyui/compiler.js",
+      "sourceSha256": "2a5073de36a752fb4457ad41ef1d8e0df5ff0ebc742bb543a4e6ccc6f9789584",
+      "migratedSha256": "8e1567f575f9fd22bacdc80b2c5cf8f2d7947b7a52061a0650bb53e9859c01fa"
+    },
+    "runtime/modules/draw/providers/comfyui/floating-panel.js": {
+      "source": "modules/draw/providers/comfyui/floating-panel.js",
+      "sourceSha256": "612ca5289fefb995aeea8e169712cc266290a436cbc1b8c5c255f817f04bccd0",
+      "migratedSha256": "9bf7206d3c914b03630035a3a00e8609b13adecd839871bf5c663a191f6079d3"
+    },
+    "runtime/modules/draw/providers/comfyui/image-character-logic.js": {
+      "source": "modules/draw/providers/comfyui/image-character-logic.js",
+      "sourceSha256": "f37b514d18d7286c9686dd371f1ff8e2864dca1aa34777bfe5807b580dd21835",
+      "migratedSha256": "5b4ea542bcc4fad3a37d649f1b70e5124e3dc6be1e335eb298db7011f6871e8c"
+    },
+    "runtime/modules/draw/providers/comfyui/image-character-source.js": {
+      "source": "modules/draw/providers/comfyui/image-character-source.js",
+      "sourceSha256": "8f6fabbf26e3178c9661c50c0b3113af7a880c2c006a9e51f25585efa392a244",
+      "migratedSha256": "8f6fabbf26e3178c9661c50c0b3113af7a880c2c006a9e51f25585efa392a244"
+    },
+    "runtime/modules/draw/providers/comfyui/image-character-transport.js": {
+      "source": "modules/draw/providers/comfyui/image-character-transport.js",
+      "sourceSha256": "d3df38dc3a545653cdb483f148fe76533bded06c1cff34fc934fd69ada2a77af",
+      "migratedSha256": "d3df38dc3a545653cdb483f148fe76533bded06c1cff34fc934fd69ada2a77af"
+    },
+    "runtime/modules/draw/providers/comfyui/prompt-import-ui.js": {
+      "source": "modules/draw/providers/comfyui/prompt-import-ui.js",
+      "sourceSha256": "26060a16e12b3b66f139d2e90b17fe2d3ac70372d2fddd3391ad039aa3a8b98e",
+      "migratedSha256": "26060a16e12b3b66f139d2e90b17fe2d3ac70372d2fddd3391ad039aa3a8b98e"
+    },
+    "runtime/modules/draw/providers/comfyui/prompt-import.js": {
+      "source": "modules/draw/providers/comfyui/prompt-import.js",
+      "sourceSha256": "5705d1e4b424ab5f9f81dd537d958ccb39833d0364de02b166b752a65b968bcb",
+      "migratedSha256": "5705d1e4b424ab5f9f81dd537d958ccb39833d0364de02b166b752a65b968bcb"
+    },
+    "runtime/modules/draw/providers/comfyui/role-photo-reference.js": {
+      "source": "modules/draw/providers/comfyui/role-photo-reference.js",
+      "sourceSha256": "5e2f56caff8640b39ebfcdc5b2102f46c38e40ce04fdeea17b07cb3dbd133c90",
+      "migratedSha256": "fb46342ea3a36730e60fa3b7d8279858872f931bc3de3d6696f109da444b5a84"
+    },
+    "runtime/modules/draw/providers/comfyui/single-slot-replan.js": {
+      "source": "modules/draw/providers/comfyui/single-slot-replan.js",
+      "sourceSha256": "1cbe01bb69fd38c0daf2109306d979dcb8a66cfb45525f96dd2a421d12aabd76",
+      "migratedSha256": "1cbe01bb69fd38c0daf2109306d979dcb8a66cfb45525f96dd2a421d12aabd76"
+    },
+    "runtime/modules/draw/providers/comfyui/text-story-detail.js": {
+      "source": "modules/draw/providers/comfyui/text-story-detail.js",
+      "sourceSha256": "2e982c429da11bfb6718b0cf4f05a612c9074a49fbcd9b6cff3ad2d24171cfaf",
+      "migratedSha256": "e581613eb21d6b4cb46feedd812fcf05ba936e952580491f8aaa7a17b29123e6"
+    },
+    "runtime/modules/draw/providers/novelai/compiler.js": {
+      "source": "modules/draw/providers/novelai/compiler.js",
+      "sourceSha256": "53ce6c13b22260b10b6cace58bb62aa760f0bfa635d8dfcc497c9810d343bce8",
+      "migratedSha256": "53ce6c13b22260b10b6cace58bb62aa760f0bfa635d8dfcc497c9810d343bce8"
+    },
+    "runtime/modules/draw/providers/novelai/novel-character-learning.js": {
+      "source": "modules/draw/providers/novelai/novel-character-learning.js",
+      "sourceSha256": "29f640fe06aa2ebc1f29454b333e234f38ae3e068eba3657bb649c81680a634e",
+      "migratedSha256": "29f640fe06aa2ebc1f29454b333e234f38ae3e068eba3657bb649c81680a634e"
+    },
+    "runtime/modules/draw/providers/novelai/novel-model-capabilities.js": {
+      "source": "modules/draw/providers/novelai/novel-model-capabilities.js",
+      "sourceSha256": "5fd527923f9cbb3f0b1b4b913aba9aad04c5fc0d9e806f9b7c4dd7f9000dd056",
+      "migratedSha256": "5fd527923f9cbb3f0b1b4b913aba9aad04c5fc0d9e806f9b7c4dd7f9000dd056"
+    },
+    "runtime/modules/draw/providers/novelai/novel-request-config.js": {
+      "source": "modules/draw/providers/novelai/novel-request-config.js",
+      "sourceSha256": "1346f501c5fca10ff358eaa96b0559417fad3df43025c29e1b7cc15e22ad0001",
+      "migratedSha256": "1346f501c5fca10ff358eaa96b0559417fad3df43025c29e1b7cc15e22ad0001"
+    },
+    "runtime/modules/draw/providers/novelai/novel-v5-request.js": {
+      "source": "modules/draw/providers/novelai/novel-v5-request.js",
+      "sourceSha256": "d345aecbcacc3a0c38a7b99c1f697cd9f6f8e0b50e83cf1acf16ed01f80eae39",
+      "migratedSha256": "d345aecbcacc3a0c38a7b99c1f697cd9f6f8e0b50e83cf1acf16ed01f80eae39"
+    },
+    "runtime/modules/draw/providers/sd-webui/compiler.js": {
+      "source": "modules/draw/providers/sd-webui/compiler.js",
+      "sourceSha256": "2b6fd88a55d21fd18994ef7b1323464c0a19e68cc738dd5e4fd107347a39813b",
+      "migratedSha256": "2b6fd88a55d21fd18994ef7b1323464c0a19e68cc738dd5e4fd107347a39813b"
+    },
+    "runtime/modules/draw/shared/agent-settings-surface.css": {
+      "source": "modules/draw/shared/agent-settings-surface.css",
+      "sourceSha256": "18b7b629d1aed534ebdbdc5ee6fa14c70054e55f0e0f5e5c69aece4ad9b2ef98",
+      "migratedSha256": "18b7b629d1aed534ebdbdc5ee6fa14c70054e55f0e0f5e5c69aece4ad9b2ef98"
+    },
+    "runtime/modules/draw/shared/agent-settings-surface.js": {
+      "source": "modules/draw/shared/agent-settings-surface.js",
+      "sourceSha256": "77dc82b663d7385f899493cec2c7e04859fd2899c819b0382187a12d47789434",
+      "migratedSha256": "2eaca9aac3c002a599201432e4d650a5d62def69504af282e386a90800c9fa91"
+    },
+    "runtime/modules/draw/shared/auto-learn-merge.js": {
+      "source": "modules/draw/shared/auto-learn-merge.js",
+      "sourceSha256": "ac16c3cbc3399f499e229d7e7c2dbfba83e7fc3973823356cfbf571f91a399c7",
+      "migratedSha256": "ac16c3cbc3399f499e229d7e7c2dbfba83e7fc3973823356cfbf571f91a399c7"
+    },
+    "runtime/modules/draw/shared/backend-image-jobs.js": {
+      "source": "modules/draw/shared/backend-image-jobs.js",
+      "sourceSha256": "2a20f3d788e6ed11ab7dcab38de747f9b41190b23beee3599e8f859d3abe3c1b",
+      "migratedSha256": "bd23cdb97eb50013bfb387ff7cafd0935ab40a9dda0813f6710b27f71fb9a6f8"
+    },
+    "runtime/modules/draw/shared/card-tag-editor.js": {
+      "source": "modules/draw/shared/card-tag-editor.js",
+      "sourceSha256": "a92f66f455616ca80969612ed1e5c27d6b48678b0f32490f80781e1230d5a1b5",
+      "migratedSha256": "e3289c1eca72c2b3e1dabc882e2ec491764155ea4bcb3db05b1b4ff6a39a195f"
+    },
+    "runtime/modules/draw/shared/character-enabled-control.js": {
+      "source": "modules/draw/shared/character-enabled-control.js",
+      "sourceSha256": "e113615c3705fae8d3c0069bf281cab46e131d046577c10fe0a57064e1c0cb27",
+      "migratedSha256": "e113615c3705fae8d3c0069bf281cab46e131d046577c10fe0a57064e1c0cb27"
+    },
+    "runtime/modules/draw/shared/character-group-presets-draft-binding.js": {
+      "source": "modules/draw/shared/character-group-presets-draft-binding.js",
+      "sourceSha256": "dada64806cd7bdddef5910abe7c81512c0ec16bc210905d5d148f5317e495557",
+      "migratedSha256": "dada64806cd7bdddef5910abe7c81512c0ec16bc210905d5d148f5317e495557"
+    },
+    "runtime/modules/draw/shared/character-group-presets-runtime.js": {
+      "source": "modules/draw/shared/character-group-presets-runtime.js",
+      "sourceSha256": "b9d10de22a83929aa70ed92ad8f97bf98f12792f9308d400887b926c77ed1178",
+      "migratedSha256": "d614c72f1847d23b39e97d8d072edc87b74a5f1518a443e9ea91ff544d9c7dd9"
+    },
+    "runtime/modules/draw/shared/character-group-presets-ui.css": {
+      "source": "modules/draw/shared/character-group-presets-ui.css",
+      "sourceSha256": "25922006edecbbef6d1cbbf56cc27dfa5b7a8ca8335364127fa707bdf0f4ce16",
+      "migratedSha256": "25922006edecbbef6d1cbbf56cc27dfa5b7a8ca8335364127fa707bdf0f4ce16"
+    },
+    "runtime/modules/draw/shared/character-group-presets-ui.js": {
+      "source": "modules/draw/shared/character-group-presets-ui.js",
+      "sourceSha256": "7d957ba9156d4e0727b77afdeeb0bbc1dd524c943761985c5e88f6c03ab966ed",
+      "migratedSha256": "7d957ba9156d4e0727b77afdeeb0bbc1dd524c943761985c5e88f6c03ab966ed"
+    },
+    "runtime/modules/draw/shared/character-group-presets.js": {
+      "source": "modules/draw/shared/character-group-presets.js",
+      "sourceSha256": "893be05e36b9d55e3dd8a72783474d5f5fca7d27289ce65344bd308812d29284",
+      "migratedSha256": "893be05e36b9d55e3dd8a72783474d5f5fca7d27289ce65344bd308812d29284"
+    },
+    "runtime/modules/draw/shared/character-library-dialog.css": {
+      "source": "modules/draw/shared/character-library-dialog.css",
+      "sourceSha256": "aa2321b7b4b0cb8c2fdf70b11cf80e835f7166527fd396ca76362f160318495e",
+      "migratedSha256": "aa2321b7b4b0cb8c2fdf70b11cf80e835f7166527fd396ca76362f160318495e"
+    },
+    "runtime/modules/draw/shared/character-library-dialog.js": {
+      "source": "modules/draw/shared/character-library-dialog.js",
+      "sourceSha256": "599651c141be9c3316113f2a6b1446792671987d7fc2aa75ee89cf659710ae02",
+      "migratedSha256": "599651c141be9c3316113f2a6b1446792671987d7fc2aa75ee89cf659710ae02"
+    },
+    "runtime/modules/draw/shared/character-library-ui.css": {
+      "source": "modules/draw/shared/character-library-ui.css",
+      "sourceSha256": "fbdddb55701bfdb665619217623a7bd7ea6bc0bc76394f176f2301f58a4ecf26",
+      "migratedSha256": "fbdddb55701bfdb665619217623a7bd7ea6bc0bc76394f176f2301f58a4ecf26"
+    },
+    "runtime/modules/draw/shared/character-library-ui.js": {
+      "source": "modules/draw/shared/character-library-ui.js",
+      "sourceSha256": "102e3a82b08802f07c62d7ce6d1d61643f928cc135128dead1b8604b7b2b40e9",
+      "migratedSha256": "102e3a82b08802f07c62d7ce6d1d61643f928cc135128dead1b8604b7b2b40e9"
+    },
+    "runtime/modules/draw/shared/character-library.js": {
+      "source": "modules/draw/shared/character-library.js",
+      "sourceSha256": "86a3f0363df23238760f5d2d2d05a718b1274a582dfc1529f558f0c5ed628dd9",
+      "migratedSha256": "23f18f009cbd616b36672d8f291bd9eb820d9c2d2b9f8d1a06b1136da513e3d4"
+    },
+    "runtime/modules/draw/shared/character-list-scroll.js": {
+      "source": "modules/draw/shared/character-list-scroll.js",
+      "sourceSha256": "13075c5d639058b763566e15a0aa9fc6c88c49aecfe65945ca042fb7c6fb7060",
+      "migratedSha256": "13075c5d639058b763566e15a0aa9fc6c88c49aecfe65945ca042fb7c6fb7060"
+    },
+    "runtime/modules/draw/shared/character-prompts.js": {
+      "source": "modules/draw/shared/character-prompts.js",
+      "sourceSha256": "e045cd96960c4e486a001db55745b47e8eaca9effa50ca15ddc1d3144a79e7ee",
+      "migratedSha256": "e045cd96960c4e486a001db55745b47e8eaca9effa50ca15ddc1d3144a79e7ee"
+    },
+    "runtime/modules/draw/shared/character-selection.js": {
+      "source": "modules/draw/shared/character-selection.js",
+      "sourceSha256": "0fb0dd1f97ea564853b7ed6b9723a8c04864c48cb7e263c3e5b9dcf50735581f",
+      "migratedSha256": "0fb0dd1f97ea564853b7ed6b9723a8c04864c48cb7e263c3e5b9dcf50735581f"
+    },
+    "runtime/modules/draw/shared/chat-image-placement.js": {
+      "source": "modules/draw/shared/chat-image-placement.js",
+      "sourceSha256": "7a415a3202cb24444a46e452bbf2f665c6dcc380b95f488a0bcd5949232bfdad",
+      "migratedSha256": "7a415a3202cb24444a46e452bbf2f665c6dcc380b95f488a0bcd5949232bfdad"
+    },
+    "runtime/modules/draw/shared/chat-image-session.js": {
+      "source": "modules/draw/shared/chat-image-session.js",
+      "sourceSha256": "316bd6a66510aa67cd373a32e2248135d662529cebd95f9bbcb58bbebe6243e6",
+      "migratedSha256": "316bd6a66510aa67cd373a32e2248135d662529cebd95f9bbcb58bbebe6243e6"
+    },
+    "runtime/modules/draw/shared/chat-image-tag-migration.js": {
+      "source": "modules/draw/shared/chat-image-tag-migration.js",
+      "sourceSha256": "09f48c60216ba809990ff491853b444726b8bcdabd1b43adaa59995932b076c9",
+      "migratedSha256": "b391b5e05b54ea2162974094a0885a316171dfbcc05d0d38ef6e28b16ad37b82"
+    },
+    "runtime/modules/draw/shared/chat-message-image-markup.js": {
+      "source": "modules/draw/shared/chat-message-image-markup.js",
+      "sourceSha256": "00521946c1a742b503fef97f35e7d4febf3c2a871462aebea7e9ca2e9b225c0f",
+      "migratedSha256": "58fb5b9a7243798d61b8eaade0221653e1f3df4c8623da5145d617c52239e869"
+    },
+    "runtime/modules/draw/shared/chat-message-images.js": {
+      "source": "modules/draw/shared/chat-message-images.js",
+      "sourceSha256": "4e9c081a45021d6ab9257f37ca57d1ef97ead7c0d51be2040a9b03db2af7e923",
+      "migratedSha256": "1a94ac14d6cfdfea5a8bbff8f9e4c9867bc7718b2d0fb88da402b1a91ea03487"
+    },
+    "runtime/modules/draw/shared/confirmable-chat-save.js": {
+      "source": "modules/draw/shared/confirmable-chat-save.js",
+      "sourceSha256": "260f9e881e3e92b75bc95fb039089dae508a4b05b95e397f3ff21676179643f6",
+      "migratedSha256": "260f9e881e3e92b75bc95fb039089dae508a4b05b95e397f3ff21676179643f6"
+    },
+    "runtime/modules/draw/shared/danbooru-local-db.js": {
+      "source": "modules/draw/shared/danbooru-local-db.js",
+      "sourceSha256": "6c55682e387c48ab5b6d165bf6ee050751076c797ccdb230b0c63e48db58daa8",
+      "migratedSha256": "6c55682e387c48ab5b6d165bf6ee050751076c797ccdb230b0c63e48db58daa8"
+    },
+    "runtime/modules/draw/shared/data/danbooru-chars.dat": {
+      "source": "modules/draw/shared/data/danbooru-chars.dat",
+      "sourceSha256": "9ac7055e64a56ccff2cfa97f46f71563ae82974c2a5008714a0865e90ceff87e",
+      "migratedSha256": "9ac7055e64a56ccff2cfa97f46f71563ae82974c2a5008714a0865e90ceff87e"
+    },
+    "runtime/modules/draw/shared/draw-agent-runtime.js": {
+      "source": "modules/draw/shared/draw-agent-runtime.js",
+      "sourceSha256": "4d25bbe63523341e62d798ce48203d14154f8e9e2c52b3f8db767f16bbfa928b",
+      "migratedSha256": "4d25bbe63523341e62d798ce48203d14154f8e9e2c52b3f8db767f16bbfa928b"
+    },
+    "runtime/modules/draw/shared/draw-agent.js": {
+      "source": "modules/draw/shared/draw-agent.js",
+      "sourceSha256": "925bac56477f938d6f975079e995f9d5a38ad1ddef4ce7e0ecc2d617b4080bd6",
+      "migratedSha256": "14fdef385afd44a1552747c5b503f1d8515da6db356cfd84f97dbdefd97c1f60"
+    },
+    "runtime/modules/draw/shared/draw-cancellation-journal.js": {
+      "source": "modules/draw/shared/draw-cancellation-journal.js",
+      "sourceSha256": "e93f670a337f3f51cef80b6016ba46d39d117dd1354d1f74835a583625b2e6a0",
+      "migratedSha256": "157a74bf860def874803afad29dd86bee7b1011e01d0484a944e152157419219"
+    },
+    "runtime/modules/draw/shared/draw-capsule-copy.js": {
+      "source": "modules/draw/shared/draw-capsule-copy.js",
+      "sourceSha256": "f3a4ca3a065aac467033f285859b9a4b5bb6bc0dccd81fb5c6fde054dbd853ec",
+      "migratedSha256": "f3a4ca3a065aac467033f285859b9a4b5bb6bc0dccd81fb5c6fde054dbd853ec"
+    },
+    "runtime/modules/draw/shared/draw-common.js": {
+      "source": "modules/draw/shared/draw-common.js",
+      "sourceSha256": "e69881bec32fb33df705acd75427d271bb6649bbdd3b154b4982aac86062eb43",
+      "migratedSha256": "40810a3dc838799155396926bb156c0013f4f278f6cee85e7e41cb8cb8dcc1b2"
+    },
+    "runtime/modules/draw/shared/draw-run-activity.js": {
+      "source": "modules/draw/shared/draw-run-activity.js",
+      "sourceSha256": "5342ccfc19c3574e01660271164e0bd3ff2fbf0329dbf8db3383200b977351ff",
+      "migratedSha256": "5342ccfc19c3574e01660271164e0bd3ff2fbf0329dbf8db3383200b977351ff"
+    },
+    "runtime/modules/draw/shared/draw-run-adoption.js": {
+      "source": "modules/draw/shared/draw-run-adoption.js",
+      "sourceSha256": "90ff61dc6e36a646cd5f7fa4405deecc39acb22baa915e41b3ce2ce68b429f0a",
+      "migratedSha256": "90ff61dc6e36a646cd5f7fa4405deecc39acb22baa915e41b3ce2ce68b429f0a"
+    },
+    "runtime/modules/draw/shared/draw-run-client.js": {
+      "source": "modules/draw/shared/draw-run-client.js",
+      "sourceSha256": "23c87bf84ff3d625fcd4492d17ec51e8505e1cafb55bab84619715f42d2c3cab",
+      "migratedSha256": "23c87bf84ff3d625fcd4492d17ec51e8505e1cafb55bab84619715f42d2c3cab"
+    },
+    "runtime/modules/draw/shared/draw-run-controls.js": {
+      "source": "modules/draw/shared/draw-run-controls.js",
+      "sourceSha256": "ba3a9544a185480ccc3c39d1ecf56689a54d80f50e6ba882105543878f573ac9",
+      "migratedSha256": "f183b746645e3fa700cd88d2da89c102d8f1a61ffcc98a4ee4bd5edba3ce2dd8"
+    },
+    "runtime/modules/draw/shared/draw-run-coordinator.js": {
+      "source": "modules/draw/shared/draw-run-coordinator.js",
+      "sourceSha256": "1b2088c3e79df53723858348842147efe633964405e163fecb7c792752810de1",
+      "migratedSha256": "1b2088c3e79df53723858348842147efe633964405e163fecb7c792752810de1"
+    },
+    "runtime/modules/draw/shared/draw-run-debug.js": {
+      "source": "modules/draw/shared/draw-run-debug.js",
+      "sourceSha256": "45bb9958a33be7307d8fa6000c9ce93d67d11144f014cf9c613e00eb3500c8aa",
+      "migratedSha256": "45bb9958a33be7307d8fa6000c9ce93d67d11144f014cf9c613e00eb3500c8aa"
+    },
+    "runtime/modules/draw/shared/draw-run-identifiers.js": {
+      "source": "modules/draw/shared/draw-run-identifiers.js",
+      "sourceSha256": "984b1f90d86517d780daf29eaedfb31743e7898e9c101d194479e2e86d82e472",
+      "migratedSha256": "984b1f90d86517d780daf29eaedfb31743e7898e9c101d194479e2e86d82e472"
+    },
+    "runtime/modules/draw/shared/draw-run-markers.js": {
+      "source": "modules/draw/shared/draw-run-markers.js",
+      "sourceSha256": "bb7aae402bccb05cac68283e92d26b86339817ba1722355ded4c8745e6c3b49f",
+      "migratedSha256": "23e359157e705dabcd0725daa1e5724e055ea6aa89281faca9454a60fd4dd9c9"
+    },
+    "runtime/modules/draw/shared/draw-run-production.js": {
+      "source": "modules/draw/shared/draw-run-production.js",
+      "sourceSha256": "c71ca2dd633f1c6e572253fd86dff527f8277e740a3e0544c1e4a44d089bd10c",
+      "migratedSha256": "c71ca2dd633f1c6e572253fd86dff527f8277e740a3e0544c1e4a44d089bd10c"
+    },
+    "runtime/modules/draw/shared/draw-run-recovery-runtime.js": {
+      "source": "modules/draw/shared/draw-run-recovery-runtime.js",
+      "sourceSha256": "6803ba25d20a74366c9f9ea7261ba3241baac6c2293eb6c3ea7377a3bc7e6626",
+      "migratedSha256": "5132fa475072cfc502f784ce03b1cb3b28cbb7504aab2a5d7a21bf7a16054594"
+    },
+    "runtime/modules/draw/shared/draw-run-recovery.js": {
+      "source": "modules/draw/shared/draw-run-recovery.js",
+      "sourceSha256": "c6dfdafa413286f207da0f13f8339d3050b4e9d18524409ab4acc5e0d0d40a27",
+      "migratedSha256": "c6dfdafa413286f207da0f13f8339d3050b4e9d18524409ab4acc5e0d0d40a27"
+    },
+    "runtime/modules/draw/shared/draw-run-ui-state.js": {
+      "source": "modules/draw/shared/draw-run-ui-state.js",
+      "sourceSha256": "6707e86c63ebdc5b029bce1f21f2bdc8b47408fcb48fdb9e0604aacb8ec85e98",
+      "migratedSha256": "6707e86c63ebdc5b029bce1f21f2bdc8b47408fcb48fdb9e0604aacb8ec85e98"
+    },
+    "runtime/modules/draw/shared/draw-settings.js": {
+      "source": "modules/draw/shared/draw-settings.js",
+      "sourceSha256": "aab95a5d3c207bfe861aac8b237d3513b0b5a3afcc8e32a0fca809cfa07b08ca",
+      "migratedSha256": "aab95a5d3c207bfe861aac8b237d3513b0b5a3afcc8e32a0fca809cfa07b08ca"
+    },
+    "runtime/modules/draw/shared/draw-work-cancellation.js": {
+      "source": "modules/draw/shared/draw-work-cancellation.js",
+      "sourceSha256": "5aa46e087c846e22b3df57e19c47910236c5fee193f747dd4baa4d9d6cd0b8c7",
+      "migratedSha256": "5aa46e087c846e22b3df57e19c47910236c5fee193f747dd4baa4d9d6cd0b8c7"
+    },
+    "runtime/modules/draw/shared/floor-image-job.js": {
+      "source": "modules/draw/shared/floor-image-job.js",
+      "sourceSha256": "6f7fb9522bd21a796ab6d907794934c33c798c39c10d9f051192cf2ac63eedcc",
+      "migratedSha256": "6f7fb9522bd21a796ab6d907794934c33c798c39c10d9f051192cf2ac63eedcc"
+    },
+    "runtime/modules/draw/shared/gallery-cache.js": {
+      "source": "modules/draw/shared/gallery-cache.js",
+      "sourceSha256": "6849caeb31b024001e14ae5bbf917f6db3358b69cefe5651e1d666265cd43bd1",
+      "migratedSha256": "d479f6db66c406581c576268a4159f3026dea8654be1de3db74c5dc1e61371f0"
+    },
+    "runtime/modules/draw/shared/generated-image-runtime.js": {
+      "source": "modules/draw/shared/generated-image-runtime.js",
+      "sourceSha256": "65df7de6404b3517634cd315d769409d255ce79a3ae4321d5bb70e330a664aa1",
+      "migratedSha256": "2e292b98403585d439f5f3744c4c6d6c3b25e8316ffa738f1e3a1fa6e89e9bd5"
+    },
+    "runtime/modules/draw/shared/generation-fingerprint.js": {
+      "source": "modules/draw/shared/generation-fingerprint.js",
+      "sourceSha256": "3b445922b5e4ef884dd83dac791ef9fbde0838909cc0c18ab0b842e85b711ee0",
+      "migratedSha256": "3b445922b5e4ef884dd83dac791ef9fbde0838909cc0c18ab0b842e85b711ee0"
+    },
+    "runtime/modules/draw/shared/image-card-actions.js": {
+      "source": "modules/draw/shared/image-card-actions.js",
+      "sourceSha256": "9ac80bc2f903c337d84c4e963b651151b8b4844e0e5090297f2e172f466f3323",
+      "migratedSha256": "b2c902b3ac1cb465196f61f6fc7c650654b38a5dc04f506156e0c35ac96e9465"
+    },
+    "runtime/modules/draw/shared/image-card-redraw-provider.js": {
+      "source": "modules/draw/shared/image-card-redraw-provider.js",
+      "sourceSha256": "7a31ada902a20ca3cb6eb8a668bc264ada29ea583fc7a2db330b75c1f69c7340",
+      "migratedSha256": "7a31ada902a20ca3cb6eb8a668bc264ada29ea583fc7a2db330b75c1f69c7340"
+    },
+    "runtime/modules/draw/shared/image-card-target.js": {
+      "source": "modules/draw/shared/image-card-target.js",
+      "sourceSha256": "e09ddf7c39718f62b2a96e33c5ce7aec91ed23bd9afffa8d2605dec9ff5cdcbe",
+      "migratedSha256": "f98e1fb8a14c25a7746998a5b0ee7a6be22bbb7c67f3285b0a1f7599d35a12b6"
+    },
+    "runtime/modules/draw/shared/image-card-view.js": {
+      "source": "modules/draw/shared/image-card-view.js",
+      "sourceSha256": "9088f50cdb3980174cc5b9e665a69d57073537e5ebc1355087b289b82c5f2cea",
+      "migratedSha256": "2c2529c04f0b10b79e118b61ff19c08486330c5a2cf82d1190304cd50d94bd40"
+    },
+    "runtime/modules/draw/shared/image-diagnostics.js": {
+      "source": "modules/draw/shared/image-diagnostics.js",
+      "sourceSha256": "74569a0273f4936f99c18ba2588f928312294c651a022809280991abd3f09c5d",
+      "migratedSha256": "2f0c911e6dd7fdd826c8e44f50034f6312967eec4a1400fe62e6e95460372235"
+    },
+    "runtime/modules/draw/shared/image-job-delivery-target.js": {
+      "source": "modules/draw/shared/image-job-delivery-target.js",
+      "sourceSha256": "59121c8cb65e1d69499adbac30043e11fb37748e9fa4c31cc0ae63da52558df8",
+      "migratedSha256": "59121c8cb65e1d69499adbac30043e11fb37748e9fa4c31cc0ae63da52558df8"
+    },
+    "runtime/modules/draw/shared/image-job-reattach.js": {
+      "source": "modules/draw/shared/image-job-reattach.js",
+      "sourceSha256": "03dc162b5e5314112c8e21140078599aada8f05b69afbad5e3d6a8f057a49227",
+      "migratedSha256": "03dc162b5e5314112c8e21140078599aada8f05b69afbad5e3d6a8f057a49227"
+    },
+    "runtime/modules/draw/shared/image-job-recovery-executor.js": {
+      "source": "modules/draw/shared/image-job-recovery-executor.js",
+      "sourceSha256": "0a030da496377e96d44b538776e9f02d0f0ef67e9972d37421e7c8f349896bea",
+      "migratedSha256": "0a030da496377e96d44b538776e9f02d0f0ef67e9972d37421e7c8f349896bea"
+    },
+    "runtime/modules/draw/shared/image-job-recovery-runtime.js": {
+      "source": "modules/draw/shared/image-job-recovery-runtime.js",
+      "sourceSha256": "074145a08782762f1226f11e4b6d584472c1e0b2cc3f1fc8dcc1c7460ad35671",
+      "migratedSha256": "403abfc19c358a212af96e96bebc07adf47984231f3fd5fda9cd55cce48b6032"
+    },
+    "runtime/modules/draw/shared/image-marker-syntax.js": {
+      "source": "modules/draw/shared/image-marker-syntax.js",
+      "sourceSha256": "8d89c91f7e2d95574531f2db2a71b002e838c5368e26de2dc0d15e0a54ab2ff3",
+      "migratedSha256": "2427f233ad5ff6e0c9706a0b4309825b5bf236e8a8a15a330f713227ef8ba33f"
+    },
+    "runtime/modules/draw/shared/image-record.js": {
+      "source": "modules/draw/shared/image-record.js",
+      "sourceSha256": "a5c0c9e0c1f424d1674e8ee646806835546593e153a66e8f258ef34bfa7c6736",
+      "migratedSha256": "a5c0c9e0c1f424d1674e8ee646806835546593e153a66e8f258ef34bfa7c6736"
+    },
+    "runtime/modules/draw/shared/image-request-outcome.js": {
+      "source": "modules/draw/shared/image-request-outcome.js",
+      "sourceSha256": "d52c1631b9c11ece37867a57f16847e7f6b8a9884f33f22190ebfbdca111da10",
+      "migratedSha256": "d52c1631b9c11ece37867a57f16847e7f6b8a9884f33f22190ebfbdca111da10"
+    },
+    "runtime/modules/draw/shared/image-save-ui.js": {
+      "source": "modules/draw/shared/image-save-ui.js",
+      "sourceSha256": "3bdafd4f82aec95548d0b22bb0eb352503a889069f4a95df3701b8f473d871ea",
+      "migratedSha256": "ff890b6581ddd3d8c04472a5962a0ebcf6f035e5a884a307306bef8cb3e62aea"
+    },
+    "runtime/modules/draw/shared/page-farewell.js": {
+      "source": "modules/draw/shared/page-farewell.js",
+      "sourceSha256": "e0655b01c3175ca37b281b052d18704beb6ed6d02e75373dc3f08e3fe425a342",
+      "migratedSha256": "311125bfcab591edf4e92a148cb5b2b753eb32216a3c416a874c3280d280e8dc"
+    },
+    "runtime/modules/draw/shared/pending-image-jobs.js": {
+      "source": "modules/draw/shared/pending-image-jobs.js",
+      "sourceSha256": "c1993c03f50921c37f32da328867498c3ec8eebb91c676ce722864651421b477",
+      "migratedSha256": "9f160382a1c240a1644d332117376a6b98cc0ecededf661fd9a604431136efad"
+    },
+    "runtime/modules/draw/shared/planner-retry.js": {
+      "source": "modules/draw/shared/planner-retry.js",
+      "sourceSha256": "d2251395ebf4f0a44e7ad8d0e75b8d6b2cc51e64a4008542050f6b4e8af3a465",
+      "migratedSha256": "d2251395ebf4f0a44e7ad8d0e75b8d6b2cc51e64a4008542050f6b4e8af3a465"
+    },
+    "runtime/modules/draw/shared/prepared-chat-images.js": {
+      "source": "modules/draw/shared/prepared-chat-images.js",
+      "sourceSha256": "319ded7f8f1136b414776ec3105aabf03108d314d34c11dd265a0cdaef349eda",
+      "migratedSha256": "5acef4ffaed58fb0f877dee27e5a950889d1cac8357b101168843bd818dc2136"
+    },
+    "runtime/modules/draw/shared/prepared-image-delivery.js": {
+      "source": "modules/draw/shared/prepared-image-delivery.js",
+      "sourceSha256": "fdbec11f302db200df76e2897503b1c7c4355cef92132e8f05efcca36c691caa",
+      "migratedSha256": "fdbec11f302db200df76e2897503b1c7c4355cef92132e8f05efcca36c691caa"
+    },
+    "runtime/modules/draw/shared/prepared-image-input.js": {
+      "source": "modules/draw/shared/prepared-image-input.js",
+      "sourceSha256": "c1945bb5945ddbe51cf81de3fa472b00425e43b0a7ebc9e76b3c080c85e83e96",
+      "migratedSha256": "c1945bb5945ddbe51cf81de3fa472b00425e43b0a7ebc9e76b3c080c85e83e96"
+    },
+    "runtime/modules/draw/shared/prepared-slot-executor.js": {
+      "source": "modules/draw/shared/prepared-slot-executor.js",
+      "sourceSha256": "cfac34913934d17fbafe9d695cbe1b8dd3d9a8822e590005c392b81d4cc52663",
+      "migratedSha256": "cfac34913934d17fbafe9d695cbe1b8dd3d9a8822e590005c392b81d4cc52663"
+    },
+    "runtime/modules/draw/shared/present-characters.js": {
+      "source": "modules/draw/shared/present-characters.js",
+      "sourceSha256": "87d8bb9eea269ef181cdf3b1cfe94aaaf038428d43c4e1796070d552562224b2",
+      "migratedSha256": "87d8bb9eea269ef181cdf3b1cfe94aaaf038428d43c4e1796070d552562224b2"
+    },
+    "runtime/modules/draw/shared/prompt-template-migration.js": {
+      "source": "modules/draw/shared/prompt-template-migration.js",
+      "sourceSha256": "762d26b192dbc826fbd733eea6148c4642bdd548faa13f97f5e7d74ffafa6ea8",
+      "migratedSha256": "762d26b192dbc826fbd733eea6148c4642bdd548faa13f97f5e7d74ffafa6ea8"
+    },
+    "runtime/modules/draw/shared/prompts/opening-pov.md": {
+      "source": "modules/draw/shared/prompts/opening-pov.md",
+      "sourceSha256": "0e84d3478accf5779ed6e317d3218115a1fe036fd4b9065fe5770321ad5cfb25",
+      "migratedSha256": "0e84d3478accf5779ed6e317d3218115a1fe036fd4b9065fe5770321ad5cfb25"
+    },
+    "runtime/modules/draw/shared/prompts/opening.md": {
+      "source": "modules/draw/shared/prompts/opening.md",
+      "sourceSha256": "23df7efca093a1d0413303bf463a2aceee060585be066e9c86c014df22e5a471",
+      "migratedSha256": "23df7efca093a1d0413303bf463a2aceee060585be066e9c86c014df22e5a471"
+    },
+    "runtime/modules/draw/shared/prompts/scene-rules.md": {
+      "source": "modules/draw/shared/prompts/scene-rules.md",
+      "sourceSha256": "802283109846db05ecf0fbae0d3ed80a2159dcf476e56021b3453c33b4fb67bf",
+      "migratedSha256": "802283109846db05ecf0fbae0d3ed80a2159dcf476e56021b3453c33b4fb67bf"
+    },
+    "runtime/modules/draw/shared/recoverable-image-jobs.js": {
+      "source": "modules/draw/shared/recoverable-image-jobs.js",
+      "sourceSha256": "0a109606cd5de179e947b49d57e86cb5829f6a1a75ebee93e4a963ea0ec97f97",
+      "migratedSha256": "0a109606cd5de179e947b49d57e86cb5829f6a1a75ebee93e4a963ea0ec97f97"
+    },
+    "runtime/modules/draw/shared/scene-placement.js": {
+      "source": "modules/draw/shared/scene-placement.js",
+      "sourceSha256": "f095e2e299d1c7201647b3fec453d7353696ec93db8a897a83b660d87ca2eec6",
+      "migratedSha256": "f095e2e299d1c7201647b3fec453d7353696ec93db8a897a83b660d87ca2eec6"
+    },
+    "runtime/modules/draw/shared/scene-plan-arguments.js": {
+      "source": "modules/draw/shared/scene-plan-arguments.js",
+      "sourceSha256": "a575f622c334dd454e0da9980b0875cfd3a52e658c5daa8f92e6a1413f97de02",
+      "migratedSha256": "a575f622c334dd454e0da9980b0875cfd3a52e658c5daa8f92e6a1413f97de02"
+    },
+    "runtime/modules/draw/shared/scene-plan-contract.js": {
+      "source": "modules/draw/shared/scene-plan-contract.js",
+      "sourceSha256": "12e45e210aa3161ce53ebf0df4efbc1b9c63174d3c55e795fd500ccc4be3d515",
+      "migratedSha256": "12e45e210aa3161ce53ebf0df4efbc1b9c63174d3c55e795fd500ccc4be3d515"
+    },
+    "runtime/modules/draw/shared/scene-plan-descriptions.js": {
+      "source": "modules/draw/shared/scene-plan-descriptions.js",
+      "sourceSha256": "dddb8d8f223d31d0a8dbc3f7e0187df0bd3da6e226518ae95bcba8dc0f8713bf",
+      "migratedSha256": "dddb8d8f223d31d0a8dbc3f7e0187df0bd3da6e226518ae95bcba8dc0f8713bf"
+    },
+    "runtime/modules/draw/shared/scene-plan-tool.js": {
+      "source": "modules/draw/shared/scene-plan-tool.js",
+      "sourceSha256": "d36215b5c376e8dd05ea11c3fd3b8e9e4c210a12680a01c4a11de1d21d1e3fd9",
+      "migratedSha256": "d36215b5c376e8dd05ea11c3fd3b8e9e4c210a12680a01c4a11de1d21d1e3fd9"
+    },
+    "runtime/modules/draw/shared/scene-planner-chain-view.js": {
+      "source": "modules/draw/shared/scene-planner-chain-view.js",
+      "sourceSha256": "a39a0804db20c62f266d2cea7a68a49b6c7fddd793a9135b3342b6ae80ee0ad9",
+      "migratedSha256": "a39a0804db20c62f266d2cea7a68a49b6c7fddd793a9135b3342b6ae80ee0ad9"
+    },
+    "runtime/modules/draw/shared/scene-planner-debug.js": {
+      "source": "modules/draw/shared/scene-planner-debug.js",
+      "sourceSha256": "2e29bc3c293dd3721abda3264c1a0cccda8038bdd1de19b7a4e6e2e40dfc53ed",
+      "migratedSha256": "3451f42e448eb798f891330dc7301006863e5947ab94cd35673c25bfe3938260"
+    },
+    "runtime/modules/draw/shared/scene-planner-error-ui.js": {
+      "source": "modules/draw/shared/scene-planner-error-ui.js",
+      "sourceSha256": "be3a0488e5a5a49df7048cae4e8cc210e15f7e5d61cec1e4cebe540399e861db",
+      "migratedSha256": "be3a0488e5a5a49df7048cae4e8cc210e15f7e5d61cec1e4cebe540399e861db"
+    },
+    "runtime/modules/draw/shared/scene-planner-executor.js": {
+      "source": "modules/draw/shared/scene-planner-executor.js",
+      "sourceSha256": "03e2a02e8f3f7edf1d7c11638e67ac0fe9eb8f96e2790658bfacb4792296a4ff",
+      "migratedSha256": "03e2a02e8f3f7edf1d7c11638e67ac0fe9eb8f96e2790658bfacb4792296a4ff"
+    },
+    "runtime/modules/draw/shared/scene-planner-frame.js": {
+      "source": "modules/draw/shared/scene-planner-frame.js",
+      "sourceSha256": "97118217f6a5b0c0a62d76ccc899e40f714d31d54b5cf80f6e654dbe3e258117",
+      "migratedSha256": "97118217f6a5b0c0a62d76ccc899e40f714d31d54b5cf80f6e654dbe3e258117"
+    },
+    "runtime/modules/draw/shared/scene-planner-opening-migration.js": {
+      "source": "modules/draw/shared/scene-planner-opening-migration.js",
+      "sourceSha256": "3e67efc84d806feac6a331f106511f1ccdf914d41118c64134fecf2f714f9324",
+      "migratedSha256": "3e67efc84d806feac6a331f106511f1ccdf914d41118c64134fecf2f714f9324"
+    },
+    "runtime/modules/draw/shared/scene-planner-presets.js": {
+      "source": "modules/draw/shared/scene-planner-presets.js",
+      "sourceSha256": "38dd0937d6f49dc9676dab84786a0e7d890e827d269ee97ad84919cb77267756",
+      "migratedSha256": "38dd0937d6f49dc9676dab84786a0e7d890e827d269ee97ad84919cb77267756"
+    },
+    "runtime/modules/draw/shared/scene-planner-profile.js": {
+      "source": "modules/draw/shared/scene-planner-profile.js",
+      "sourceSha256": "4412aea897c7963cc4d31dfe23ea46990586c4ea63ca00a93335c0571527afcd",
+      "migratedSha256": "4412aea897c7963cc4d31dfe23ea46990586c4ea63ca00a93335c0571527afcd"
+    },
+    "runtime/modules/draw/shared/scene-planner-templates.js": {
+      "source": "modules/draw/shared/scene-planner-templates.js",
+      "sourceSha256": "ecdf8ea89d67dcda0da1c4b33acd27f35e7ae04b11daaa319085fefe91b4fd70",
+      "migratedSha256": "ecdf8ea89d67dcda0da1c4b33acd27f35e7ae04b11daaa319085fefe91b4fd70"
+    },
+    "runtime/modules/draw/shared/scene-planner.js": {
+      "source": "modules/draw/shared/scene-planner.js",
+      "sourceSha256": "022a8e033793a2c034b2d1b0cd829f2537a1c097ccfcac950d3e595585d3aa04",
+      "migratedSha256": "a15ef09ef9749e650a570ab03cbaa51fa83401349c9ce4b476305db7024641c9"
+    },
+    "runtime/modules/draw/shared/scene-prompt-expansion.js": {
+      "source": "modules/draw/shared/scene-prompt-expansion.js",
+      "sourceSha256": "f05e741a31560ba5869c11f1a546d3a6b8f26527207771141382d0bd2d034b2a",
+      "migratedSha256": "ea1f9159f9b9b2477373fc9a0794c222d5886e4149d8e80417b68b2a807f502e"
+    },
+    "runtime/modules/draw/shared/scene-slot-dom.js": {
+      "source": "modules/draw/shared/scene-slot-dom.js",
+      "sourceSha256": "826571378ca2c08b04d295fb0b640930c697de010d95d96c2a40e3f35dfdf2ec",
+      "migratedSha256": "3cb5412910454e4b457717227633f3a8b6b405312969c5f61ad6e8ee47ced552"
+    },
+    "runtime/modules/draw/shared/scene-slot-protection.js": {
+      "source": "modules/draw/shared/scene-slot-protection.js",
+      "sourceSha256": "d310db0bcc3c0d4adb864d10b820b843c6005c518cbc31980e903ecc4251e8a3",
+      "migratedSha256": "d310db0bcc3c0d4adb864d10b820b843c6005c518cbc31980e903ecc4251e8a3"
+    },
+    "runtime/modules/draw/shared/scene-source.js": {
+      "source": "modules/draw/shared/scene-source.js",
+      "sourceSha256": "caaeb619fb181428ff2c95a928284db02a205529054b5794563883b05ac4954f",
+      "migratedSha256": "caaeb619fb181428ff2c95a928284db02a205529054b5794563883b05ac4954f"
+    },
+    "runtime/modules/draw/shared/serial-image-request-queue.js": {
+      "source": "modules/draw/shared/serial-image-request-queue.js",
+      "sourceSha256": "f231bef1608af8309c20ce6d061952a901e7318711c41758a19c76d87df73013",
+      "migratedSha256": "f231bef1608af8309c20ce6d061952a901e7318711c41758a19c76d87df73013"
+    },
+    "runtime/modules/draw/shared/server-image-autosave.js": {
+      "source": "modules/draw/shared/server-image-autosave.js",
+      "sourceSha256": "c62192c2c6997ccd28041181dfd8328d3523e8af9b72f188d3b6cfc57f67352f",
+      "migratedSha256": "a95a4b0fc32cf1b8f032bd9cfef55d02d612ed52a9209006c414bea88d11c912"
+    },
+    "runtime/modules/draw/shared/slot-activity.js": {
+      "source": "modules/draw/shared/slot-activity.js",
+      "sourceSha256": "c9bd7f0f6ebcd77313f4f6b1cf89139cedb4703f9131b27eab3833dc8db847dc",
+      "migratedSha256": "c9bd7f0f6ebcd77313f4f6b1cf89139cedb4703f9131b27eab3833dc8db847dc"
+    },
+    "runtime/modules/draw/shared/worldbook-processor.js": {
+      "source": "modules/draw/shared/worldbook-processor.js",
+      "sourceSha256": "6408f7441d7e6ab7f3dcf115df5036f80c1bedffff55cee1af08e79083e2cc18",
+      "migratedSha256": "6408f7441d7e6ab7f3dcf115df5036f80c1bedffff55cee1af08e79083e2cc18"
+    },
+    "runtime/modules/variables/var-commands.js": {
+      "source": "modules/variables/var-commands.js",
+      "sourceSha256": "f61e2b37b66cf780d4cecd6693d61362cf51114abefb0ab96c84b03c8c6dced5",
+      "migratedSha256": "58293d195fbc411097b12c38210d3617a1c2527e2ce49ecea7df95e56675f6a4"
+    },
+    "server-plugin/runtime/README.md": {
+      "source": "server-plugin/littlewhitebox-server/README.md",
+      "sourceSha256": "db135bb07136cc17b12cf353f3abb9b7e2f4a6d3848251608c110997d31f6c79",
+      "migratedSha256": "8d4ad2d7530bede8a4aae4885c10f7b3ef92c5d20b1898a3363dd5b998f2371c"
+    },
+    "server-plugin/runtime/cancellation.js": {
+      "source": "server-plugin/littlewhitebox-server/cancellation.js",
+      "sourceSha256": "270c4bcbe11bde00ea77546e17884cb2d5edbefffdc428456322561a773775fc",
+      "migratedSha256": "270c4bcbe11bde00ea77546e17884cb2d5edbefffdc428456322561a773775fc"
+    },
+    "server-plugin/runtime/diagnostics-routes.js": {
+      "source": "server-plugin/littlewhitebox-server/diagnostics-routes.js",
+      "sourceSha256": "f4c78e9ff01bb1fcf6e2b0bcc9965faf32d52a48e7c34c488be6279be24f6ce0",
+      "migratedSha256": "1cef0230d1530f1e336945e3dd6c1a2e5d36df6ace506724cf7a8ffe9c7254cd"
+    },
+    "server-plugin/runtime/draw-runs/draw-run-manager.js": {
+      "source": "server-plugin/littlewhitebox-server/draw-runs/draw-run-manager.js",
+      "sourceSha256": "540b657ccca404c5861dd5398237c471a60a4c67941aacf8923ccb32da008bb1",
+      "migratedSha256": "19ec6299a31bccff8e65ac46daf20d9a9a98715a270d2d40b8fb7169e6b53f82"
+    },
+    "server-plugin/runtime/draw-runs/envelope.js": {
+      "source": "server-plugin/littlewhitebox-server/draw-runs/envelope.js",
+      "sourceSha256": "99b406ae2330dda01dc833735a4eb4bd47a93e8fa2c7ddb167c0a48098b677a2",
+      "migratedSha256": "174d00b7974fa67f8a07cd23a863080f5e956d7c92b6142515ac7abbfc353e2b"
+    },
+    "server-plugin/runtime/draw-runs/loopback-host-client.js": {
+      "source": "server-plugin/littlewhitebox-server/draw-runs/loopback-host-client.js",
+      "sourceSha256": "835247623acd64a62a11f777763b49d1372bf43713ab0c8513791078a9657c09",
+      "migratedSha256": "835247623acd64a62a11f777763b49d1372bf43713ab0c8513791078a9657c09"
+    },
+    "server-plugin/runtime/draw-runs/loopback-probe.js": {
+      "source": "server-plugin/littlewhitebox-server/draw-runs/loopback-probe.js",
+      "sourceSha256": "0ed10193b98fe82dc16a146137d463342a0fecdeea78360973c20dad88394f0b",
+      "migratedSha256": "0990c24ff5ce28876c4d0b5b678431d28eee182417dae9cb99f61956a1ffe887"
+    },
+    "server-plugin/runtime/draw-runs/routes.js": {
+      "source": "server-plugin/littlewhitebox-server/draw-runs/routes.js",
+      "sourceSha256": "b1797b366ca684346703f2e3ad3ad0c299da56037354645794e9ca774eb377bc",
+      "migratedSha256": "b1797b366ca684346703f2e3ad3ad0c299da56037354645794e9ca774eb377bc"
+    },
+    "server-plugin/runtime/draw-runs/vendor/agent-core-node.cjs": {
+      "source": "server-plugin/littlewhitebox-server/draw-runs/vendor/agent-core-node.cjs",
+      "sourceSha256": "acc1f49c3f33fb7b56b2e6fc24de00b25ce06a5608ba691b30210e335b9ba797",
+      "migratedSha256": "492d0df9e05d36f2bf1eec7834fe35e8c74fd74057a00c68f94404405444a54a"
+    },
+    "server-plugin/runtime/draw-runs/vendor/draw-run-runtime.cjs": {
+      "source": "server-plugin/littlewhitebox-server/draw-runs/vendor/draw-run-runtime.cjs",
+      "sourceSha256": "714bd62800ac13224c903c5495e9f1331bffab96042a5587457a30d5eaf29124",
+      "migratedSha256": "c54e9376b1e90480ae431d9b3dbe0ba9bdaa27e5888cadb22ec9937f16cccbb6"
+    },
+    "server-plugin/runtime/image-jobs/job-manager.js": {
+      "source": "server-plugin/littlewhitebox-server/image-jobs/job-manager.js",
+      "sourceSha256": "6a9be78f5cac64e547b0f5d750e5121545cd18d345f0e88934e27ce86d2c491d",
+      "migratedSha256": "ec79907bbf0666f273ab5c95c3db2a67416d27ef2914a8abe505f7015b9fe9ef"
+    },
+    "server-plugin/runtime/image-jobs/routes.js": {
+      "source": "server-plugin/littlewhitebox-server/image-jobs/routes.js",
+      "sourceSha256": "653bd274670f343fead4289996e92a91118ba94780ae0de3e2d111fac56bf9b0",
+      "migratedSha256": "653bd274670f343fead4289996e92a91118ba94780ae0de3e2d111fac56bf9b0"
+    },
+    "server-plugin/runtime/image-jobs/service.js": {
+      "source": "server-plugin/littlewhitebox-server/image-jobs/service.js",
+      "sourceSha256": "617602a3a85b7af78e72f362ffa79b853d9fb7ad9850ea886843acc7bdab5882",
+      "migratedSha256": "617602a3a85b7af78e72f362ffa79b853d9fb7ad9850ea886843acc7bdab5882"
+    },
+    "server-plugin/runtime/index.js": {
+      "source": "server-plugin/littlewhitebox-server/index.js",
+      "sourceSha256": "c0bce37392c5d3e3d12646c4325cd8d78e7e3920e9b6726fe8763ddc0fe43f83",
+      "migratedSha256": "bcb460bff4b8ebcfc365464dd211ef469ae6c65bbe2b5e9ca77be071ca74ebb1"
+    },
+    "server-plugin/runtime/manifest.json": {
+      "source": "server-plugin/littlewhitebox-server/manifest.json",
+      "sourceSha256": "7956eded127a0e24a73059b7e3080464444f8a139496014a15f36266439a34bf",
+      "migratedSha256": "5b98ab598cd531eb125910912ecc276d5f91b9eb875fdccf77fe58f0bb540508"
+    },
+    "server-plugin/runtime/package.json": {
+      "source": "server-plugin/littlewhitebox-server/package.json",
+      "sourceSha256": "4b76512ca9993495910717a755b8c95dd22139b0e5e1c063793b1394ab1195df",
+      "migratedSha256": "dbf8353f77358bc12169b7bb7301e1978d5b503e002ee927229a8993672818fc"
+    },
+    "server-plugin/runtime/providers/comfyui/adapter.js": {
+      "source": "server-plugin/littlewhitebox-server/providers/comfyui/adapter.js",
+      "sourceSha256": "95d9ff98856d2dd7ef256376f28ef61ccfd1d81833307e863e1205681487da58",
+      "migratedSha256": "ba1b3a4f57f5c6fef4c300617c26bc44d548d588d4f5f7dbf69c011f60cdaecd"
+    },
+    "server-plugin/runtime/providers/comfyui/role-photo-upload.js": {
+      "source": "server-plugin/littlewhitebox-server/providers/comfyui/role-photo-upload.js",
+      "sourceSha256": "7b8690b868d4e4eea373b20c9349702f0523d175f41de23869361351ecb0ab40",
+      "migratedSha256": "b65f9fe172ea561c50839f69963a243eb7970d329aeb106c5c14934656daceb3"
+    },
+    "server-plugin/runtime/providers/novelai/adapter.js": {
+      "source": "server-plugin/littlewhitebox-server/providers/novelai/adapter.js",
+      "sourceSha256": "ebd1f8654bf855eb9ca19370845df5d61a6a5545168320c2371c188041e37cdb",
+      "migratedSha256": "ebd1f8654bf855eb9ca19370845df5d61a6a5545168320c2371c188041e37cdb"
+    },
+    "server-plugin/runtime/providers/novelai/client.js": {
+      "source": "server-plugin/littlewhitebox-server/providers/novelai/client.js",
+      "sourceSha256": "29d273de525a19ca6a5f07834c2996f1cd9c63dd7624f4adb87765510dec4e65",
+      "migratedSha256": "3123bebfa685f05554c0b26e384cd2c133e32d7aa79a94aba05bcd4316fcb236"
+    },
+    "server-plugin/runtime/providers/novelai/v5-stream.js": {
+      "source": "server-plugin/littlewhitebox-server/providers/novelai/v5-stream.js",
+      "sourceSha256": "3bbe7063dc5c9fecfc902c8149b0e9e607f6171cfc5d9c5a15769fa324abb4d2",
+      "migratedSha256": "3bbe7063dc5c9fecfc902c8149b0e9e607f6171cfc5d9c5a15769fa324abb4d2"
+    },
+    "server-plugin/runtime/providers/novelai/vendor/novel-v5-parser.cjs": {
+      "source": "server-plugin/littlewhitebox-server/providers/novelai/vendor/novel-v5-parser.cjs",
+      "sourceSha256": "84b6a8a340d01e9b68edc557abb9c9153f67de69bfe76482acc1fd1918a491ca",
+      "migratedSha256": "84b6a8a340d01e9b68edc557abb9c9153f67de69bfe76482acc1fd1918a491ca"
+    },
+    "server-plugin/runtime/providers/sd-webui/adapter.js": {
+      "source": "server-plugin/littlewhitebox-server/providers/sd-webui/adapter.js",
+      "sourceSha256": "6ca47ae938a0af2963a9604e416d59581099e5357b8db110d73437ddc646166a",
+      "migratedSha256": "6ca47ae938a0af2963a9604e416d59581099e5357b8db110d73437ddc646166a"
+    },
+    "server-plugin/runtime/providers/upstream.js": {
+      "source": "server-plugin/littlewhitebox-server/providers/upstream.js",
+      "sourceSha256": "3d505042b21e6e8c54998d7617fbb5cc63d815d46e6c8ae83d16a6346a5ebcff",
+      "migratedSha256": "3d505042b21e6e8c54998d7617fbb5cc63d815d46e6c8ae83d16a6346a5ebcff"
+    },
+    "server-plugin/runtime/request-abort.js": {
+      "source": "server-plugin/littlewhitebox-server/request-abort.js",
+      "sourceSha256": "9bb04e88a835aa6a7a2aa1601072fbb3cc564645701e370aab5b75aabe2d72e0",
+      "migratedSha256": "9bb04e88a835aa6a7a2aa1601072fbb3cc564645701e370aab5b75aabe2d72e0"
+    },
+    "server-plugin/runtime/web/routes.js": {
+      "source": "server-plugin/littlewhitebox-server/web/routes.js",
+      "sourceSha256": "89ba08399076895b0a47d2517ebe5c227a20facdb7ec1d41fb75f3d97ac1d93b",
+      "migratedSha256": "89ba08399076895b0a47d2517ebe5c227a20facdb7ec1d41fb75f3d97ac1d93b"
+    },
+    "server-plugin/runtime/web/web-runtime.cjs": {
+      "source": "server-plugin/littlewhitebox-server/web/web-runtime.cjs",
+      "sourceSha256": "51f33fea8f971116adfbb6f7fd203e20804410eabd39b07518aba05f27d5bfef",
+      "migratedSha256": "cfe5a6a7aadb26a85f6809e4a8f5f374d249aa4e44650a364ef424c3c43429fb"
+    },
+    "runtime/shared/common/abort-utils.js": {
+      "source": "shared/common/abort-utils.js",
+      "sourceSha256": "f95f001b6b7a006be0823a46fccd7a260ca3f7917c70cc21f2adda9e4b597fd0",
+      "migratedSha256": "f95f001b6b7a006be0823a46fccd7a260ca3f7917c70cc21f2adda9e4b597fd0"
+    },
+    "runtime/shared/common/generate-interceptor.js": {
+      "source": "shared/common/generate-interceptor.js",
+      "sourceSha256": "e10ca135c33850f244971bf0d63fbbc847216e21e1e7579894f7ef2c64349a47",
+      "migratedSha256": "7d5b2cfee74622fdfd23532f6fe6a1ea7453d8445cb9d689c4fa414e373ada7c"
+    },
+    "runtime/shared/host-llm/chat-completions/client.js": {
+      "source": "shared/host-llm/chat-completions/client.js",
+      "sourceSha256": "3b740cbb6fdd5683392b155c80a1ec1c8e461baf3c434803aebf2dacddc46ee2",
+      "migratedSha256": "3b740cbb6fdd5683392b155c80a1ec1c8e461baf3c434803aebf2dacddc46ee2"
+    },
+    "runtime/shared/host-llm/chat-completions/sse.js": {
+      "source": "shared/host-llm/chat-completions/sse.js",
+      "sourceSha256": "77d4bf37567d6bdac9884e39e3c45dfe51e1a032a730ca22333e43739770cd7f",
+      "migratedSha256": "77d4bf37567d6bdac9884e39e3c45dfe51e1a032a730ca22333e43739770cd7f"
+    },
+    "runtime/shared/host-llm/model-family.js": {
+      "source": "shared/host-llm/model-family.js",
+      "sourceSha256": "13649a6fe9fcb2e4e770d2b8a170e9accb17fb4009dde9f7387cf66b433526eb",
+      "migratedSha256": "13649a6fe9fcb2e4e770d2b8a170e9accb17fb4009dde9f7387cf66b433526eb"
+    },
+    "runtime/shared/host-request-headers.js": {
+      "source": "shared/host-request-headers.js",
+      "sourceSha256": "8666d3ed0f1badde8734b59fff0708c50a4b3bbba8fc947b02aef6043d84e34c",
+      "migratedSha256": "8666d3ed0f1badde8734b59fff0708c50a4b3bbba8fc947b02aef6043d84e34c"
+    },
+    "runtime/shared/server-plugin/copy.js": {
+      "source": "shared/server-plugin/copy.js",
+      "sourceSha256": "8af80b3c5940794e3349b5fcd0bc83a1feedf9325a5b8d084248196788663a69",
+      "migratedSha256": "687f5758f7cda82037139e54c7116f777e40e32899ef4d0a9a230690aa9427fe"
+    },
+    "runtime/shared/server-plugin/identity.js": {
+      "source": "shared/server-plugin/identity.js",
+      "sourceSha256": "e246bdd47ddba35253c55fa1f08e04c9371858817e56c5bb469305e463502f59",
+      "migratedSha256": "5adb3c31ca5a06a4c6e3e985430002d8df8ed2e3118c765c367af2a3f56b8ba1"
+    },
+    "runtime/shared/server-plugin/installation-guide.css": {
+      "source": "shared/server-plugin/installation-guide.css",
+      "sourceSha256": "de436f669f58b0ed36fe570d50e42156b418c2ac8d658442b1d4597daa01cfe1",
+      "migratedSha256": "25bb796a4ef06653bf00d628453ecf2ac39c435da32906ddf1664341e94b33d4"
+    },
+    "runtime/shared/server-plugin/installation-guide.js": {
+      "source": "shared/server-plugin/installation-guide.js",
+      "sourceSha256": "75f1a2f70ab58edda795e9a12dda65cfbf14776d928c4282ed839d03f8d29418",
+      "migratedSha256": "39eb632c451ded8731ae25e49486303317f76c076eec3a62070318b2ef5af46b"
+    },
+    "runtime/shared/server-plugin/installation.js": {
+      "source": "shared/server-plugin/installation.js",
+      "sourceSha256": "a73c86fcadf2c2f73292239b48ef4e53abe76a30fe1df3305770266e79c2597f",
+      "migratedSha256": "a73c86fcadf2c2f73292239b48ef4e53abe76a30fe1df3305770266e79c2597f"
+    },
+    "runtime/widgets/message-toolbar.js": {
+      "source": "widgets/message-toolbar.js",
+      "sourceSha256": "0202ea21b02f1ceea10549e9c9ceaef1248ba30fb7582076ac6fc737a4081d2a",
+      "migratedSha256": "ff7e7a50722e065634e5478ef146b79c0b79231af98ab32e2385573c2e3a4d04"
+    },
+    "runtime/NOTICE": {
+      "source": "standalone migration addition",
+      "migratedSha256": "3cca48a05d3c8f78170b3dd420bd22439f538e2ca2a7e101349e455ee130ea60"
+    },
+    "runtime/package.json": {
+      "source": "package.json",
+      "sourceSha256": "2b7eee259ab501f2bbca36d6e693e121b2eda449f3f3ce24f1daa7ff6f4ca519",
+      "migratedSha256": "1239d4d885dcad42201a27ed9324f8f0f760b78700d8db9ced39a511cffe7eae"
+    },
+    "runtime/UPSTREAM-LICENSE.md": {
+      "source": "standalone migration addition",
+      "migratedSha256": "03f129cffc6db7557cf9745fd33f44055c1f0617bf1b274edd669a4d3aa64eb6"
+    },
+    "runtime/shared/server-plugin/standalone-installation.js": {
+      "source": "standalone migration addition",
+      "migratedSha256": "044218e6180c0fe2e16a550ff53125de8d6296d0188c76a24d13670dc9365c8f"
+    },
+    "runtime/modules/agent-core/provider-config.js": {
+      "source": "modules/agent-core/provider-config.js",
+      "sourceSha256": "bb9733480b1c7c7be0b47b1f9d9f9cb3acd181c614ba8f9ec386031cf8704a58",
+      "migratedSha256": "bb9733480b1c7c7be0b47b1f9d9f9cb3acd181c614ba8f9ec386031cf8704a58"
+    },
+    "runtime/modules/draw/node-entry.js": {
+      "source": "modules/draw/node-entry.js",
+      "sourceSha256": "dcdfe1be53721b38611f4c5412d24837d0d8a5e8a5f1927026a3481699a16c43",
+      "migratedSha256": "dcdfe1be53721b38611f4c5412d24837d0d8a5e8a5f1927026a3481699a16c43"
+    },
+    "runtime/modules/draw/shared/draw-usage.js": {
+      "source": "modules/draw/shared/draw-usage.js",
+      "sourceSha256": "ba169695e12e8ab917ea39bca48669d3169fac4430a9b1cc5ef2aa308bde3ee2",
+      "migratedSha256": "ba169695e12e8ab917ea39bca48669d3169fac4430a9b1cc5ef2aa308bde3ee2"
+    },
+    "runtime/modules/draw/shared/tests/agent-settings-surface.test.js": {
+      "source": "modules/draw/shared/tests/agent-settings-surface.test.js",
+      "sourceSha256": "4d1a4774acc157dbcced526a6c96a75a96d2970253831075e602b9dc20b2b014",
+      "migratedSha256": "ac63ad33aada78919a2e571f74fedb926e4b47185b9bc292b519100ad53ab00e"
+    },
+    "runtime/modules/draw/shared/tests/auto-learn-merge.test.js": {
+      "source": "modules/draw/shared/tests/auto-learn-merge.test.js",
+      "sourceSha256": "6cd35898e34bfb3c0e7a6d4a358d4d55c480b711d1d0b65f39877bd7c97968c8",
+      "migratedSha256": "fc1c8859ef92739223125e9b9a143c646d0ce319979ffa2b002192aa84d464db"
+    },
+    "runtime/modules/draw/shared/tests/backend-image-jobs.test.js": {
+      "source": "modules/draw/shared/tests/backend-image-jobs.test.js",
+      "sourceSha256": "755b5bdaf8b3a3f36f6af5df1b0e6f94937cabdff7e8923ea6da440dd7bf4808",
+      "migratedSha256": "755b5bdaf8b3a3f36f6af5df1b0e6f94937cabdff7e8923ea6da440dd7bf4808"
+    },
+    "runtime/modules/draw/shared/tests/character-enabled-control.test.js": {
+      "source": "modules/draw/shared/tests/character-enabled-control.test.js",
+      "sourceSha256": "f943addcb2e71e527192474fb6ef61dc38e09f2c994806a06e49113de88ddafc",
+      "migratedSha256": "f943addcb2e71e527192474fb6ef61dc38e09f2c994806a06e49113de88ddafc"
+    },
+    "runtime/modules/draw/shared/tests/character-group-presets-runtime.test.js": {
+      "source": "modules/draw/shared/tests/character-group-presets-runtime.test.js",
+      "sourceSha256": "a76a9e6f56b5c3b7fadb187bcea36085183f03b3e87cdf84c1c7aa876f1e2205",
+      "migratedSha256": "a76a9e6f56b5c3b7fadb187bcea36085183f03b3e87cdf84c1c7aa876f1e2205"
+    },
+    "runtime/modules/draw/shared/tests/character-group-presets-ui.test.js": {
+      "source": "modules/draw/shared/tests/character-group-presets-ui.test.js",
+      "sourceSha256": "59ee505e0f86762b3300fe2a3b235b07d68e2619a2ffa3afc52479920c774022",
+      "migratedSha256": "59ee505e0f86762b3300fe2a3b235b07d68e2619a2ffa3afc52479920c774022"
+    },
+    "runtime/modules/draw/shared/tests/character-group-presets.test.js": {
+      "source": "modules/draw/shared/tests/character-group-presets.test.js",
+      "sourceSha256": "05143851e712924eeffed25b7c3c11b52320248ecc527aa7c17c8ca6afdd02fc",
+      "migratedSha256": "05143851e712924eeffed25b7c3c11b52320248ecc527aa7c17c8ca6afdd02fc"
+    },
+    "runtime/modules/draw/shared/tests/character-library-dialog.test.js": {
+      "source": "modules/draw/shared/tests/character-library-dialog.test.js",
+      "sourceSha256": "c0d7a090cedd92edac018edcb4c5696890d33c5cba4e4625942dd460df424742",
+      "migratedSha256": "c0d7a090cedd92edac018edcb4c5696890d33c5cba4e4625942dd460df424742"
+    },
+    "runtime/modules/draw/shared/tests/character-library-ui.test.js": {
+      "source": "modules/draw/shared/tests/character-library-ui.test.js",
+      "sourceSha256": "2f3b3b9f2f0b5cb0361d279e7a9fa300038703f5f74eeed6a7cc2c0189609cc5",
+      "migratedSha256": "76f57e7229693e24a110778aaafc059e7b788db7a5fa08467ad43760cf6dbefb"
+    },
+    "runtime/modules/draw/shared/tests/character-library.test.js": {
+      "source": "modules/draw/shared/tests/character-library.test.js",
+      "sourceSha256": "8d84869413f0f4adf6f916bb258eb68db70ffd1586d71a4fc28679eb79e36d59",
+      "migratedSha256": "8d84869413f0f4adf6f916bb258eb68db70ffd1586d71a4fc28679eb79e36d59"
+    },
+    "runtime/modules/draw/shared/tests/character-list-scroll.test.js": {
+      "source": "modules/draw/shared/tests/character-list-scroll.test.js",
+      "sourceSha256": "9b29e94b28e315964f2f8f5eeb0b53f5fabedbdeccf867c57e50e4c43003990a",
+      "migratedSha256": "9b29e94b28e315964f2f8f5eeb0b53f5fabedbdeccf867c57e50e4c43003990a"
+    },
+    "runtime/modules/draw/shared/tests/character-selection.test.js": {
+      "source": "modules/draw/shared/tests/character-selection.test.js",
+      "sourceSha256": "02acba968b67cefe63c97dbf0b933ffa216cf060a3d64f47b2472ddd73054b94",
+      "migratedSha256": "02acba968b67cefe63c97dbf0b933ffa216cf060a3d64f47b2472ddd73054b94"
+    },
+    "runtime/modules/draw/shared/tests/chat-image-slots.test.js": {
+      "source": "modules/draw/shared/tests/chat-image-slots.test.js",
+      "sourceSha256": "464108390e9d37b0bea50b4a4eba4662c45844149f417d0ae558ad4b68f367d6",
+      "migratedSha256": "6b2218abcb94beb972e2fab6519bd9656aebaffe704b36e1f341fed5f79b6b19"
+    },
+    "runtime/modules/draw/shared/tests/chat-message-image-markup.test.js": {
+      "source": "modules/draw/shared/tests/chat-message-image-markup.test.js",
+      "sourceSha256": "6911efd7235869042597b099bd73688bd3a181a392f55c525451b3125194e135",
+      "migratedSha256": "fdfff02a89b05731d14640d8e8f0d5175835b0c7628d2308700a73a21615411c"
+    },
+    "runtime/modules/draw/shared/tests/comfy-prompt-presets.test.js": {
+      "source": "modules/draw/shared/tests/comfy-prompt-presets.test.js",
+      "sourceSha256": "0884cc9dd8e4b14ef7e221174622c58653872a2f303e61eeed92a792035a6cc9",
+      "migratedSha256": "0884cc9dd8e4b14ef7e221174622c58653872a2f303e61eeed92a792035a6cc9"
+    },
+    "runtime/modules/draw/shared/tests/confirmable-chat-save.test.js": {
+      "source": "modules/draw/shared/tests/confirmable-chat-save.test.js",
+      "sourceSha256": "710ad02217dcfbae9f58ce47a8cfe03ec789edef5f4f26e30ab15e5f93fa9d99",
+      "migratedSha256": "e186e8d79dece881f47fb77653558b7685ad9fb62f89a69728de973af242f01e"
+    },
+    "runtime/modules/draw/shared/tests/draw-agent.test.js": {
+      "source": "modules/draw/shared/tests/draw-agent.test.js",
+      "sourceSha256": "36b6c08dd08e7dbde6f39a2915c84cdf270fb26643f122483d9d202ff3a22d14",
+      "migratedSha256": "36b6c08dd08e7dbde6f39a2915c84cdf270fb26643f122483d9d202ff3a22d14"
+    },
+    "runtime/modules/draw/shared/tests/draw-cancellation-ui.test.js": {
+      "source": "modules/draw/shared/tests/draw-cancellation-ui.test.js",
+      "sourceSha256": "d4e3b50dead11c9c572599a8bf112f7f6a7d28f4d1d8d68e50c972f314f97e24",
+      "migratedSha256": "c5e2bf8eff54a784164933b6e0294ee7fbe197bfe616dc13ebb3e4d6eac25012"
+    },
+    "runtime/modules/draw/shared/tests/draw-preview-rendering.test.js": {
+      "source": "modules/draw/shared/tests/draw-preview-rendering.test.js",
+      "sourceSha256": "f960c6524de31fbfe80c9c279b091ea9123778ef7612112da928421c7a0dab0a",
+      "migratedSha256": "cd33c723dcbc08e9f922ac240f12d4323bd3b161edb28164c75a1dbab707c7e8"
+    },
+    "runtime/modules/draw/shared/tests/draw-run-adoption.test.js": {
+      "source": "modules/draw/shared/tests/draw-run-adoption.test.js",
+      "sourceSha256": "fe098d2ada2fd87ba5fc7da41ac1a41035309f1dbf9b8a9c014dea450fdf4e8f",
+      "migratedSha256": "fe098d2ada2fd87ba5fc7da41ac1a41035309f1dbf9b8a9c014dea450fdf4e8f"
+    },
+    "runtime/modules/draw/shared/tests/draw-run-client.test.js": {
+      "source": "modules/draw/shared/tests/draw-run-client.test.js",
+      "sourceSha256": "f6f87d9c613a8848a977a411a0712335345d39b20768410486e3c5db947981e8",
+      "migratedSha256": "ca562d417a8e067c2eadd7127bcd35cd07137de952fc845b53ed7076bae0c7bf"
+    },
+    "runtime/modules/draw/shared/tests/draw-run-coordinator.test.js": {
+      "source": "modules/draw/shared/tests/draw-run-coordinator.test.js",
+      "sourceSha256": "d987789dd7909122c1519f041bc045c33044f1cbabcb5a6fbf152392785fbad8",
+      "migratedSha256": "6424b8f1ee19a065b24e7a67dacbf840574fbdc8b311e76587e1e15a37a050f4"
+    },
+    "runtime/modules/draw/shared/tests/draw-run-debug.test.js": {
+      "source": "modules/draw/shared/tests/draw-run-debug.test.js",
+      "sourceSha256": "5af3f1cce2029a0554cb72d1af953c8c6f27fd092911e057ad9f99b859867f7a",
+      "migratedSha256": "5af3f1cce2029a0554cb72d1af953c8c6f27fd092911e057ad9f99b859867f7a"
+    },
+    "runtime/modules/draw/shared/tests/draw-run-markers.test.js": {
+      "source": "modules/draw/shared/tests/draw-run-markers.test.js",
+      "sourceSha256": "7006d1c2d34d1a9fd6f45864bcf2775049ec2b0ed02633cd5f31f524652bf825",
+      "migratedSha256": "f8a41c6f4aed9d3955422dd08a503450af8d150307164e5bfcbd74e3ece592c3"
+    },
+    "runtime/modules/draw/shared/tests/draw-run-production.test.js": {
+      "source": "modules/draw/shared/tests/draw-run-production.test.js",
+      "sourceSha256": "cdc2d3f93c819fd706f7be8fa5ef252c00c4cec5187c0948e6d656e019d10f96",
+      "migratedSha256": "cba0f35625c988500c17df93917826634d2798a4776f63d099f25269ce479102"
+    },
+    "runtime/modules/draw/shared/tests/draw-run-recovery-runtime.test.js": {
+      "source": "modules/draw/shared/tests/draw-run-recovery-runtime.test.js",
+      "sourceSha256": "5cda809816ff1baf99ef895e3fe938016a67e30331abcb372c2562178c95bf22",
+      "migratedSha256": "4085282cfa65bcd077d7834fa088ca40835f3de8cb416a2b4e02cabf96eacbe5"
+    },
+    "runtime/modules/draw/shared/tests/draw-run-recovery.test.js": {
+      "source": "modules/draw/shared/tests/draw-run-recovery.test.js",
+      "sourceSha256": "a3059aa7b05b3b17d157a1b56fbdc330e6733a88f9595ec1e3bfa1f4dcc78455",
+      "migratedSha256": "a3059aa7b05b3b17d157a1b56fbdc330e6733a88f9595ec1e3bfa1f4dcc78455"
+    },
+    "runtime/modules/draw/shared/tests/draw-settings.test.js": {
+      "source": "modules/draw/shared/tests/draw-settings.test.js",
+      "sourceSha256": "5868c0b56e74120e00b79f93c14955146d1580aa407154dd40a00b74ed9acfb3",
+      "migratedSha256": "5868c0b56e74120e00b79f93c14955146d1580aa407154dd40a00b74ed9acfb3"
+    },
+    "runtime/modules/draw/shared/tests/draw-work-cancellation.test.js": {
+      "source": "modules/draw/shared/tests/draw-work-cancellation.test.js",
+      "sourceSha256": "66033ebc23936900717a2f8d318d84c210bba99f98321396a795961902f9d605",
+      "migratedSha256": "66033ebc23936900717a2f8d318d84c210bba99f98321396a795961902f9d605"
+    },
+    "runtime/modules/draw/shared/tests/image-card-redraw-provider.test.js": {
+      "source": "modules/draw/shared/tests/image-card-redraw-provider.test.js",
+      "sourceSha256": "d0beebc90395136f4b9a8e9131166eef1b7c4f1dcd0ce72f0a5bcfa2259641b2",
+      "migratedSha256": "d0beebc90395136f4b9a8e9131166eef1b7c4f1dcd0ce72f0a5bcfa2259641b2"
+    },
+    "runtime/modules/draw/shared/tests/image-job-delivery-target.test.js": {
+      "source": "modules/draw/shared/tests/image-job-delivery-target.test.js",
+      "sourceSha256": "5ca80260e260713b14704d37d01b0c89f22458895b9c8a656e430bb1e75bc64c",
+      "migratedSha256": "5ca80260e260713b14704d37d01b0c89f22458895b9c8a656e430bb1e75bc64c"
+    },
+    "runtime/modules/draw/shared/tests/image-job-reattach.test.js": {
+      "source": "modules/draw/shared/tests/image-job-reattach.test.js",
+      "sourceSha256": "060fc498def3e03f45deb7b940da6a8eaa74a30ade41f3a946d16a01c3cde5c8",
+      "migratedSha256": "060fc498def3e03f45deb7b940da6a8eaa74a30ade41f3a946d16a01c3cde5c8"
+    },
+    "runtime/modules/draw/shared/tests/image-job-recovery-executor.test.js": {
+      "source": "modules/draw/shared/tests/image-job-recovery-executor.test.js",
+      "sourceSha256": "472c397e91cadd816789c6566866ba3daba00416c364df4ee11bc26d710b6a57",
+      "migratedSha256": "472c397e91cadd816789c6566866ba3daba00416c364df4ee11bc26d710b6a57"
+    },
+    "runtime/modules/draw/shared/tests/image-job-recovery-runtime.test.js": {
+      "source": "modules/draw/shared/tests/image-job-recovery-runtime.test.js",
+      "sourceSha256": "a330820829a615fa475f9e5df9496a4a929f312b30cf55b5b46a7d312c987247",
+      "migratedSha256": "a3e2402a300116bd8b8379cc3e7420d96dd1c14ad5d7be618b79cadc416dec39"
+    },
+    "runtime/modules/draw/shared/tests/page-farewell-pagehide.test.js": {
+      "source": "modules/draw/shared/tests/page-farewell-pagehide.test.js",
+      "sourceSha256": "65ab01fb1b5ebc0c73d8c9e4285836662eef91e62a1950e58ada5650ba8d277d",
+      "migratedSha256": "65ab01fb1b5ebc0c73d8c9e4285836662eef91e62a1950e58ada5650ba8d277d"
+    },
+    "runtime/modules/draw/shared/tests/page-farewell.test.js": {
+      "source": "modules/draw/shared/tests/page-farewell.test.js",
+      "sourceSha256": "6779cee0e9c182e7e857d66baefcede5c00af78d8a66140335f1b31826978c80",
+      "migratedSha256": "6779cee0e9c182e7e857d66baefcede5c00af78d8a66140335f1b31826978c80"
+    },
+    "runtime/modules/draw/shared/tests/pending-image-jobs.test.js": {
+      "source": "modules/draw/shared/tests/pending-image-jobs.test.js",
+      "sourceSha256": "27193976c9d980ec18aaf93a883f7bcfdede23b3464c0948a4edb4fb624d3f43",
+      "migratedSha256": "27193976c9d980ec18aaf93a883f7bcfdede23b3464c0948a4edb4fb624d3f43"
+    },
+    "runtime/modules/draw/shared/tests/planner-retry.test.js": {
+      "source": "modules/draw/shared/tests/planner-retry.test.js",
+      "sourceSha256": "e6f7fc5673d789813e6aad3197cd81868b528db90d3b7326ac0d79e1a1a6d319",
+      "migratedSha256": "e6f7fc5673d789813e6aad3197cd81868b528db90d3b7326ac0d79e1a1a6d319"
+    },
+    "runtime/modules/draw/shared/tests/prepared-slot-executor.test.js": {
+      "source": "modules/draw/shared/tests/prepared-slot-executor.test.js",
+      "sourceSha256": "697c87cbafbecae7b8600ab287c55f90532a9b3e8fd916b9f7dea3ff1781d34a",
+      "migratedSha256": "697c87cbafbecae7b8600ab287c55f90532a9b3e8fd916b9f7dea3ff1781d34a"
+    },
+    "runtime/modules/draw/shared/tests/present-character-boundaries.test.js": {
+      "source": "modules/draw/shared/tests/present-character-boundaries.test.js",
+      "sourceSha256": "ad459d6ecc0b8c3ca8092293094fdb8bd53ba75246fab25192f66321d66df70c",
+      "migratedSha256": "44c8d8efde49cf69d0dafb0e85f226ccee050365ede4908149faabfb9deb66fa"
+    },
+    "runtime/modules/draw/shared/tests/prompt-preview.test.js": {
+      "source": "modules/draw/shared/tests/prompt-preview.test.js",
+      "sourceSha256": "00da6198c75c030269a0b8559cf10a30d55118530aa78c79c7ab4995d7ed1dc2",
+      "migratedSha256": "00da6198c75c030269a0b8559cf10a30d55118530aa78c79c7ab4995d7ed1dc2"
+    },
+    "runtime/modules/draw/shared/tests/prompt-template-migration.test.js": {
+      "source": "modules/draw/shared/tests/prompt-template-migration.test.js",
+      "sourceSha256": "fe7ecff5434e1d98cf897b7fd494310a53a30d82705e009e5f26090ced8e604d",
+      "migratedSha256": "fe7ecff5434e1d98cf897b7fd494310a53a30d82705e009e5f26090ced8e604d"
+    },
+    "runtime/modules/draw/shared/tests/provider-compilers.test.js": {
+      "source": "modules/draw/shared/tests/provider-compilers.test.js",
+      "sourceSha256": "ac48d111f5c0aebae3b161f69f458d121aefafab1eeb344cb0349a382875048c",
+      "migratedSha256": "ac48d111f5c0aebae3b161f69f458d121aefafab1eeb344cb0349a382875048c"
+    },
+    "runtime/modules/draw/shared/tests/recoverable-image-jobs.test.js": {
+      "source": "modules/draw/shared/tests/recoverable-image-jobs.test.js",
+      "sourceSha256": "d3ad95b00e2236ff519a451755f715b0d859807cb95c06f0d5d1756edfa071f2",
+      "migratedSha256": "d3ad95b00e2236ff519a451755f715b0d859807cb95c06f0d5d1756edfa071f2"
+    },
+    "runtime/modules/draw/shared/tests/scene-placement.test.js": {
+      "source": "modules/draw/shared/tests/scene-placement.test.js",
+      "sourceSha256": "06464cf51c950b569f6c42f0507daa5b985b82a2fdc8bc9aba412e69bf112548",
+      "migratedSha256": "06464cf51c950b569f6c42f0507daa5b985b82a2fdc8bc9aba412e69bf112548"
+    },
+    "runtime/modules/draw/shared/tests/scene-plan-arguments.test.js": {
+      "source": "modules/draw/shared/tests/scene-plan-arguments.test.js",
+      "sourceSha256": "a59cae42bdbc0014e61c242427027907b523fe3a0ec0f76fa87af8897b83b48c",
+      "migratedSha256": "a59cae42bdbc0014e61c242427027907b523fe3a0ec0f76fa87af8897b83b48c"
+    },
+    "runtime/modules/draw/shared/tests/scene-plan-contract.test.js": {
+      "source": "modules/draw/shared/tests/scene-plan-contract.test.js",
+      "sourceSha256": "af14fbcfc198d64a9b3b7e32e41b6a881424980b0e735232e3c399407f688efd",
+      "migratedSha256": "af14fbcfc198d64a9b3b7e32e41b6a881424980b0e735232e3c399407f688efd"
+    },
+    "runtime/modules/draw/shared/tests/scene-plan-refusal.test.js": {
+      "source": "modules/draw/shared/tests/scene-plan-refusal.test.js",
+      "sourceSha256": "f6c097c3250835456285e5cfaa707f5bc1f1efa69766d9cff50e891c89e56d7d",
+      "migratedSha256": "f6c097c3250835456285e5cfaa707f5bc1f1efa69766d9cff50e891c89e56d7d"
+    },
+    "runtime/modules/draw/shared/tests/scene-planner-debug.test.js": {
+      "source": "modules/draw/shared/tests/scene-planner-debug.test.js",
+      "sourceSha256": "2545ca70b4c9039c1c53b3535cd86e3ca6eba79257f747286496a9103cea7317",
+      "migratedSha256": "2545ca70b4c9039c1c53b3535cd86e3ca6eba79257f747286496a9103cea7317"
+    },
+    "runtime/modules/draw/shared/tests/scene-planner-error-ui.test.js": {
+      "source": "modules/draw/shared/tests/scene-planner-error-ui.test.js",
+      "sourceSha256": "a663cca2bfd77956b7fddb386366fee4b99083257b3220384b2b431ed376f1bc",
+      "migratedSha256": "a663cca2bfd77956b7fddb386366fee4b99083257b3220384b2b431ed376f1bc"
+    },
+    "runtime/modules/draw/shared/tests/scene-planner-reasoning.test.js": {
+      "source": "modules/draw/shared/tests/scene-planner-reasoning.test.js",
+      "sourceSha256": "7842a9bd031d215ddba30b117454e7ca6e0b73056539c7345ca5a5bc52ba54a3",
+      "migratedSha256": "7842a9bd031d215ddba30b117454e7ca6e0b73056539c7345ca5a5bc52ba54a3"
+    },
+    "runtime/modules/draw/shared/tests/scene-planner-toolmode.test.js": {
+      "source": "modules/draw/shared/tests/scene-planner-toolmode.test.js",
+      "sourceSha256": "5db9bddb41eebf826dcc8ed5d20285d34e9332eb0f39d73c7cf8d28c8ac88742",
+      "migratedSha256": "5db9bddb41eebf826dcc8ed5d20285d34e9332eb0f39d73c7cf8d28c8ac88742"
+    },
+    "runtime/modules/draw/shared/tests/scene-planner.test.js": {
+      "source": "modules/draw/shared/tests/scene-planner.test.js",
+      "sourceSha256": "1b73cf8d8d4a70d6b5a2bed7c2e8afd0ae059bd2bd11108eea869a041c9900fa",
+      "migratedSha256": "1b73cf8d8d4a70d6b5a2bed7c2e8afd0ae059bd2bd11108eea869a041c9900fa"
+    },
+    "runtime/modules/draw/shared/tests/scene-prompt-expansion.test.js": {
+      "source": "modules/draw/shared/tests/scene-prompt-expansion.test.js",
+      "sourceSha256": "18ba8ec4fcc7894a925e9bb6cbb2aac87901947dff8f9532ef730e691c4cea7c",
+      "migratedSha256": "18ba8ec4fcc7894a925e9bb6cbb2aac87901947dff8f9532ef730e691c4cea7c"
+    },
+    "runtime/modules/draw/shared/tests/scene-slot-dom.test.js": {
+      "source": "modules/draw/shared/tests/scene-slot-dom.test.js",
+      "sourceSha256": "f8df21a4a5a1d3761840d2bf426728ed7ae62378207b6e75a47b095ca67c9409",
+      "migratedSha256": "05974d80200849ab5e974d70e8d0c1dff4b851602815d62039c6453a1339452b"
+    },
+    "runtime/modules/draw/shared/tests/scene-slot-protection.test.js": {
+      "source": "modules/draw/shared/tests/scene-slot-protection.test.js",
+      "sourceSha256": "d6b6c58128e0f6ad87e532964861b349a022844370b6c7ce095b3a2088ec59d8",
+      "migratedSha256": "d6b6c58128e0f6ad87e532964861b349a022844370b6c7ce095b3a2088ec59d8"
+    },
+    "runtime/modules/draw/shared/tests/fixtures/provider-runtime-fixture.mjs": {
+      "source": "modules/draw/shared/tests/fixtures/provider-runtime-fixture.mjs",
+      "sourceSha256": "ebf888cd0e284b3253cb23f6f00216b1d1c48496590d30b4e36e9c864c7ed1e6",
+      "migratedSha256": "f3026e74934c7869b8abf5d32caff2e5fa55c5df211bf6235cf6582d84def26d"
+    },
+    "runtime/modules/draw/shared/tests/fixtures/scene-planner-opening-v1.json": {
+      "source": "modules/draw/shared/tests/fixtures/scene-planner-opening-v1.json",
+      "sourceSha256": "62486f6ebf07307561a065ff62ade8e1c3c0e3e29eee5817ba4e8612af41e0c4",
+      "migratedSha256": "62486f6ebf07307561a065ff62ade8e1c3c0e3e29eee5817ba4e8612af41e0c4"
+    },
+    "runtime/modules/draw/providers/novelai/novel-prompt-migration.js": {
+      "source": "modules/draw/providers/novelai/novel-prompt-migration.js",
+      "sourceSha256": "73d0b9be262788ac75072cadd0434e395b1a90e75c634d9f2fe12661bea87f81",
+      "migratedSha256": "73d0b9be262788ac75072cadd0434e395b1a90e75c634d9f2fe12661bea87f81"
+    },
+    "runtime/modules/draw/providers/novelai/novel-prompts.js": {
+      "source": "modules/draw/providers/novelai/novel-prompts.js",
+      "sourceSha256": "8c839f5c38a57198d984d63e1e4152203d52e5a6e1141f3018ba6d3c8468ff2a",
+      "migratedSha256": "8c839f5c38a57198d984d63e1e4152203d52e5a6e1141f3018ba6d3c8468ff2a"
+    },
+    "runtime/modules/draw/providers/novelai/TAG编写指南-V4.5.md": {
+      "source": "modules/draw/providers/novelai/TAG编写指南-V4.5.md",
+      "sourceSha256": "ed10cc2cb288ef1a46178c202cd453e04ec1bed04c150463a0b591834089e06e",
+      "migratedSha256": "ed10cc2cb288ef1a46178c202cd453e04ec1bed04c150463a0b591834089e06e"
+    },
+    "runtime/modules/draw/providers/novelai/提示词编写指南-V5.md": {
+      "source": "modules/draw/providers/novelai/提示词编写指南-V5.md",
+      "sourceSha256": "e62785752aea8bb131d28f21a7cbd206b6ae43fc8c49f755f422396b0057ba86",
+      "migratedSha256": "e62785752aea8bb131d28f21a7cbd206b6ae43fc8c49f755f422396b0057ba86"
+    },
+    "runtime/modules/draw/providers/sd-webui/sd-prompts.js": {
+      "source": "modules/draw/providers/sd-webui/sd-prompts.js",
+      "sourceSha256": "c1aa7d82ab868da95db739f856d62bc39b9ee40b163d72df2f4ca2ac9b24cc9f",
+      "migratedSha256": "c1aa7d82ab868da95db739f856d62bc39b9ee40b163d72df2f4ca2ac9b24cc9f"
+    },
+    "runtime/modules/draw/providers/sd-webui/SD_TAG编写指南.md": {
+      "source": "modules/draw/providers/sd-webui/SD_TAG编写指南.md",
+      "sourceSha256": "39fe1a1439ba0fd5669f7dd86fd88f476d6c9b959c71e177c26e4cb943b3cf61",
+      "migratedSha256": "39fe1a1439ba0fd5669f7dd86fd88f476d6c9b959c71e177c26e4cb943b3cf61"
+    },
+    "runtime/modules/draw/providers/sd-webui/tests/fixtures/prompt-template-v6.json": {
+      "source": "modules/draw/providers/sd-webui/tests/fixtures/prompt-template-v6.json",
+      "sourceSha256": "827a227878ddd7dc9507a1d86267413914657ad53aeb8f285893c244905e2d66",
+      "migratedSha256": "827a227878ddd7dc9507a1d86267413914657ad53aeb8f285893c244905e2d66"
+    },
+    "runtime/modules/draw/providers/sd-webui/tests/fixtures/prompt-template-v7.json": {
+      "source": "modules/draw/providers/sd-webui/tests/fixtures/prompt-template-v7.json",
+      "sourceSha256": "da177e7025a62b1966e023e819d2f5b1e2d7a875b1fdda61f6740562adee24ad",
+      "migratedSha256": "da177e7025a62b1966e023e819d2f5b1e2d7a875b1fdda61f6740562adee24ad"
+    },
+    "runtime/modules/draw/providers/sd-webui/tests/fixtures/prompt-template-v8.json": {
+      "source": "modules/draw/providers/sd-webui/tests/fixtures/prompt-template-v8.json",
+      "sourceSha256": "79e2c586787398b4a118650f5d1ee2d842571a7ad368aea882d6ea155c14d499",
+      "migratedSha256": "79e2c586787398b4a118650f5d1ee2d842571a7ad368aea882d6ea155c14d499"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/character-appearance-cleanup.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/character-appearance-cleanup.test.js",
+      "sourceSha256": "72549fd6ae525871aa23fcbc892fc9cb6550c8782deec6cdc178c8bea02db428",
+      "migratedSha256": "72549fd6ae525871aa23fcbc892fc9cb6550c8782deec6cdc178c8bea02db428"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/character-auto-import.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/character-auto-import.test.js",
+      "sourceSha256": "ec520e1dddf8d5fe75a96e6a158d639c54be0d5b4a3f1a04d132bc1af0913dae",
+      "migratedSha256": "ec520e1dddf8d5fe75a96e6a158d639c54be0d5b4a3f1a04d132bc1af0913dae"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/character-test-prompt.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/character-test-prompt.test.js",
+      "sourceSha256": "4ff159dfa58ecf7cd80633a76cd35a272bf751d4f6305475173a123d1f50c06c",
+      "migratedSha256": "4ff159dfa58ecf7cd80633a76cd35a272bf751d4f6305475173a123d1f50c06c"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/character-translation-request.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/character-translation-request.test.js",
+      "sourceSha256": "4d846154ba78e13c07e3895637c9d78c49f1bcd58af1bf2903e7435ab2d90d81",
+      "migratedSha256": "4d846154ba78e13c07e3895637c9d78c49f1bcd58af1bf2903e7435ab2d90d81"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/chinese-named-tags.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/chinese-named-tags.test.js",
+      "sourceSha256": "7ea36ee3542032e851477ac9a56da48f16be018ee4b4946b34e78164015f40cd",
+      "migratedSha256": "7ea36ee3542032e851477ac9a56da48f16be018ee4b4946b34e78164015f40cd"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/image-character-transport.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/image-character-transport.test.js",
+      "sourceSha256": "9287aa8ac32460eec4e6d5c93c55cd682f11ad7158054ab3a8571ed9c8b87c50",
+      "migratedSha256": "9287aa8ac32460eec4e6d5c93c55cd682f11ad7158054ab3a8571ed9c8b87c50"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/image-character-ui.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/image-character-ui.test.js",
+      "sourceSha256": "543b75c1c5884888b6e1f2090bdba46802c806839f700a902f4a7ea3a4ce011e",
+      "migratedSha256": "543b75c1c5884888b6e1f2090bdba46802c806839f700a902f4a7ea3a4ce011e"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/image-character.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/image-character.test.js",
+      "sourceSha256": "25f22ecbe548de26f596761806cbf1c74ba5fc707e6e2c06224ac02eb50ec424",
+      "migratedSha256": "25f22ecbe548de26f596761806cbf1c74ba5fc707e6e2c06224ac02eb50ec424"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/prompt-import.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/prompt-import.test.js",
+      "sourceSha256": "760cbc85da090e0e9d07fb15646aeca70d2e91e83b20ad4eb6f4c108f7498912",
+      "migratedSha256": "760cbc85da090e0e9d07fb15646aeca70d2e91e83b20ad4eb6f4c108f7498912"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/role-card-compact.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/role-card-compact.test.js",
+      "sourceSha256": "5217447f0a8dc6c60b17f8282d91edffc4b0fb9b12034f902e1b8e522485b563",
+      "migratedSha256": "5217447f0a8dc6c60b17f8282d91edffc4b0fb9b12034f902e1b8e522485b563"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/single-slot-replan.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/single-slot-replan.test.js",
+      "sourceSha256": "e961de252a47374802cd4667f83dda7f7a14a56d66d4d336a06e3782a1adb523",
+      "migratedSha256": "e961de252a47374802cd4667f83dda7f7a14a56d66d4d336a06e3782a1adb523"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/text-story-detail.test.js": {
+      "source": "modules/draw/providers/comfyui/tests/text-story-detail.test.js",
+      "sourceSha256": "ac82173672ad634cab7f911ae8ce7b368c74e213ce52342dc1ef38a522f1d5b6",
+      "migratedSha256": "ac82173672ad634cab7f911ae8ce7b368c74e213ce52342dc1ef38a522f1d5b6"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/fixtures/prompt-template-v7.json": {
+      "source": "modules/draw/providers/comfyui/tests/fixtures/prompt-template-v7.json",
+      "sourceSha256": "416ccee96a62295198615daeeee5ed07bfb0eff36e6454e48964891d2d36a19c",
+      "migratedSha256": "416ccee96a62295198615daeeee5ed07bfb0eff36e6454e48964891d2d36a19c"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/fixtures/prompt-template-v8.json": {
+      "source": "modules/draw/providers/comfyui/tests/fixtures/prompt-template-v8.json",
+      "sourceSha256": "5657f1a1d713cef97637317070bbf785f28277a4d842d7cd6e3f414301f8cc9d",
+      "migratedSha256": "5657f1a1d713cef97637317070bbf785f28277a4d842d7cd6e3f414301f8cc9d"
+    },
+    "runtime/modules/draw/providers/comfyui/tests/fixtures/prompt-template-v9.json": {
+      "source": "modules/draw/providers/comfyui/tests/fixtures/prompt-template-v9.json",
+      "sourceSha256": "9e10d4836d43b18a91aa5fd27241e47d1a0d5c21715ecdfa6133c3d8f2521b5f",
+      "migratedSha256": "9e10d4836d43b18a91aa5fd27241e47d1a0d5c21715ecdfa6133c3d8f2521b5f"
+    },
+    "runtime/modules/assistant/tests/fixtures/tagged-scene-plan-dsml-suffix.txt": {
+      "source": "modules/assistant/tests/fixtures/tagged-scene-plan-dsml-suffix.txt",
+      "sourceSha256": "afeec90ab90f70dad82b790d11d0dbfe03401a5bf927d47ff65421273f3ee0cb",
+      "migratedSha256": "afeec90ab90f70dad82b790d11d0dbfe03401a5bf927d47ff65421273f3ee0cb"
+    },
+    "runtime/modules/agent-core/adapters/anthropic.js": {
+      "source": "modules/agent-core/adapters/anthropic.js",
+      "sourceSha256": "50518449354d8c2fc6fc273de9dec8471394a322aa34bb5cf3ea1947d70402de",
+      "migratedSha256": "50518449354d8c2fc6fc273de9dec8471394a322aa34bb5cf3ea1947d70402de"
+    },
+    "runtime/modules/agent-core/adapters/google.js": {
+      "source": "modules/agent-core/adapters/google.js",
+      "sourceSha256": "e618a3a2b879a217ae5b68f15709986fdc20cb65acda4f70f8c84d5dd1978cd4",
+      "migratedSha256": "e618a3a2b879a217ae5b68f15709986fdc20cb65acda4f70f8c84d5dd1978cd4"
+    },
+    "runtime/modules/agent-core/adapters/openai-compatible-replay-policy.js": {
+      "source": "modules/agent-core/adapters/openai-compatible-replay-policy.js",
+      "sourceSha256": "e8b694e57b89a00075eb568f6ce50e1ce9407f8d9d8b6438521e94980dbbce80",
+      "migratedSha256": "e8b694e57b89a00075eb568f6ce50e1ce9407f8d9d8b6438521e94980dbbce80"
+    },
+    "runtime/modules/agent-core/adapters/openai-compatible.js": {
+      "source": "modules/agent-core/adapters/openai-compatible.js",
+      "sourceSha256": "ae9ffc66837a7e59636acadfcd001b77bba137777230c6eabd6f3701594e43a3",
+      "migratedSha256": "fa64ecb7ec637a361921314799083c17502f4c6cd1f84e8fc075b1ac03f71f56"
+    },
+    "runtime/modules/agent-core/adapters/openai-responses.js": {
+      "source": "modules/agent-core/adapters/openai-responses.js",
+      "sourceSha256": "40fcf7ad50c745eff27a9d5bb0f50b8bec2c68a1a87405d1636c88facce89df4",
+      "migratedSha256": "40fcf7ad50c745eff27a9d5bb0f50b8bec2c68a1a87405d1636c88facce89df4"
+    },
+    "runtime/modules/agent-core/adapters/sillytavern-claude.js": {
+      "source": "modules/agent-core/adapters/sillytavern-claude.js",
+      "sourceSha256": "f7e078a72d12b49263bafc97cb86224f99f2fe6303044afab59c4a228112ffe7",
+      "migratedSha256": "f7e078a72d12b49263bafc97cb86224f99f2fe6303044afab59c4a228112ffe7"
+    },
+    "runtime/modules/agent-core/adapters/sillytavern-google.js": {
+      "source": "modules/agent-core/adapters/sillytavern-google.js",
+      "sourceSha256": "01eb1b82b73fb88965d8e4610f8cf36a333347edbdc15defb4b7a6484e45db24",
+      "migratedSha256": "01eb1b82b73fb88965d8e4610f8cf36a333347edbdc15defb4b7a6484e45db24"
+    },
+    "runtime/modules/agent-core/adapters/sillytavern-openai-compatible.js": {
+      "source": "modules/agent-core/adapters/sillytavern-openai-compatible.js",
+      "sourceSha256": "14e40bd202d33ca544b4409dc9ab6474e0f29fd96d24b55c00c2222d066e3273",
+      "migratedSha256": "14e40bd202d33ca544b4409dc9ab6474e0f29fd96d24b55c00c2222d066e3273"
+    },
+    "runtime/modules/agent-core/adapters/text-tool-protocol.js": {
+      "source": "modules/agent-core/adapters/text-tool-protocol.js",
+      "sourceSha256": "c363d1904976e7cb5a1c21304242deae918a2d79b11592642ae8f7c8cdf90352",
+      "migratedSha256": "c363d1904976e7cb5a1c21304242deae918a2d79b11592642ae8f7c8cdf90352"
+    },
+    "runtime/modules/agent-core/runtime/response-completion.js": {
+      "source": "modules/agent-core/runtime/response-completion.js",
+      "sourceSha256": "21503277979cc238ec0031fa3c566c240132a0183503b7c304fb988b4caf0b06",
+      "migratedSha256": "21503277979cc238ec0031fa3c566c240132a0183503b7c304fb988b4caf0b06"
+    },
+    "runtime/integrations/tauritavern/tests/fixtures/cold-swipes-2.3.json": {
+      "source": "integrations/tauritavern/tests/fixtures/cold-swipes-2.3.json",
+      "sourceSha256": "335cf73bc8b2b2c50370b49b004a6056a08ecf20843798b6f874040c7e082a09",
+      "migratedSha256": "335cf73bc8b2b2c50370b49b004a6056a08ecf20843798b6f874040c7e082a09"
+    },
+    "runtime/integrations/tauritavern/features/draw/chat-branches.js": {
+      "source": "integrations/tauritavern/features/draw/chat-branches.js",
+      "sourceSha256": "742b0eee8692353eee38d696dfb0736ea6fe10f0ab75ed233f89826d0f12d47c",
+      "migratedSha256": "742b0eee8692353eee38d696dfb0736ea6fe10f0ab75ed233f89826d0f12d47c"
+    },
+    "server-plugin/runtime/NOTICE": {
+      "source": "standalone migration addition",
+      "migratedSha256": "3cca48a05d3c8f78170b3dd420bd22439f538e2ca2a7e101349e455ee130ea60"
+    },
+    "server-plugin/runtime/UPSTREAM-LICENSE.md": {
+      "source": "standalone migration addition",
+      "migratedSha256": "03f129cffc6db7557cf9745fd33f44055c1f0617bf1b274edd669a4d3aa64eb6"
+    },
+    "server-plugin/runtime/tests/cancellation.test.js": {
+      "source": "standalone migration addition",
+      "migratedSha256": "922b172985275f877db9347afe73ce0f551ef2bd0d27df2ab731c3c5f31913ef"
+    },
+    "server-plugin/runtime/tests/draw-run-manager.test.js": {
+      "source": "standalone migration addition",
+      "migratedSha256": "0d7d3e262b50273b9307fbe57432de9ab73692dfe0d3c16e93958a8dc1195627"
+    },
+    "server-plugin/runtime/tests/draw-run-routes.test.js": {
+      "source": "standalone migration addition",
+      "migratedSha256": "ed90cacd8cbb2d79ad6bf69e5fe4e1a29eb30737870ddfb7892c23a9b1b29c0f"
+    },
+    "server-plugin/runtime/tests/job-manager.test.js": {
+      "source": "standalone migration addition",
+      "migratedSha256": "189015f3038803f8dfcaa1d90518d948d34f11b54607156e24412d4e62d7afb1"
+    },
+    "server-plugin/runtime/tests/job-routes.test.js": {
+      "source": "standalone migration addition",
+      "migratedSha256": "571b4acaba875bc5eb9e8d1c6154f90191bc5e9f47cd9c08041d151d8626345d"
+    },
+    "server-plugin/runtime/tests/loopback-host-client.test.js": {
+      "source": "standalone migration addition",
+      "migratedSha256": "e092e617f3cfb4eee2dad1a1a8e019e1d4eab180dd073e1152524abbe5668758"
+    },
+    "server-plugin/runtime/tests/loopback-probe.test.js": {
+      "source": "standalone migration addition",
+      "migratedSha256": "fd09b9c2155538ce7c3be721d549aaddeedf9422259e5870ac028455f1be97f5"
+    },
+    "server-plugin/runtime/tests/provider-adapters.test.js": {
+      "source": "standalone migration addition",
+      "migratedSha256": "313a70836ded4068976f74d96bd8a0cbbdcee0b05a9a2da564b1bf42b81fd69e"
+    },
+    "server-plugin/runtime/draw-runs/vendor/THIRD_PARTY_LICENSES.txt": {
+      "source": "standalone migration addition",
+      "migratedSha256": "b4e17a0c624dd02e98e5180546ebe9b6e9fc65710df6535e72b8aba0fd618e3d"
+    },
+    "runtime/COPYRIGHT": {
+      "source": "standalone migration addition",
+      "migratedSha256": "cffc88a8df4f422997dbab45810e587abb4cd22c1e0346a6aa2d7a7c59bea8c1"
+    },
+    "runtime/libs/fflate.LICENSE.txt": {
+      "source": "standalone migration addition",
+      "migratedSha256": "0a1df3a083d0c010560aa342e87959c8c1070e6fd54545741f083f22d0c8b551"
+    },
+    "runtime/libs/js-yaml.LICENSE.txt": {
+      "source": "standalone migration addition",
+      "migratedSha256": "a07bc24468b9654ce76a547d47a2db282d07733b715db4c73a98bd63961f9550"
+    },
+    "server-plugin/runtime/COPYRIGHT": {
+      "source": "standalone migration addition",
+      "migratedSha256": "cffc88a8df4f422997dbab45810e587abb4cd22c1e0346a6aa2d7a7c59bea8c1"
+    }
+  },
+  "digestNormalization": "UTF-8 text CRLF normalized to LF; binary unchanged"
+}

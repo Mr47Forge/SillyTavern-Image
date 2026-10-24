@@ -22,6 +22,8 @@
 __pycache__/
 node_modules/
 dist/
+!runtime/modules/agent-core/dist/
+!runtime/modules/agent-core/dist/agent-core-browser.js
 *.safetensors
 *.ckpt
 *.pth

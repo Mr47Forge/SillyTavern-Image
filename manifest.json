@@ -3,10 +3,11 @@
   "loading_order": 65,
   "requires": [],
   "optional": [],
-  "js": "extension/index.js",
+  "js": "extension/entry.js",
   "css": "extension/style.css",
   "author": "Mr47Forge",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "generate_interceptor": "stimageGenerateInterceptor",
   "homePage": "https://github.com/Mr47Forge/SillyTavern-Image",
   "auto_update": false,
   "minimum_client_version": "1.13.0"

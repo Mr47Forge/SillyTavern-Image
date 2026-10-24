@@ -1,11 +1,26 @@
 {
   "name": "sillytavern-image",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Standalone SillyTavern ComfyUI image extension, plus custom integration backups",
   "scripts": {
-    "test": "node --test server-plugin/tests/integration.test.cjs extension/settings.test.mjs",
-    "check": "node --check extension/index.js && node --check server-plugin/index.js"
+    "test": "node --test server-plugin/tests/*.test.cjs server-plugin/runtime/tests/*.test.js extension/*.test.mjs runtime/modules/draw/providers/comfyui/tests/*.test.js runtime/modules/draw/shared/tests/*.test.js",
+    "build": "node scripts/build-runtime.mjs",
+    "test:browser": "node scripts/browser-test.mjs",
+    "check": "node --check extension/entry.js && node --check server-plugin/index.js && node scripts/build-runtime.mjs --check && node scripts/check-runtime.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "0.91.1",
+    "@google/genai": "1.50.1",
+    "esbuild": "0.28.1",
+    "express": "5.2.1",
+    "fake-indexeddb": "6.2.4",
+    "linkedom": "0.18.13",
+    "openai": "6.44.0",
+    "playwright-core": "1.62.1",
+    "showdown": "2.1.0"
+  }
 }

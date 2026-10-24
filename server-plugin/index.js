@@ -3,6 +3,8 @@
 const manifest = require('./manifest.json');
 const { storePhoto, readPhoto } = require('./lib/photos');
 const { checkConnection, runGeneration } = require('./lib/transport');
+const { mountRuntime, closeRuntime } = require('./lib/runtime');
+const { importLegacySettings } = require('./lib/migration');
 
 const info = {
   id: manifest.id, name: manifest.name,
@@ -20,6 +22,12 @@ function errorResponse(res, error) {
   return res.status(status).json({ ok: false, error: String(error?.message || '请求失败').slice(0, 450) });
 }
 async function init(router) {
+  await mountRuntime(router);
+  router.post('/v1/migrate-x', async (req, res) => {
+    if (!user(req)) return res.status(403).json({ ok: false, error: '请先登录酒馆' });
+    try { res.json(await importLegacySettings(req.user)); }
+    catch (error) { errorResponse(res, error); }
+  });
   router.get('/status', (req, res) => res.json({ ok: true, version: info.version, plugin: info.id }));
   router.post('/v1/check', async (req, res) => {
     if (!user(req)) return res.status(403).json({ ok: false, error: '请先登录酒馆' });
@@ -65,5 +73,5 @@ async function init(router) {
   });
   console.log('[SillyTavern-Image] Independent server plugin loaded (v' + info.version + ')');
 }
-async function exit() { running.clear(); }
+async function exit() { running.clear(); await closeRuntime(); }
 module.exports = { info, init, exit };

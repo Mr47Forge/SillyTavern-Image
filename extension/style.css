@@ -31,3 +31,12 @@
 #sti-panel #sti-output{max-width:100%;max-height:520px;object-fit:contain;border-radius:8px;background:#11131a}
 #sti-panel #sti-download{color:#55e6b0;text-decoration:underline;cursor:pointer}
 @media(max-width:550px){#sti-panel{right:8px;top:2vh;width:calc(100vw - 16px);max-height:96vh}#sti-panel .sti-node-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#sti-home{position:fixed;right:16px;bottom:70px;z-index:100000;font-family:inherit;color:var(--SmartThemeBodyColor,#eee)}
+#sti-home button{font:inherit;color:inherit;cursor:pointer;border:1px solid #596170;border-radius:7px;background:#252b36;padding:9px 12px;min-height:42px}
+#sti-home button:disabled{opacity:.6;cursor:default}
+#sti-home button:focus-visible{outline:2px solid #d4a574;outline-offset:2px}
+#sti-home-panel{width:min(390px,calc(100vw - 32px));max-height:75vh;overflow:auto;background:#161b22;border:1px solid #596170;border-radius:10px;padding:14px;margin-top:8px;box-shadow:0 8px 30px #0006}
+#sti-home-panel[hidden]{display:none}
+#sti-home-panel header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#sti-home-status{line-height:1.7;margin:12px 0}
+.sti-home-actions{display:grid;gap:8px}
