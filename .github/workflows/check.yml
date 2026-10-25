@@ -1,17 +1,19 @@
-name: Node tests
-
+name: 当前版本检查
 on:
   push:
-    branches: [main]
   pull_request:
-
+permissions:
+  contents: read
 jobs:
-  test:
+  check:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: npm test
+          cache: npm
+      - run: npm ci --ignore-scripts
       - run: npm run check
+      - run: npm test

@@ -1,0 +1,7 @@
+{
+    "id": "sillytavern-image-server",
+    "name": "SillyTavernImage Server",
+    "version": "3.0.0",
+    "author": "SillyTavernImage",
+    "description": "小白盒后端：提供绘图后台任务和 Exa 联网服务。"
+}
