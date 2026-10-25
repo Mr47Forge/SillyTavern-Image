@@ -6,6 +6,18 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <title>独立定制绘图</title>
+<script>
+(function () {
+    function syncVvh() {
+        var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+        document.documentElement.style.setProperty('--vvh', vh + 'px');
+    }
+    syncVvh();
+    window.addEventListener('resize', syncVvh);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', syncVvh);
+    document.addEventListener('DOMContentLoaded', syncVvh);
+})();
+</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="../../shared/agent-settings-surface.css">
 <link rel="stylesheet" href="../../shared/character-library-dialog.css">
@@ -37,9 +49,9 @@ body {
     color: var(--text-primary);
     font-size: 14px;
     line-height: 1.5;
-    min-height: 100vh;
+    min-height: var(--vvh, 100vh);
 }
-.app-container { display: flex; flex-direction: column; min-height: 100vh; }
+.app-container { display: flex; flex-direction: column; min-height: var(--vvh, 100vh); }
 .app-body { display: flex; flex: 1; min-height: 0; }
 .app-main { flex: 1; padding: 24px; overflow-y: auto; }
 .mobile-nav {
@@ -561,6 +573,7 @@ select.input { cursor: pointer; }
             <div class="nav-item" data-comfy-view="params"><i class="fa-solid fa-sliders"></i>绘图参数</div>
             <div class="nav-item" data-comfy-view="llm"><i class="fa-solid fa-robot"></i>场景 Agent</div>
             <div class="nav-item comfy-advanced-only" data-comfy-view="prompts"><i class="fa-solid fa-file-code"></i>提示词模板</div>
+            <div class="nav-item comfy-advanced-only" data-comfy-view="jailbreak"><i class="fa-solid fa-unlock"></i>破甲词</div>
             <div class="nav-item" data-comfy-view="worldbook"><i class="fa-solid fa-book-atlas"></i>世界书</div>
             <div class="nav-divider"></div>
             <div class="nav-item" data-comfy-view="characters"><i class="fa-solid fa-user-group"></i>角色标签</div>
@@ -573,9 +586,10 @@ select.input { cursor: pointer; }
                 <div class="view-header"><h2 class="view-title">错误日志</h2>
                     <p class="view-desc">最近最多300条失败记录，包含错误原因和当时提示词。单独保存，不随图片重试而消失。</p></div>
                 <div class="card"><div class="input-row">
-                    <button id="comfy-error-log-open" class="btn btn-primary" type="button">查看错误日志</button>
+                    <button id="comfy-error-log-refresh" class="btn btn-primary" type="button">刷新日志</button>
                     <button id="comfy-error-log-clear" class="btn" type="button">清空错误日志</button>
-                </div><p id="comfy-error-log-status" class="status-text"></p></div>
+                </div><p id="comfy-error-log-status" class="status-text"></p>
+                <div id="comfy-error-log-list" class="comfy-error-log-list"></div></div>
             </section>
             <section class="view active" data-comfy-view-panel="test">
                 <div class="view-header">
@@ -868,6 +882,22 @@ select.input { cursor: pointer; }
                     <p class="view-desc">固定标签与尺寸设置</p>
                 </div>
 
+                <div class="card">
+                    <div class="card-title">画面生成方式</div>
+                    <div class="workflow-mode-btns" style="margin-bottom:12px;">
+                        <button type="button" class="workflow-mode-btn active" data-comfy-draw-source="planner">
+                            <i class="fa-solid fa-robot"></i>
+                            场景规划
+                            <span style="font-size:11px;font-weight:400;color:var(--text-muted);display:block;margin-top:4px;">用 API 模型读剧情、规划画面（有角色照片会锁脸）</span>
+                        </button>
+                        <button type="button" class="workflow-mode-btn" data-comfy-draw-source="direct">
+                            <i class="fa-solid fa-bolt"></i>
+                            剧情直出
+                            <span style="font-size:11px;font-weight:400;color:var(--text-muted);display:block;margin-top:4px;">聊天大模型尾部写提示词，直接出图（省一步，不锁脸）</span>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="preset-bar">
                     <select id="comfy-draw-preset-select" class="input"></select>
                     <div class="btn-group">
@@ -950,6 +980,27 @@ select.input { cursor: pointer; }
                         <span>次</span>
                     </div>
                     <p class="form-hint">仅在场景 Agent 请求失败（超时、供应商或网络错误、返回的 Tool 调用不合格）时重试，画图失败不受影响。从 2 秒开始，每次等待时间翻倍，最长 30 秒。填 0 表示不重试。浏览器流程与后台任务都生效。</p>
+                </div>
+            </section>
+
+            <section class="view" data-comfy-view-panel="jailbreak">
+                <div class="view-header">
+                    <h2 class="view-title">🔓 破甲词库</h2>
+                    <p class="view-desc">不同模型用不同破甲词，可建多条、切换、改名、删除</p>
+                </div>
+                <div class="card">
+                    <p class="form-hint">当前选中的一条会注入到系统提示词最前面。改完内容点「保存」写入当前条目。</p>
+                    <div class="preset-bar">
+                        <select id="comfy-jailbreak-select" class="input"></select>
+                        <div class="btn-group">
+                            <button id="comfy-jailbreak-add" class="btn" type="button" title="新建"><i class="fa-solid fa-plus"></i>新建</button>
+                            <button id="comfy-jailbreak-rename" class="btn" type="button" title="改名"><i class="fa-solid fa-pen"></i>改名</button>
+                            <button id="comfy-jailbreak-delete" class="btn btn-danger" type="button" title="删除"><i class="fa-solid fa-trash"></i>删除</button>
+                            <button id="comfy-jailbreak-save" class="btn btn-primary" type="button" title="保存"><i class="fa-solid fa-floppy-disk"></i>保存</button>
+                        </div>
+                        <span id="comfy-jailbreak-status" class="status-text inline-status"></span>
+                    </div>
+                    <textarea id="comfy-prompt-jailbreak" class="prompt-textarea" rows="10"></textarea>
                 </div>
             </section>
 
@@ -1165,8 +1216,7 @@ select.input { cursor: pointer; }
                             <div class="comfy-role-list-controls">
                                 <button id="comfy-role-collapse-all" class="btn btn-sm" type="button"><i class="fa-solid fa-compress"></i> 全部收起</button>
                                 <button id="comfy-role-expand-all" class="btn btn-sm" type="button"><i class="fa-solid fa-expand"></i> 全部展开</button>
-                                <button id="comfy-role-save-edits" class="btn btn-primary btn-sm" type="button"><i class="fa-solid fa-floppy-disk"></i> 保存角色修改</button>
-                                <span id="comfy-role-save-status" class="status-text" role="status" aria-live="polite">修改中文后，点「保存角色修改」，系统才会生成英文并保存。</span>
+                                <span id="comfy-role-save-status" class="status-text" role="status" aria-live="polite">修改中文后，点侧边栏「保存角色」，系统才会生成英文并保存。</span>
                             </div>
                             <div class="char-list-body">
                                 <div id="comfy-shared-character-list" class="char-grid"></div>
@@ -1227,9 +1277,11 @@ select.input { cursor: pointer; }
             <div class="mobile-nav-item" data-comfy-view="params"><i class="fa-solid fa-sliders"></i><span>参数</span></div>
             <div class="mobile-nav-item" data-comfy-view="llm"><i class="fa-solid fa-robot"></i><span>Agent</span></div>
             <div class="mobile-nav-item comfy-advanced-only" data-comfy-view="prompts"><i class="fa-solid fa-file-code"></i><span>提示词</span></div>
+            <div class="mobile-nav-item comfy-advanced-only" data-comfy-view="jailbreak"><i class="fa-solid fa-unlock"></i><span>破甲</span></div>
             <div class="mobile-nav-item" data-comfy-view="worldbook"><i class="fa-solid fa-book-atlas"></i><span>世界书</span></div>
             <div class="mobile-nav-item" data-comfy-view="characters"><i class="fa-solid fa-user-group"></i><span>角色</span></div>
             <div class="mobile-nav-item" data-comfy-view="gallery"><i class="fa-solid fa-images"></i><span>图片</span></div>
+            <div class="mobile-nav-item" data-comfy-view="errors"><i class="fa-solid fa-circle-exclamation"></i><span>日志</span></div>
         </div>
     </nav>
 </div>

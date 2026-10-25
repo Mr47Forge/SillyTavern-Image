@@ -32,6 +32,11 @@ function normalizeReverseProxyForSource(value, source) {
     if (source === HOST_CHAT_COMPLETIONS_SOURCE_MAKERSUITE) {
         return baseUrl.replace(/\/v\d[\w.-]*$/i, '');
     }
+    // OpenAI 兼容接口标准是 /v1；baseUrl 不带 /vN 时自动补 /v1（9router 等需要 /v1/models）
+    if (source === HOST_CHAT_COMPLETIONS_SOURCE_OPENAI) {
+        if (!baseUrl || /\/v\d[\w.-]*$/i.test(baseUrl)) return baseUrl;
+        return `${baseUrl}/v1`;
+    }
     return baseUrl;
 }
 

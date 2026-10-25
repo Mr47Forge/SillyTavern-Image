@@ -8,7 +8,7 @@ import {
     mergeAutoLearnOps,
     snapshotAutoLearnFields,
 } from '../auto-learn-merge.js';
-import { resolveAutoLearnCharacter } from '../../providers/novelai/novel-character-learning.js';
+import { resolveAutoLearnCharacter } from '../../providers/comfyui/novel-character-learning.js';
 
 function person(id, name, extra = {}) {
     return { id, enabled: true, name, aliases: [], type: 'girl', appearance: '', negativeTags: '', danbooruTag: '', outfits: [], dynamicStates: [], ...extra };

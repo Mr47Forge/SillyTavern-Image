@@ -1,4 +1,4 @@
-import { resolveAutoLearnCharacter } from '../novelai/novel-character-learning.js';
+import { resolveAutoLearnCharacter } from './novel-character-learning.js';
 import { buildAutoLearnCreateOp, buildAutoLearnUpdateOp, snapshotAutoLearnFields } from '../../shared/auto-learn-merge.js';
 
 const GENERIC = /^(?:\u89d2\u8272\d*|\u4eba\u7269\d*|\u914d\u89d2.*|\u8def\u4eba.*|\u5973\u4eba\d*|\u7537\u4eba\d*|\u5973\u5b69\d*|\u7537\u5b69\d*|\u5c11\u5973\d*|\u5c11\u7537\d*|\u5973\d*|\u7537\d*|npc\d*|girl\d*|woman\d*|man\d*|boy\d*|unknown|stranger|passerby|teacher|boss|doctor|assistant|user|\u4f60|\u6211)$/i;

@@ -183,20 +183,21 @@ test('scene plan contract defaults optional character facts while keeping unknow
     assert.equal(unknown.uc, '');
     assert.deepEqual(unknown.center, { x: 0.5, y: 0.5 });
 
-    for (const missingField of ['appear']) {
+    // 放宽：未知角色缺 appear 时，有 type 兜底不再强制报错（appear 落空）
+    {
         const parameters = buildParameters();
-        const character = {
-            name: '旅人',
-            type: 'woman',
-            appear: 'long black hair',
-            action: 'standing in rain',
-        };
-        delete character[missingField];
-        parameters.images[0].characters = [character];
+        parameters.images[0].characters = [{ name: '旅人', type: 'woman', action: 'standing in rain' }];
+        const parsed = parseSubmittedScenePlan(buildResult(parameters), parseOptions).tasks[0].chars[0];
+        assert.equal(parsed.appear, '');
+    }
+    // 未知角色既无 appear 也无 type/costume 兜底时仍报错
+    {
+        const parameters = buildParameters();
+        parameters.images[0].characters = [{ name: '旅人', action: 'standing in rain' }];
         assert.throws(
             () => parseSubmittedScenePlan(buildResult(parameters), parseOptions),
             (error) => error.code === 'TOOL_ARGUMENTS_SCHEMA_INVALID'
-                && error.message.includes(`images[0].characters[0].${missingField}`),
+                && error.message.includes('images[0].characters[0].appear'),
         );
     }
 
@@ -472,6 +473,8 @@ test('scene plan contract retains required content, placement, count, and coordi
         [() => {
             const value = buildParameters();
             value.images[0].characters[1].appear = '';
+            value.images[0].characters[1].type = '';
+            value.images[0].characters[1].costume = '';
             return value;
         }, 'images[0].characters[1].appear'],
         [() => {
@@ -495,6 +498,8 @@ test('scene plan contract retains required content, placement, count, and coordi
             [() => {
                 const value = buildParameters();
                 value.images[0].characters[1].appear = invalidText;
+                value.images[0].characters[1].type = '';
+                value.images[0].characters[1].costume = '';
                 return value;
             }, 'images[0].characters[1].appear'],
         );

@@ -253,7 +253,11 @@ function normalizeCharacter(value, path, knownNameLookup, centerMode) {
     const canonicalName = knownNameLookup.get(returnedName.toLocaleLowerCase()) || '';
     const type = optionalString(value, 'type', path);
     const appear = optionalString(value, 'appear', path);
-    if (!canonicalName && !appear) failSchema(`${path}.appear`, '未知角色必须填写外貌', value.appear);
+    const costume = optionalString(value, 'costume', path);
+    // 放宽：未知角色缺 appear 时，若已提供 type 或 costume 则不再强制报错
+    if (!canonicalName && !appear && !type && !costume) {
+        failSchema(`${path}.appear`, '未知角色必须填写外貌', value.appear);
+    }
     const center = normalizeCenter(value.center, `${path}.center`, centerMode);
 
     return {
@@ -263,7 +267,7 @@ function normalizeCharacter(value, path, knownNameLookup, centerMode) {
         // （character-prompts.js）让非空场景 type 打头并顶替角色库的 type；为空时回落库 type。
         type,
         appear: canonicalName ? '' : appear,
-        costume: optionalString(value, 'costume', path),
+        costume,
         action: optionalString(value, 'action', path),
         interact: optionalString(value, 'interact', path),
         uc: optionalString(value, 'uc', path),
@@ -272,6 +276,15 @@ function normalizeCharacter(value, path, knownNameLookup, centerMode) {
 }
 
 function normalizeImages(images, options = {}) {
+    // 容错：部分模型把 images 数组序列化成了 JSON 字符串
+    if (typeof images === 'string') {
+        try {
+            const parsed = JSON.parse(images);
+            if (Array.isArray(parsed)) images = parsed;
+        } catch {
+            // 解析失败则保持原样，交给下面的 failSchema
+        }
+    }
     if (!Array.isArray(images)) failSchema('images', '必须是 array', images);
     if (!images.length) {
         throw new ScenePlannerError(

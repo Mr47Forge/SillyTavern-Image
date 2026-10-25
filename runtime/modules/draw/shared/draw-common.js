@@ -26,7 +26,7 @@ import { getRenderedSceneSlotIds, replaceSceneSlotElements } from './scene-slot-
 import { protectDrawImageMarkers, restoreDrawImageMarkers } from './scene-slot-protection.js';
 import { getPendingImageJobSlots, PendingJobState } from './pending-image-jobs.js';
 import { findImageJobDeliverySlot } from './image-job-delivery-target.js';
-import { createDrawImageSlotRegex } from './image-marker-syntax.js';
+import { createDrawImageSlotRegex, stripDrawImageDirectives } from './image-marker-syntax.js';
 import { hasPreviewImage, PreviewStatus, DRAW_SLOT_COPY, DRAW_SLOT_ERRORS } from './image-record.js';
 import { getSlotActivity } from './slot-activity.js';
 import { classifyScenePlannerErrorForUi } from "./scene-planner-error-ui.js";
@@ -117,7 +117,31 @@ function stripDrawImageHtml(text) {
 }
 
 export function stripDrawArtifactsFromMessage(text) {
-    return stripDrawImageHtml(text).replace(createDrawImageSlotRegex(), '');
+    return stripDrawImageDirectives(stripDrawImageHtml(text).replace(createDrawImageSlotRegex(), ''));
+}
+
+const DRAW_DIRECTIVE_INSTRUCTION = [
+    '[绘图指令] 每当你回复里描述了具体可见的画面（人物、场景、动作、氛围），就必须在回复最末尾附上一段图提示词，格式固定如下：',
+    '<image>',
+    'prompt: 英文画面描述，必须写实照片风格，写清人物外貌/动作/表情/服装/场景/光线，严禁动漫二次元特征',
+    'negative: anime, cartoon, CGI, exaggerated retouching, distorted anatomy',
+    'characters: 画面中角色的名字（逗号分隔）',
+    '</image>',
+    '这段不是对话正文，是给绘图插件读的，描述必须和你的剧情内容一致。有画面就写，没有才不写。',
+].join(String.fromCharCode(10));
+
+function injectDrawDirectiveInstruction(chat) {
+    if (!Array.isArray(chat) || !chat.length) return;
+    // 只在「剧情直出」模式注入指令；「场景规划」模式不注入，否则剧情模型会乱吐标记。
+    try {
+        const ds = window.stimageComfyDraw?.getSettings?.()?.drawSource;
+        if (ds !== 'direct') return;
+    } catch {}
+    // 往最后一条消息追加指令。unshift is_system 会被酒馆 coreChat 的 filter(!is_system) 过滤掉，不生效。
+    const last = chat[chat.length - 1];
+    if (!last || typeof last.mes !== 'string') return;
+    if (last.mes.indexOf('[绘图指令]') >= 0) return;
+    last.mes = last.mes + String.fromCharCode(10) + String.fromCharCode(10) + DRAW_DIRECTIVE_INSTRUCTION;
 }
 
 export function stripDrawArtifactsFromChat(chat) {
@@ -144,6 +168,7 @@ export function setupDrawGenerateInterceptor(options = {}) {
     registerGenerateInterceptor('draw', (chat) => {
         if (!shouldStrip()) return;
         stripDrawArtifactsFromChat(chat);
+        injectDrawDirectiveInstruction(chat);
     }, GENERATE_INTERCEPTOR_ORDER.DRAW);
 }
 
@@ -656,7 +681,7 @@ async function rebuildRenderedMessageFromState(messageId, {
     // Image markers are not Markdown links and must retain their exact source
     // position. Protect each marker before formatting, restore as plain text,
     // then replace each with its own DOM image card. Never mutate message.mes.
-    const protectedSlots = protectDrawImageMarkers(message.mes);
+    const protectedSlots = protectDrawImageMarkers(stripDrawImageDirectives(message.mes));
     const formatted = messageFormatting(
         protectedSlots.text,
         message.name,

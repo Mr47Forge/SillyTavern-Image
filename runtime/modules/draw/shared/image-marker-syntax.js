@@ -8,3 +8,54 @@ export function createDrawImageSlotRegex(flags = 'gi') {
 export function stripDrawImageSlots(sourceText) {
     return String(sourceText ?? '').replace(createDrawImageSlotRegex(), '');
 }
+// 剧情直出标记：剧情模型在回复尾部输出 <image>...</image> 块，插件解析后直接出图（跳过场景规划）。
+const DRAW_IMAGE_OPEN = '<image>';
+const DRAW_IMAGE_CLOSE = '</image>';
+
+export function parseDrawImageDirectives(sourceText) {
+    const text = String(sourceText ?? '');
+    const results = [];
+    let start = 0;
+    while (true) {
+        const open = text.indexOf(DRAW_IMAGE_OPEN, start);
+        if (open < 0) break;
+        const close = text.indexOf(DRAW_IMAGE_CLOSE, open + DRAW_IMAGE_OPEN.length);
+        if (close < 0) break;
+        const body = text.slice(open + DRAW_IMAGE_OPEN.length, close);
+        const lines = body.split(String.fromCharCode(10));
+        let prompt = '';
+        let negative = '';
+        let charactersRaw = '';
+        for (const raw of lines) {
+            const line = raw.trim();
+            const idx = line.indexOf(':');
+            if (idx < 0) continue;
+            const key = line.slice(0, idx).trim().toLowerCase();
+            const val = line.slice(idx + 1).trim();
+            if (!val) continue;
+            if (key === 'prompt' || key === 'positive' || key === '提示词' || key === '正向') prompt = val;
+            else if (key === 'negative' || key === '负向' || key === '负向提示词') negative = val;
+            else if (key === 'characters' || key === '角色') charactersRaw = val;
+        }
+        const characters = charactersRaw
+            ? charactersRaw.split(/[,，、]/).map((x) => x.trim()).filter(Boolean)
+            : [];
+        if (prompt || negative || characters.length) {
+            results.push({ prompt, negative, characters });
+        }
+        start = close + DRAW_IMAGE_CLOSE.length;
+    }
+    return results;
+}
+
+export function stripDrawImageDirectives(sourceText) {
+    let text = String(sourceText ?? '');
+    while (true) {
+        const open = text.indexOf(DRAW_IMAGE_OPEN);
+        if (open < 0) break;
+        const close = text.indexOf(DRAW_IMAGE_CLOSE, open + DRAW_IMAGE_OPEN.length);
+        if (close < 0) break;
+        text = text.slice(0, open) + text.slice(close + DRAW_IMAGE_CLOSE.length);
+    }
+    return text;
+}

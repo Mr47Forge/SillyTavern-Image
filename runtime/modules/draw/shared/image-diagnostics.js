@@ -187,9 +187,11 @@ export function openImageDiagnostics(record={},opts={}) {
     const card=doc.createElement('div');
     Object.assign(card.style,{
         background:'#191d26',color:'#f4f4f5',border:'1px solid #444b5a',
-        borderRadius:'12px',width:'min(760px,96vw)',maxHeight:'90vh',
+        borderRadius:'12px',width:'min(760px,100%)',maxWidth:'100%',
+        maxHeight:'calc(var(--vvh, 100vh) - 40px)',
         display:'flex',flexDirection:'column',overflow:'hidden',
     });
+    card.style.maxHeight='calc(var(--vvh, 100vh) - 40px)';
     const header=doc.createElement('div');
     Object.assign(header.style,{display:'flex',padding:'15px 18px',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid #444b5a'});
     const title=doc.createElement('strong');
@@ -199,7 +201,7 @@ export function openImageDiagnostics(record={},opts={}) {
     Object.assign(close.style,{background:'#293140',color:'#f4f4f5',border:'1px solid #444b5a',borderRadius:'7px',padding:'6px 12px',cursor:'pointer'});
     header.append(title,close);
     const body=doc.createElement('div');
-    Object.assign(body.style,{overflowY:'auto',padding:'15px 18px',lineHeight:'1.5',fontSize:'13px',whiteSpace:'normal'});
+    Object.assign(body.style,{overflowY:'auto',padding:'15px 18px',lineHeight:'1.5',fontSize:'13px',whiteSpace:'normal',flex:'1 1 0',minHeight:'0'});
     const raw=record||{};
     if (opts.errors) {
         if (!opts.items?.length) body.textContent='暂无错误记录。';

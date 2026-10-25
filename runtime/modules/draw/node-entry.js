@@ -1,7 +1,4 @@
 import { compile as compileComfyUi } from './providers/comfyui/compiler.js';
-import { compile as compileNovelAi } from './providers/novelai/compiler.js';
-import { getNovelModelCapability } from './providers/novelai/novel-model-capabilities.js';
-import { compile as compileSdWebUi } from './providers/sd-webui/compiler.js';
 import {
     assertDrawRunId,
     createDrawRunId,
@@ -13,8 +10,6 @@ import { assertSubmitScenePlanTool } from './shared/scene-plan-contract.js';
 import { hashSceneSource } from './shared/scene-source.js';
 
 const PROVIDER_COMPILERS = Object.freeze({
-    novelai: compileNovelAi,
-    'sd-webui': compileSdWebUi,
     comfyui: compileComfyUi,
 });
 
@@ -31,6 +26,5 @@ export {
     deriveDrawRunChildJobId,
     deriveDrawRunItemIds,
     executePreparedScenePlanner,
-    getNovelModelCapability,
     hashSceneSource,
 };

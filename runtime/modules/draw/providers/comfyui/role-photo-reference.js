@@ -37,15 +37,66 @@ export function selectPhotoCharacter({ prompt = '', taskCharacters = [], knownCh
     return mentioned.length === 1 ? mentioned[0] : null;
 }
 
+function toTextOnlyKrea2Edit(workflow, prompt) {
+    // 没有可匹配的角色照片时，把身份编辑图自动退回纯文生图：
+    // 加两个 CLIPTextEncode 接管正负提示词，模型改回裸 UNET，删掉所有参考图节点。
+    const ids = Object.keys(workflow || {});
+    const samplerId = ids.find(id => /^KSampler/i.test(String(workflow[id]?.class_type || '')));
+    const unetId = ids.find(id => String(workflow[id]?.class_type || '') === 'UNETLoader');
+    if (!samplerId || !unetId) {
+        throw new Error('当前场景没有匹配的角色参考照片，且该工作流无法自动退回文生图');
+    }
+    const sampler = workflow[samplerId];
+    const positiveLink = sampler?.inputs?.positive;
+    const grounded = Array.isArray(positiveLink) ? workflow[String(positiveLink[0])] : null;
+    const clipLink = grounded?.inputs?.clip;
+    if (!Array.isArray(clipLink)) {
+        throw new Error('当前场景没有匹配的角色参考照片，且该工作流缺少文本编码器，无法自动退回文生图');
+    }
+    const text = 'Photorealistic, realistic photography, natural skin texture. ' + String(prompt || '').trim();
+    const negativeText = 'anime, CGI, exaggerated retouching, distorted anatomy';
+    let counter = 900;
+    const takeId = () => {
+        while (ids.includes(String(counter))) counter += 1;
+        ids.push(String(counter));
+        return String(counter);
+    };
+    const positiveId = takeId();
+    workflow[positiveId] = { class_type: 'CLIPTextEncode', inputs: { text, clip: clipLink } };
+    const negativeId = takeId();
+    workflow[negativeId] = { class_type: 'CLIPTextEncode', inputs: { text: negativeText, clip: clipLink } };
+    sampler.inputs.positive = [positiveId, 0];
+    sampler.inputs.negative = [negativeId, 0];
+    sampler.inputs.cfg = 1.5;
+    const modelId = Array.isArray(sampler.inputs.model) ? String(sampler.inputs.model[0]) : '';
+    if (modelId && workflow[modelId]) workflow[modelId].inputs.model = [unetId, 0];
+    else sampler.inputs.model = [unetId, 0];
+    for (const id of Object.keys(workflow)) {
+        const type = String(workflow[id]?.class_type || '');
+        if (type === 'Krea2EditModelPatch' || type === 'Krea2EditGroundedEncode') delete workflow[id];
+        else if (type === 'LoadImage' && workflow[id]?.inputs?.image === '__ST_IMAGE_ROLE__') delete workflow[id];
+    }
+    for (const id of Object.keys(workflow)) {
+        if (String(workflow[id]?.class_type || '') !== 'VAEEncode') continue;
+        const source = workflow[id]?.inputs?.pixels;
+        if (!Array.isArray(source) || !workflow[String(source[0])]) delete workflow[id];
+    }
+    console.warn('[SillyTavernImage] 当前场景没有匹配的角色参考照片，已自动改用纯文生图（本次不锁脸）');
+    return workflow;
+}
+
 export function applyRolePhotoReference(workflow, { prompt = '', knownCharacters = [], taskCharacters = [] } = {}) {
     // The tested identity-edit graph must never silently generate an unrelated face.
     if (workflow?.['72']?.class_type === 'LoadImage'
         && workflow['72'].inputs?.image === '__ST_IMAGE_ROLE__'
         && workflow?.['84']?.class_type === 'Krea2EditGroundedEncode') {
         const selected = selectPhotoCharacter({ prompt, knownCharacters, taskCharacters });
-        if (!selected) throw new Error('当前场景没有匹配的角色参考照片，请先保存角色照片或选择普通文生图工作流');
+        if (!selected) {
+            return toTextOnlyKrea2Edit(workflow, prompt);
+        }
         workflow['72'].inputs.image = 'lwb-role-photo:' + String(selected.photoUrl).replace(/^\/+/, '');
-        workflow['84'].inputs.prompt = 'Use the reference image as the same adult person. Preserve facial identity. Follow the scene for outfit, pose, location and lighting. ' + String(prompt).trim();
+        workflow['84'].inputs.prompt = 'Use the reference image as the same adult person. Preserve facial identity and hairstyle, but follow the scene for facial expression, outfit, pose, location and lighting. Photorealistic, realistic photography. ' + String(prompt).trim();
+        workflow['84'].inputs.system_prompt = 'Extract only facial identity and hairstyle from the reference image. Ignore its facial expression, pose, clothing and background, which are fully determined by the prompt text.';
         return workflow;
     }
     if (!workflow || typeof workflow !== 'object' || Array.isArray(workflow)

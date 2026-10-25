@@ -4,7 +4,6 @@
   "requires": [],
   "optional": [],
   "js": "extension/entry.js",
-  "css": "extension/style.css",
   "author": "Mr47Forge",
   "version": "0.2.0",
   "generate_interceptor": "stimageGenerateInterceptor",

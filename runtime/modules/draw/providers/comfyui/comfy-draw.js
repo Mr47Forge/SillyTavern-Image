@@ -28,7 +28,7 @@ import { executeSingleSlotReplan } from "./single-slot-replan.js";
 import { isSceneSlotAlive } from "../../shared/scene-placement.js";
 import { getSlotActivity, setSlotActivity, clearSlotActivity } from "../../shared/slot-activity.js";
 import { getPendingImageJobSlots } from "../../shared/pending-image-jobs.js";
-import { stripDrawImageSlots } from "../../shared/image-marker-syntax.js";
+import { stripDrawImageSlots, parseDrawImageDirectives, stripDrawImageDirectives } from "../../shared/image-marker-syntax.js";
 import { assertSceneSourceUnchanged } from "../../shared/scene-placement.js";
 import { WorldbookProcessor } from "../../shared/worldbook-processor.js";
 import {
@@ -201,7 +201,10 @@ const DEFAULT_COMFY_DRAW_SETTINGS = {
     samplerCache: [],
     schedulerCache: [],
     advancedMode: true,
-    customPrompts: { topSystem: null, tagGuideContent: null, sceneRules: null },
+    drawSource: 'planner',
+    customPrompts: { topSystem: null, tagGuideContent: null, sceneRules: null, jailbreak: null },
+    jailbreaks: [{ id: 'jb-default', name: '默认', content: '' }],
+    selectedJailbreakId: 'jb-default',
     promptPresets: [],
     selectedPromptPresetId: null,
     _promptTemplateVersion: 0,
@@ -266,7 +269,7 @@ let autoBusy = false;
 const events = createModuleEvents(MODULE_KEY);
 let generationJobs = new Map();
 const backendJobMonitors = createImageBackendJobMonitorRegistry({ active: false });
-const COMFY_DRAW_VIEWS = ['test', 'api', 'workflow', 'params', 'llm', 'prompts', 'worldbook', 'characters', 'gallery', 'errors'];
+const COMFY_DRAW_VIEWS = ['test', 'api', 'workflow', 'params', 'llm', 'prompts', 'jailbreak', 'worldbook', 'characters', 'gallery', 'errors'];
 const ImageState = { PREVIEW: 'preview', SAVING: 'saving', SAVED: 'saved', REFRESHING: 'refreshing', FAILED: 'failed' };
 const comfyImageRequestQueue = createSerialImageRequestQueue({
     getCooldownMs: () => COMFY_REQUEST_DELAY_MS,
@@ -454,6 +457,7 @@ function normalizeSettings(raw = {}) {
     const merged = {
         host: String(raw.host || ''),
         mode: raw.mode === 'auto' ? 'auto' : 'manual',
+        drawSource: raw.drawSource === 'direct' ? 'direct' : 'planner',
         overrideSize: String(raw.overrideSize || 'default'),
         showFloorButton: raw.showFloorButton !== false,
         showFloatingButton: raw.showFloatingButton !== false,
@@ -491,6 +495,16 @@ function normalizeSettings(raw = {}) {
         modelCache: Array.isArray(raw.modelCache) ? raw.modelCache : [],
         samplerCache: Array.isArray(raw.samplerCache) ? raw.samplerCache : [],
         schedulerCache: Array.isArray(raw.schedulerCache) ? raw.schedulerCache : [],
+        // 破甲词库（独立于提示词预设）
+        jailbreaks: (Array.isArray(raw.jailbreaks) && raw.jailbreaks.length
+            ? raw.jailbreaks
+            : [{ id: 'jb-default', name: '默认', content: '' }]
+        ).map((item, i) => ({
+            id: String(item && item.id || `jb-${i}`),
+            name: String(item && item.name || `破甲 ${i + 1}`),
+            content: String(item && item.content || ''),
+        })),
+        selectedJailbreakId: String(raw.selectedJailbreakId || 'jb-default'),
     };
 
     merged.advancedMode = true;
@@ -528,6 +542,12 @@ function normalizeSettings(raw = {}) {
         sceneRules: activePromptPreset.sceneRules,
         fieldDescriptions: activePromptPreset.fieldDescriptions,
     };
+    // 破甲词独立：始终取当前选中的破甲词条目内容
+    {
+        const jb = merged.jailbreaks.find((item) => item.id === merged.selectedJailbreakId) || merged.jailbreaks[0];
+        merged.customPrompts.jailbreak = jb ? jb.content : '';
+        if (jb) merged.selectedJailbreakId = jb.id;
+    }
 
     return merged;
 }
@@ -1414,7 +1434,7 @@ async function createOverlay() {
 
     overlayElement = document.createElement('div');
     overlayElement.id = 'stimage-comfy-draw-overlay';
-    overlayElement.style.cssText = `position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:${window.innerHeight}px!important;z-index:100002!important;display:none;overflow:hidden!important;`;
+    overlayElement.style.cssText = `position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:${window.visualViewport?.height || window.innerHeight}px!important;z-index:100002!important;display:none;overflow:hidden!important;`;
     const backdrop = document.createElement('div');
     backdrop.className = 'comfy-draw-backdrop';
     backdrop.addEventListener('click', hideSettings);
@@ -1441,6 +1461,7 @@ async function createOverlay() {
             bindOverlayEvents();
             fillForm(getSettings());
             ensureAgentSettingsSurface();
+            syncOverlayHeight();
             resolve(overlayElement);
         }, { once: true });
         overlayFrame?.addEventListener('error', () => {
@@ -1454,7 +1475,14 @@ async function createOverlay() {
 
 function syncOverlayHeight() {
     if (!overlayElement) return;
-    overlayElement.style.height = `${window.innerHeight}px`;
+    const vh = window.visualViewport?.height || window.innerHeight;
+    overlayElement.style.height = `${vh}px`;
+    document.documentElement.style.setProperty('--vvh', `${vh}px`);
+    // 同步到设置面板 iframe 内部（CSS 变量不跨 iframe 继承，否则输入法弹出时 iframe 内 UI 仍按 100vh 变形）
+    try {
+        const fd = overlayFrame?.contentDocument;
+        if (fd && fd.documentElement) fd.documentElement.style.setProperty('--vvh', `${vh}px`);
+    } catch (_) {}
 }
 
 function getSettingsDocument() {
@@ -1473,6 +1501,31 @@ function querySettingsAll(selector) {
     return Array.from(getSettingsDocument()?.querySelectorAll(selector) || []);
 }
 
+// 把错误原文翻译成大白话，便于快速判断问题
+function explainImageError(message) {
+    const text = String(message || '');
+    const lower = text.toLowerCase();
+    if (/did not complete normally|prohibited|blockreason|block_reason|safety|finish_reason.?stop/.test(lower)) {
+        return '模型被内容审核拦下了（上游安全策略直接拒绝、返回空）。这不是破甲词或顺序问题，换一个没有审核的模型渠道才能解决。';
+    }
+    if (/too many requests|429|freeusage|free usage|rate.?limit|quota|额度|insufficient/.test(lower)) {
+        return '模型额度用尽了（或请求太频繁被限流）。等额度重置，或换一个有额度的模型。';
+    }
+    if (/not found|404|no such|does not exist|unknown model|invalid model/.test(lower)) {
+        return '这个模型名在服务里不存在（可能写错了，或该模型已下线）。去模型列表核对正确的模型名。';
+    }
+    if (/etimedout|timeout|timed out|502|503|504|fetch failed|econnreset|enotfound|econnrefused|connect|aborted/.test(lower)) {
+        return '连不上上游模型（网络超时或上游挂了）。检查代理/网络是否正常，或等一会儿再试。';
+    }
+    if (/no credentials|no active credentials|401|unauthorized|access token|invalid.*key|api key|forbidden.*key/.test(lower)) {
+        return 'API 密钥没配或失效了。去模型服务里检查 / 重新填一下密钥。';
+    }
+    if (/images.{0,4}必须是 array|未知角色必须填写外貌|必须是 array|必须填写外貌/.test(text)) {
+        return '场景规划输出的格式不对（插件的兼容问题）。刷新页面重试一次，一般能自动修复。';
+    }
+    return '';
+}
+
 function bindOverlayEvents() {
     if (!overlayElement || eventsBound || !getSettingsDocument()) return;
     eventsBound = true;
@@ -1485,23 +1538,68 @@ function bindOverlayEvents() {
         event.stopPropagation();
         switchSettingsView(button.dataset.comfyView || 'test');
     });
-    querySettings('#comfy-error-log-open')?.addEventListener('click', async () => {
+    const renderInlineErrorLog = async () => {
+        const doc = getSettingsDocument();
+        const host = getSettingsElement('comfy-error-log-list');
+        if (!doc || !host) return;
         updateStatusText('comfy-error-log-status','','正在读取 H28K 日志...');
         try {
-            const items=await readImageErrors(100);
+            const items = await readImageErrors(300);
             updateStatusText('comfy-error-log-status','success','已读取 ' + items.length + ' 条日志（H28K 与浏览器旧记录）');
-            openImageDiagnostics(null,{errors:true,items});
+            host.textContent = '';
+            if (!items.length) {
+                const empty = doc.createElement('p');
+                empty.className = 'status-text';
+                empty.textContent = '暂无错误记录。';
+                host.append(empty);
+                return;
+            }
+            for (const entry of items) {
+                const card = doc.createElement('section');
+                card.style.cssText = 'margin:0 0 12px;padding:10px 12px;border:1px solid #4b3440;border-radius:8px;background:#191d26';
+                const head = doc.createElement('div');
+                head.style.cssText = 'font-size:12px;color:#55e6b0;margin:0 0 6px;word-break:break-all';
+                head.textContent = new Date(entry.time).toLocaleString('zh-CN') + ' · ' + (entry.stage || '') + ' · ' + (entry.errorType || '');
+                const plain = explainImageError(entry.message || '');
+                if (plain) {
+                    const tip = doc.createElement('div');
+                    tip.style.cssText = 'font-size:13px;color:#ffd166;margin:0 0 6px;word-break:break-all;background:#2a2118;border:1px solid #5a4a1a;border-radius:6px;padding:6px 8px;';
+                    tip.textContent = '💡 ' + plain;
+                    card.append(tip);
+                }
+                const msg = doc.createElement('pre');
+                msg.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 Consolas,monospace;margin:0;color:#f4f4f5';
+                msg.textContent = entry.message || '';
+                card.append(head, msg);
+                for (const [title, value] of [['当时正向提示词', entry.positive], ['当时负向提示词', entry.negative]]) {
+                    if (!value) continue;
+                    const detail = doc.createElement('details');
+                    detail.style.cssText = 'margin-top:8px';
+                    const summary = doc.createElement('summary');
+                    summary.style.cssText = 'cursor:pointer;font-size:12px;color:#9aa4b2';
+                    summary.textContent = title;
+                    const body = doc.createElement('pre');
+                    body.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 Consolas,monospace;margin:6px 0 0;background:#252a35;border-radius:6px;padding:8px;color:#f4f4f5';
+                    body.textContent = String(value);
+                    detail.append(summary, body);
+                    card.append(detail);
+                }
+                host.append(card);
+            }
+            host.dataset.loaded = '1';
         } catch (error) {
-            const message='日志读取失败：'+(error?.message || '未知原因');
+            const message = '日志读取失败：' + (error?.message || '未知原因');
             updateStatusText('comfy-error-log-status','error',message);
-            toastr.error(message);
         }
-    });
+    };
+    inlineErrorLogRender = renderInlineErrorLog;
+    querySettings('#comfy-error-log-refresh')?.addEventListener('click', () => { void renderInlineErrorLog(); });
     querySettings('#comfy-error-log-clear')?.addEventListener('click', async () => {
         if (!confirm('确定清空绘图错误日志？这不会删除任何图片。')) return;
         try {
             await clearImageErrors();
             updateStatusText('comfy-error-log-status','success','H28K 与浏览器错误日志已清空');
+            if (inlineErrorLogRender) void inlineErrorLogRender();
         } catch (error) {
             updateStatusText('comfy-error-log-status','error','清空失败：'+(error?.message || '未知错误'));
             toastr.error('错误日志清空失败');
@@ -1559,6 +1657,17 @@ function bindOverlayEvents() {
                 const fp = await import('./floating-panel.js');
                 fp.updateAutoModeUI?.();
             } catch {}
+        });
+    });
+    querySettingsAll('[data-comfy-draw-source]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const next = button.dataset.comfyDrawSource;
+            if (next !== 'direct' && next !== 'planner') return;
+            const ok = await withSaveTimeout(updateSettingsPersistent((settings) => {
+                settings.drawSource = next;
+            }, '画面生成方式已保存', { silent: false }));
+            if (!ok) return;
+            fillForm(getSettings());
         });
     });
     querySettings('#comfy-show-floor')?.addEventListener('change', async (event) => {
@@ -2122,6 +2231,69 @@ function bindOverlayEvents() {
         setValue('comfy-prompt-format', defaults.sceneRules);
         renderPromptChainPreview();
     });
+    querySettings('#comfy-jailbreak-select')?.addEventListener('change', async () => {
+        const id = getValue('comfy-jailbreak-select');
+        const ok = await withSaveTimeout(updateSettingsPersistent((settings) => {
+            settings.selectedJailbreakId = id;
+            const item = (settings.jailbreaks || []).find((j) => j.id === id);
+            settings.customPrompts.jailbreak = item ? item.content : '';
+        }, '破甲词已切换', { notify: false, silent: false }));
+        if (ok) fillJailbreakForm(getSettings());
+    });
+    querySettings('#comfy-jailbreak-add')?.addEventListener('click', async () => {
+        const name = prompt('输入破甲词名称：', `破甲-${(getSettings().jailbreaks || []).length + 1}`);
+        if (!name) return;
+        const id = `jb-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        const ok = await withSaveTimeout(updateSettingsPersistent((settings) => {
+            settings.jailbreaks = [...(settings.jailbreaks || []), { id, name, content: '' }];
+            settings.selectedJailbreakId = id;
+            settings.customPrompts.jailbreak = '';
+        }, `已新建破甲词「${name}」`, { notify: false, silent: false }));
+        if (ok) fillJailbreakForm(getSettings());
+    });
+    querySettings('#comfy-jailbreak-rename')?.addEventListener('click', async () => {
+        const settings = getSettings();
+        const item = getActiveJailbreak(settings);
+        if (!item) return;
+        const name = prompt('输入新名称：', item.name || '破甲词');
+        if (!name) return;
+        const ok = await withSaveTimeout(updateSettingsPersistent((draft) => {
+            const target = (draft.jailbreaks || []).find((j) => j.id === item.id);
+            if (target) target.name = name;
+        }, '破甲词已改名', { notify: false, silent: false }));
+        if (ok) fillJailbreakForm(getSettings());
+    });
+    querySettings('#comfy-jailbreak-delete')?.addEventListener('click', async () => {
+        const settings = getSettings();
+        if ((settings.jailbreaks || []).length <= 1) { toastr.warning('至少保留一条破甲词'); return; }
+        const item = getActiveJailbreak(settings);
+        if (!item) return;
+        if (!confirm(`删除破甲词「${item.name}」？`)) return;
+        const next = (settings.jailbreaks || []).filter((j) => j.id !== item.id);
+        const ok = await withSaveTimeout(updateSettingsPersistent((draft) => {
+            draft.jailbreaks = next;
+            draft.selectedJailbreakId = next[0]?.id || 'jb-default';
+            draft.customPrompts.jailbreak = next[0]?.content || '';
+        }, '破甲词已删除', { notify: false, silent: false }));
+        if (ok) fillJailbreakForm(getSettings());
+    });
+    querySettings('#comfy-jailbreak-save')?.addEventListener('click', async (event) => {
+        const content = getValue('comfy-prompt-jailbreak');
+        const settings = getSettings();
+        const item = getActiveJailbreak(settings);
+        if (!item) return;
+        const ok = await runSaveButtonTask(event.currentTarget, () => updateSettingsPersistent((draft) => {
+            const target = (draft.jailbreaks || []).find((j) => j.id === item.id);
+            if (target) target.content = content;
+            draft.customPrompts.jailbreak = content;
+        }, '破甲词已保存', { notify: false, silent: false }), {
+            statusElementId: 'comfy-jailbreak-status',
+            pendingText: '正在保存破甲词...',
+            successText: '破甲词已保存',
+            errorText: '破甲词保存失败，请重试',
+        });
+        if (ok) fillJailbreakForm(getSettings());
+    });
     querySettings('#comfy-prompts-reset-all')?.addEventListener('click', () => {
         if (!confirm('确认恢复当前提示词模板为默认值？')) return;
         const defaults = getPromptPresetDefaults(getActivePromptPreset(getSettings()).name);
@@ -2191,7 +2363,7 @@ function bindOverlayEvents() {
     getSettingsElement('comfy-prompt-chain')?.closest('details')?.addEventListener('toggle', (event) => {
         if (event.currentTarget.open) schedulePromptChainPreview();
     });
-    ['comfy-prompt-system', 'comfy-prompt-guide', 'comfy-prompt-format'].forEach((id) => {
+    ['comfy-prompt-system', 'comfy-prompt-guide', 'comfy-prompt-format', 'comfy-prompt-jailbreak'].forEach((id) => {
         querySettings(`#${id}`)?.addEventListener('input', () => {
             schedulePromptChainPreview();
         });
@@ -2219,23 +2391,14 @@ function bindOverlayEvents() {
     });
     querySettings('#comfy-role-collapse-all')?.addEventListener('click', () => setAllComfyCharacterCardsExpanded(false));
     querySettings('#comfy-role-expand-all')?.addEventListener('click', () => setAllComfyCharacterCardsExpanded(true));
-    querySettings('#comfy-role-save-edits')?.addEventListener('click', async (event) => {
-        await runSaveButtonTask(event.currentTarget, () => saveSharedDrawSettings({ notify: false }), {
-            statusElementId: 'comfy-role-save-status',
-            pendingText: '正在同步中文外貌与英文绘图词，并保存角色...',
-            successText: '角色已保存；修改的中文已同步生成英文绘图词。',
-            errorText: '保存失败，中文修改仍在页面中；请检查 AI 渠道后重试。',
-            notify: true,
-        });
-    });
     querySettings('#comfy-shared-character-list')?.addEventListener('input', (event) => {
         if (event.target?.matches?.('input, textarea, select')) {
-            updateStatusText('comfy-role-save-status', '', '角色资料有未保存修改；点击「保存角色修改」，AI 才会更新英文绘图词。');
+            updateStatusText('comfy-role-save-status', '', '角色资料有未保存修改；点击「保存角色」，AI 才会更新英文绘图词。');
         }
     });
     querySettings('#comfy-shared-character-list')?.addEventListener('change', (event) => {
         if (event.target?.matches?.('input, textarea, select')) {
-            updateStatusText('comfy-role-save-status', '', '角色资料有未保存修改；请点击「保存角色修改」。');
+            updateStatusText('comfy-role-save-status', '', '角色资料有未保存修改；请点击「保存角色」。');
         }
     });
     querySettings('#comfy-shared-character-list')?.addEventListener('input', (event) => {
@@ -2257,6 +2420,7 @@ function bindOverlayEvents() {
         }
         const deleteButton = event.target.closest('[data-sd-char-delete]');
         if (deleteButton) {
+            if (!confirm('确定删除该角色？删除后点击「保存角色」才真正生效。')) return;
             deleteCharacterTagDraft(deleteButton.dataset.sdCharDelete);
             return;
         }
@@ -2276,6 +2440,9 @@ function fillForm(settings) {
     getSettingsDocument()?.body?.classList.add('advanced-mode');
     querySettingsAll('[data-comfy-mode]').forEach((button) => {
         button.classList.toggle('active', button.dataset.comfyMode === (settings.mode === 'auto' ? 'auto' : 'manual'));
+    });
+    querySettingsAll('[data-comfy-draw-source]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.comfyDrawSource === (settings.drawSource === 'direct' ? 'direct' : 'planner'));
     });
     setValue('comfy-connection-mode', settings.connectionMode || 'proxy');
     setValue('comfy-draw-auth', settings.auth || '');
@@ -2338,6 +2505,7 @@ function fillForm(settings) {
 
     refreshBuiltinWorkflowPanel(settings);
     applyPromptPresetToForm(settings);
+    fillJailbreakForm(settings);
     fillSharedDrawForm();
     refreshSettingsSummary();
 }
@@ -2456,6 +2624,27 @@ function fillPromptPresetSelect(settings = getSettings()) {
         select.appendChild(option);
     });
     select.value = settings.selectedPromptPresetId || settings.promptPresets?.[0]?.id || '';
+}
+
+function getActiveJailbreak(settings = getSettings()) {
+    const list = Array.isArray(settings.jailbreaks) ? settings.jailbreaks : [];
+    return list.find((item) => item.id === settings.selectedJailbreakId) || list[0] || null;
+}
+
+function fillJailbreakForm(settings = getSettings()) {
+    const select = getSettingsElement('comfy-jailbreak-select');
+    if (select) {
+        select.textContent = '';
+        (settings.jailbreaks || []).forEach((item) => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = item.name || item.id;
+            select.appendChild(option);
+        });
+        select.value = settings.selectedJailbreakId || settings.jailbreaks?.[0]?.id || '';
+    }
+    const active = getActiveJailbreak(settings);
+    setValue('comfy-prompt-jailbreak', active ? active.content : '');
 }
 
 function applyPromptPresetToForm(settings = getSettings()) {
@@ -2655,6 +2844,8 @@ async function refreshComfySamplerOptions({ notify = true, timeoutMs = Math.max(
     }
 }
 
+let inlineErrorLogRender = null;
+
 function switchSettingsView(viewName = 'test') {
     const requested = COMFY_DRAW_VIEWS.includes(viewName) ? viewName : 'test';
     const normalized = requested;
@@ -2666,6 +2857,9 @@ function switchSettingsView(viewName = 'test') {
     });
     if (normalized === 'gallery') {
         void renderGalleryManagement();
+    }
+    if (normalized === 'errors' && inlineErrorLogRender) {
+        void inlineErrorLogRender();
     }
     if (normalized === 'llm') {
         ensureAgentSettingsSurface();
@@ -2976,7 +3170,8 @@ function openCharacterTestPreview(characterId) {
     overlay.id = 'comfy-role-test-modal';
     overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:18px';
     const box = doc.createElement('div');
-    box.style.cssText = 'width:min(95vw,620px);max-height:94vh;overflow:auto;background:#181b24;color:#f5f5f6;border:1px solid #444b5a;border-radius:12px;padding:17px;box-shadow:0 10px 45px #0009';
+    box.style.cssText = 'width:min(620px,100%);max-height:calc(var(--vvh, 100vh) - 40px);overflow:auto;background:#181b24;color:#f5f5f6;border:1px solid #444b5a;border-radius:12px;padding:17px;box-shadow:0 10px 45px #0009';
+    box.style.maxHeight = 'calc(var(--vvh, 100vh) - 40px)';
     const title = doc.createElement('h3');
     title.textContent = '角色测试出图';
     title.style.cssText = 'margin:0 0 12px;font-size:17px';
@@ -3165,7 +3360,8 @@ function openComfyRolePhotoViewer(card, photoButton) {
     overlay.id = 'comfy-role-photo-viewer';
     overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483003;background:rgba(0,0,0,.77);display:flex;align-items:center;justify-content:center;padding:18px';
     const box = doc.createElement('div');
-    box.style.cssText = 'background:#181b24;color:#f4f4f5;border-radius:10px;padding:12px;max-width:min(92vw,840px);max-height:94vh;display:flex;flex-direction:column;gap:9px';
+    box.style.cssText = 'background:#181b24;color:#f4f4f5;border-radius:10px;padding:12px;max-width:min(840px,100%);max-height:calc(var(--vvh, 100vh) - 40px);display:flex;flex-direction:column;gap:9px';
+    box.style.maxHeight = 'calc(var(--vvh, 100vh) - 40px)';
     const image = doc.createElement('img');
     image.src = '/' + path;image.alt = '角色照片';
     image.style.cssText = 'display:block;max-width:100%;max-height:77vh;object-fit:contain;border-radius:7px;margin:auto';
@@ -4775,6 +4971,7 @@ function renderPromptChainPreview(settings = getSettings()) {
     if (!container || !container.closest('details')?.open) return;
 
     const editableMap = {
+        jailbreak: 'comfy-prompt-jailbreak',
         topSystem: 'comfy-prompt-system',
         tagGuide: 'comfy-prompt-guide',
         sceneRules: 'comfy-prompt-format',
@@ -4955,8 +5152,21 @@ async function autoGenerateForLastAI() {
     const lastMessage = chat[lastIdx];
     if (!lastMessage || lastMessage.is_user) return;
 
-    const content = stripDrawImageSlots(lastMessage.mes).trim();
-    if (content.length < 50) return;
+    const drawSource = settings.drawSource === 'direct' ? 'direct' : 'planner';
+    const directives = parseDrawImageDirectives(lastMessage.mes);
+    const content = stripDrawImageDirectives(stripDrawImageSlots(lastMessage.mes)).trim();
+    if (content.length < 50 && !directives.length) return;
+
+    // 清理正文里的 <image> 标记并保存，避免重开聊天时标记又跳出来
+    if (directives.length) {
+        lastMessage.mes = stripDrawImageDirectives(lastMessage.mes);
+        try {
+            const { saveChatConditional } = await import('/script.js');
+            await saveChatConditional();
+        } catch (e) {
+            console.warn('[ComfyDraw] 清理直出标记后保存失败', e);
+        }
+    }
 
     if (lastMessage.extra?.sti_comfy_auto_done || lastMessage.extra?.xb_comfy_auto_done) return;
     if (autoBusy || isGenerating(lastIdx)) return;
@@ -4977,8 +5187,16 @@ async function autoGenerateForLastAI() {
             }
         }
 
+        const directive = (drawSource === 'direct' && directives.length) ? directives[0] : null;
+        if (directive) {
+            console.info('[ComfyDraw] 画面生成：剧情直出（聊天大模型写提示词）');
+        } else {
+            console.info('[ComfyDraw] 画面生成：场景规划（API 模型）');
+        }
         const result = await generateAndInsertImages({
             messageId: lastIdx,
+            promptOverride: directive ? directive.prompt : '',
+            negativePromptOverride: directive ? directive.negative : '',
             automatic: true,
             onStateChange: (state, data, liveId) => {
                 fp.setStateForMessage(liveId, state, data);
@@ -5050,7 +5268,10 @@ async function buildComfyScenePlannerOptions({
             sceneSource,
             presentCharacters,
             useWorldInfo: useWorldbook && sharedDrawSettings.useWorldInfo,
-            customPrompts: promptPreset,
+            customPrompts: {
+                ...promptPreset,
+                jailbreak: getActiveJailbreak(comfySettings)?.content || '',
+            },
             promptDefaults: DEFAULT_PROMPT_CONFIG,
             worldbookEntries,
             maxImages: preset.maxImages || 0,

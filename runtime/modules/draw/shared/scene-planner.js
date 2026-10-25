@@ -33,6 +33,7 @@ const EMPTY_PROMPT_CONFIG = {
     sceneRules: '',
     // submit_scene_plan 字段描述覆写（JSON 字符串：{ 字段路径: 文案 }），空串 = 全部用内置文案
     fieldDescriptions: '',
+    jailbreak: '',
 };
 
 function createSerializableSnapshot(value) {
@@ -250,6 +251,7 @@ async function buildScenePlannerRequest(options = {}) {
             opening: promptConfig.topSystem,
             guide: tagGuide,
             sceneRules: promptConfig.sceneRules,
+            jailbreak: promptConfig.jailbreak,
             profile,
         });
         const userTaskTemplate = buildScenePlannerUserTask({

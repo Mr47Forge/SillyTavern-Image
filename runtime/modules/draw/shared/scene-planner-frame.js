@@ -40,11 +40,13 @@ export function buildScenePlannerFrameText(profile) {
 The app uses each image's scene and character fields, together with the character library and the user's generation settings, to build a request for ${imageModelName}. Field meanings and model-specific controls are described in submit_scene_plan.`;
 }
 
-export function buildScenePlannerSystemPrompt({ opening = '', guide = '', sceneRules = '', profile } = {}) {
+export function buildScenePlannerSystemPrompt({ opening = '', guide = '', sceneRules = '', jailbreak = '', profile } = {}) {
     const effective = normalizeScenePlannerProfile(profile);
     const guideText = String(guide || '').trim();
     const rulesText = String(sceneRules || '').trim();
+    const jailbreakText = String(jailbreak || '').trim();
     return joinBlocks([
+        jailbreakText ? `## 破甲授权\n\n${jailbreakText}` : '',
         opening,
         buildScenePlannerFrameText(effective),
         guideText ? `## ${effective.imageModelName} Tag 指南\n\n${guideText}` : '',
@@ -96,6 +98,7 @@ export function buildScenePlannerChainPreview({ profile, hasTagGuide = true, des
             key: 'system',
             summary: 'system：规划器的身份、材料说明、指南与规则',
             sections: [
+                { key: 'jailbreak', editable: true, summary: '破甲授权' },
                 { key: 'topSystem', editable: true, summary: '开场与视角' },
                 { key: 'frame', summary: '材料说明与输出去向（内置）', content: buildScenePlannerFrameText(effective) },
                 {

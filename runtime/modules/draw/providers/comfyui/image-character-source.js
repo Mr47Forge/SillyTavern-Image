@@ -41,7 +41,8 @@ export function openImageCharacterSource({ listRecent, recognize }) {
     overlay.id = 'lwb-comfy-image-character-source';
     overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483001;background:rgba(0,0,0,.76);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
     const panel = doc.createElement('div');
-    panel.style.cssText = 'width:min(720px,96vw);max-height:90vh;overflow:auto;background:#202630;color:#ecf0f4;border:1px solid #4a5662;border-radius:12px;padding:18px;box-sizing:border-box';
+    panel.style.cssText = 'width:min(720px,100%);max-height:calc(var(--vvh, 100vh) - 40px);overflow:auto;background:#202630;color:#ecf0f4;border:1px solid #4a5662;border-radius:12px;padding:18px;box-sizing:border-box';
+    panel.style.maxHeight = 'calc(var(--vvh, 100vh) - 40px)';
     overlay.append(panel);
     const title = doc.createElement('h3'); title.textContent = '从图片生成角色';
     title.style.cssText='font-size:18px;margin:0 0 12px;color:#edca91';

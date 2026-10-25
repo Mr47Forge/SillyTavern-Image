@@ -272,6 +272,7 @@ const STYLES = `
     font-size: 12px;
     color: var(--nd-text-secondary);
     white-space: nowrap;
+    max-width: min(360px, calc(100vw - 24px));
     box-shadow: var(--nd-shadow-lg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -295,6 +296,8 @@ const STYLES = `
 .nd-detail-value.success { color: var(--nd-success); }
 .nd-detail-value.warning { color: var(--nd-warning); }
 .nd-detail-value.error { color: var(--nd-error); }
+.nd-error-row { flex-wrap: wrap; }
+.nd-error { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
 .nd-menu {
     position: absolute;
     top: calc(100% + 8px);
@@ -847,7 +850,8 @@ function updateFloorDetailPopup(messageId) {
 
 async function handleFloorDrawClick(messageId) {
     const panelData = panelMap.get(messageId);
-    if (!panelData || panelData.state !== FloatState.IDLE) return;
+    if (!panelData) return;
+    if ([FloatState.SUBMITTING, FloatState.ACCEPTED, FloatState.UNCERTAIN, FloatState.QUEUED, FloatState.LLM, FloatState.GEN, FloatState.COOLDOWN, FloatState.RECONNECTING, FloatState.CANCELLING].includes(panelData.state)) return;
     const resolvedMessageId = resolvePanelMessageId(panelData) ?? messageId;
     if (resolvedMessageId !== messageId) {
         console.warn('[ComfyDraw] 楼层面板 messageId 与 DOM 不一致，已按 DOM 楼层生成:', { state: messageId, dom: resolvedMessageId });
@@ -1298,7 +1302,7 @@ function onFloatingPointerMove(e) {
     if (!floatingDragState || floatingDragState.pointerId !== e.pointerId || !floatingEl) return;
     const dx = e.clientX - floatingDragState.startX;
     const dy = e.clientY - floatingDragState.startY;
-    if (!floatingDragState.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+    if (!floatingDragState.moved && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
         floatingDragState.moved = true;
     }
     if (floatingDragState.moved) {
@@ -1343,7 +1347,7 @@ function routeFloatingClick(target) {
 }
 
 async function handleFloatingDrawClick() {
-    if (floatingState !== FloatState.IDLE) return;
+    if ([FloatState.SUBMITTING, FloatState.ACCEPTED, FloatState.UNCERTAIN, FloatState.QUEUED, FloatState.LLM, FloatState.GEN, FloatState.COOLDOWN, FloatState.RECONNECTING, FloatState.CANCELLING].includes(floatingState)) return;
     const messageId = findLastAIMessageId();
     if (messageId < 0) {
         toastr?.warning?.('没有可配图的AI消息');

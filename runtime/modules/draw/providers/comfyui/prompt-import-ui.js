@@ -8,7 +8,8 @@ export function openPromptImportDialog({ analyze, save, initialResults = null, r
   overlay.id='lwb-comfy-ai-prompt-dialog';
   overlay.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.73);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
   const panel=doc.createElement('div');
-  panel.style.cssText='width:min(860px,96vw);min-width:0;max-height:92vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;background:#1e232c;color:#e7ebef;border:1px solid #424b57;border-radius:12px;padding:18px;box-sizing:border-box;font-size:14px';
+  panel.style.cssText='width:min(860px,100%);min-width:0;max-height:calc(var(--vvh, 100vh) - 40px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;background:#1e232c;color:#e7ebef;border:1px solid #424b57;border-radius:12px;padding:18px;box-sizing:border-box;font-size:14px';
+  panel.style.maxHeight='calc(var(--vvh, 100vh) - 40px)';
   overlay.append(panel);
   function el(tag,text,styles=''){
     const node=doc.createElement(tag);
