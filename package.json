@@ -1,11 +1,20 @@
 {
   "name": "sillytavern-image",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "Standalone SillyTavern ComfyUI image extension, plus custom integration backups",
+  "type": "module",
+  "description": "独立定制绘图插件：剧情直出与 ComfyUI",
   "scripts": {
-    "test": "node --test server-plugin/tests/integration.test.cjs extension/settings.test.mjs",
-    "check": "node --check extension/index.js && node --check server-plugin/index.js"
+    "build": "node scripts/build-runtime.mjs",
+    "check": "node scripts/check-release.mjs",
+    "test": "node scripts/test.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": { "node": ">=20" },
+  "devDependencies": {
+    "esbuild": "0.28.1",
+    "express": "5.2.1",
+    "fake-indexeddb": "6.2.4",
+    "linkedom": "0.18.13",
+    "showdown": "2.1.0"
+  }
 }

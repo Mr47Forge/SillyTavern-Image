@@ -1,0 +1,89 @@
+{
+  "settings": {
+    "cacheDays": 3,
+    "useWorldInfo": true,
+    "timeout": 120000,
+    "plannerMaxRetries": 3,
+    "characterTags": [
+      {
+        "id": "char-1792816744922-q91y",
+        "enabled": true,
+        "name": "林希雅",
+        "aliases": [],
+        "type": "girl",
+        "appearance": "cute",
+        "appearanceZh": "可爱",
+        "negativeTags": "",
+        "danbooruTag": "",
+        "outfits": [],
+        "dynamicStates": [],
+        "photoUrl": "user/images/SillyTavernImage-role-photos/role-char-1792816744922-q91y-1792816767303-fqhztd.jpg"
+      },
+      {
+        "id": "char-1792816776200-k60e",
+        "enabled": true,
+        "name": "温若兰",
+        "aliases": [],
+        "type": "girl",
+        "appearance": "",
+        "negativeTags": "",
+        "danbooruTag": "",
+        "outfits": [],
+        "dynamicStates": [],
+        "photoUrl": "user/images/SillyTavernImage-role-photos/role-char-1792816776200-k60e-1792816790614-4jss6i.jpg"
+      }
+    ],
+    "characterGroups": [],
+    "characterGroupPresets": [],
+    "characterGroupPresetApplied": null,
+    "danbooruLocalDB": false,
+    "messageFilterRules": [
+      {
+        "start": "<think>",
+        "end": "</think>"
+      },
+      {
+        "start": "<thinking>",
+        "end": "</thinking>"
+      },
+      {
+        "start": "<system>",
+        "end": "</system>"
+      },
+      {
+        "start": "<meta>",
+        "end": "</meta>"
+      },
+      {
+        "start": "<options>",
+        "end": "</options>"
+      },
+      {
+        "start": "<WorldState>",
+        "end": "</WorldState>"
+      },
+      {
+        "start": "<state>",
+        "end": "</state>"
+      },
+      {
+        "start": "<UpdateVariable>",
+        "end": "</UpdateVariable>"
+      },
+      {
+        "start": "<—",
+        "end": "—>"
+      },
+      {
+        "start": "",
+        "end": "</think>"
+      }
+    ],
+    "worldbooks": {
+      "enabled": false,
+      "uploadedBooks": [],
+      "keywordFilterMode": "auto"
+    },
+    "updatedAt": 1792851783054
+  }
+}

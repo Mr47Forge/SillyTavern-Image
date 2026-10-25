@@ -1,6 +1,6 @@
 {
   "id": "sillytavern-image-server",
   "name": "SillyTavern Image Server",
-  "version": "0.1.0",
-  "description": "独立文生图插件的 ComfyUI 任务代理与私有角色图片管理。"
+  "version": "0.3.0",
+  "description": "独立定制绘图：剧情直出、ComfyUI任务、角色参考、图库与任务恢复。"
 }

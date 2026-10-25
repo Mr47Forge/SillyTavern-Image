@@ -1,0 +1,2 @@
+# Preserve deployed source and generated runtime bytes on every platform.
+* -text
