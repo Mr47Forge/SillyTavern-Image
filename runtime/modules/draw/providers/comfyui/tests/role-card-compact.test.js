@@ -13,7 +13,7 @@ function section(start,end){
  assert.ok(a>=0&&b>a,'missing section '+start);
  return source.slice(a,b);
 }
-const compact=section('const expandedComfyCharacterIds = new Set();','let groupPresetBinding = null;');
+const compact=section('const expandedComfyCharacterIds = new Set();','let promptChainPreviewFrame = 0;');
 const render=section('function renderCharacterCard({ character: tag, ordinal }) {','function createChineseNamedTagField(');
 const fields=section('function createChineseNamedTagField(','function renderFilterRuleRow(');
 const read=section('function readCharacterCardsFromForm(','function getSharedCharacterTagsFromForm(');
@@ -127,7 +127,7 @@ test('role type uses Chinese choices and keeps its stored value',()=>{
 test('group and batch management controls remain in the page',()=>{
  assert.ok(html.includes('id="comfy-role-collapse-all"'));
  assert.ok(html.includes('id="comfy-role-expand-all"'));
- assert.ok(html.includes('id="comfy-shared-character-toolbar"'));
+ assert.ok(!html.includes('id="comfy-shared-character-toolbar"'));
  assert.ok(html.includes('.sd-char-card.comfy-role-collapsed'));
 });
 

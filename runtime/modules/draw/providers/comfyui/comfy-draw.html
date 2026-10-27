@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="../../shared/character-library-dialog.css">
 <link rel="stylesheet" href="../../shared/character-library-ui.css">
-<link rel="stylesheet" href="../../shared/character-group-presets-ui.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -280,22 +279,11 @@ select.input { cursor: pointer; }
 .workflow-mode-btn:hover { border-color: var(--border-focus); color: var(--text-primary); }
 .workflow-mode-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .workflow-mode-btn i { display: block; font-size: 22px; margin-bottom: 8px; }
-.char-management-layout {
-    display: grid; grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
-    gap: 16px; align-items: start;
-}
-.char-management-sidebar {
-    display: flex; flex-direction: column; gap: 16px;
-    position: sticky; top: 0; align-self: start;
-}
 .char-management-actions {
     display: flex; flex-direction: column; gap: 8px;
     padding: 12px 0; margin-bottom: 12px; border-block: 1px solid var(--border);
 }
-.char-management-actions .lwb-cl-toolbar,
 .char-management-actions .comfy-role-list-controls { margin: 0; }
-.char-management-actions .lwb-cl-toolbar-hint { flex-basis: 100%; }
-.char-management-actions .lwb-cl-batch-bar { position: static; margin: 8px 0 0; }
 .char-list-card { min-height: 0; }
 .char-list-card-header {
     display: flex; align-items: center; justify-content: flex-start;
@@ -464,9 +452,7 @@ select.input { cursor: pointer; }
     .view-title { font-size: 18px; }
     .card { padding: 16px; }
     .form-row { grid-template-columns: 1fr; }
-    .char-management-layout { grid-template-columns: minmax(0, 1fr); }
     .char-list-card, .char-list-body, .char-grid { min-width: 0; }
-    .char-management-sidebar { position: static; }
     .preset-bar { padding: 10px 12px; }
     .preset-bar select { max-width: none; }
     .preset-bar .status-text.inline-status,
@@ -1015,13 +1001,6 @@ select.input { cursor: pointer; }
                     <p class="view-desc">独立绘图共用角色库</p>
                 </div>
 
-                <div class="char-management-layout">
-                    <aside class="char-management-sidebar">
-                        <div class="card">
-                            <div id="comfy-group-preset-root"></div>
-                        </div>
-                    </aside>
-
                     <section class="char-management-main">
                         <div class="card char-list-card">
                             <div class="char-list-card-header">
@@ -1039,7 +1018,6 @@ select.input { cursor: pointer; }
                                     <label class="btn btn-sm" style="cursor:pointer;"><i class="fa-solid fa-download"></i> 导入<input type="file" id="comfy-shared-char-import" accept=".json" style="display:none;"></label>
                                     <button class="btn btn-primary btn-sm" type="button" data-comfy-save-shared><i class="fa-solid fa-floppy-disk"></i> 保存角色</button>
                                 </div>
-                                <div id="comfy-shared-character-toolbar"></div>
                                 <div class="comfy-role-list-controls">
                                     <button id="comfy-role-collapse-all" class="btn btn-sm" type="button"><i class="fa-solid fa-compress"></i> 全部收起</button>
                                     <button id="comfy-role-expand-all" class="btn btn-sm" type="button"><i class="fa-solid fa-expand"></i> 全部展开</button>
@@ -1051,7 +1029,6 @@ select.input { cursor: pointer; }
                             </div>
                         </div>
                     </section>
-                </div>
             </section>
 
             <section class="view wide" data-comfy-view-panel="gallery">

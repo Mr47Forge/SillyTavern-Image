@@ -273,17 +273,6 @@ function validateGroupName(groups, name, exceptId = '') {
     return trimmed;
 }
 
-export function createGroup(library, name, { makeId } = {}) {
-    if (library.groups.length >= MAX_GROUPS) throw new TypeError(`分组数量不能超过 ${MAX_GROUPS} 个`);
-    const trimmed = validateGroupName(library.groups, name);
-    const used = new Set(library.groups.map(group => group.id));
-    const id = takeUniqueId('grp', used, makeId);
-    return {
-        library: { characters: library.characters, groups: [...library.groups, { id, name: trimmed }] },
-        groupId: id,
-    };
-}
-
 function requireGroup(library, groupId) {
     if (!library.groups.some(group => group.id === groupId)) throw new TypeError('分组不存在');
 }
@@ -366,18 +355,6 @@ export function addCharacter(library, partial = {}, { groupId = UNGROUPED_ID, ma
     const characters = [...library.characters];
     characters.splice(indexAfterLastMember(characters, groupId), 0, character);
     return { library: { characters, groups: library.groups }, id };
-}
-
-export function setCharactersEnabled(library, ids, enabled) {
-    const idSet = new Set(ids);
-    return {
-        groups: library.groups,
-        characters: library.characters.map(character => (
-            idSet.has(character.id) && (character.enabled !== false) !== Boolean(enabled)
-                ? { ...character, enabled: Boolean(enabled) }
-                : character
-        )),
-    };
 }
 
 export function deleteCharacters(library, ids) {
@@ -487,15 +464,12 @@ export function getDisplayOrder(library) {
     return getGroupedView(library).flatMap(group => group.characters);
 }
 
-/** scope: 'all' | 'group'（需 groupId，空串为未分组）| 'selection'（需 ids，可跨组） */
-export function exportCharacters(library, { scope = 'all', groupId, ids } = {}, { now = Date.now() } = {}) {
+/** scope: 'all' | 'group'（需 groupId，空串为未分组） */
+export function exportCharacters(library, { scope = 'all', groupId } = {}, { now = Date.now() } = {}) {
     let characters = getDisplayOrder(library);
     if (scope === 'group') {
         if (groupId) requireGroup(library, groupId);
         characters = characters.filter(character => ownGroupId(character) === String(groupId || ''));
-    } else if (scope === 'selection') {
-        const idSet = new Set(ids || []);
-        characters = characters.filter(character => idSet.has(character.id));
     } else if (scope !== 'all') {
         throw new TypeError('导出范围无效');
     }
@@ -665,13 +639,12 @@ export function placeCharactersAfterGroupMembers(rest, placements) {
  * options.mode:
  *   'auto'           按 id 替换（默认）。替换保留本地的启用状态、分组与位置；新角色按文件分组名归位（同名并入，没有则新建）。
  *   'existing-group' 导入到 options.groupId。
- *   'new-group'      新建 options.newGroupName 并导入。
  * options.sameIdPolicy（仅非 auto 模式）：'replace'（默认，替换并移入目标分组）| 'keep-both'（副本使用新 id）| 'skip'。
  * options.importNewAsDisabled：新增角色一律以停用状态导入（已有角色的替换不受影响）。
  */
 export function planCharacterImport(library, parsed, options = {}, { makeId } = {}) {
     const mode = options.mode ?? 'auto';
-    if (!['auto', 'existing-group', 'new-group'].includes(mode)) throw new TypeError('导入模式无效');
+    if (!['auto', 'existing-group'].includes(mode)) throw new TypeError('导入模式无效');
     const policy = mode === 'auto' ? 'replace' : (options.sameIdPolicy ?? 'replace');
     if (!['replace', 'keep-both', 'skip'].includes(policy)) throw new TypeError('相同 id 的处理方式无效');
 
@@ -688,11 +661,6 @@ export function planCharacterImport(library, parsed, options = {}, { makeId } = 
     if (mode === 'existing-group') {
         if (options.groupId) requireGroup(library, options.groupId);
         fixedGroupId = String(options.groupId || '');
-    }
-    let newGroupName = '';
-    if (mode === 'new-group') {
-        if (groups.length >= MAX_GROUPS) throw new TypeError(`分组数量不能超过 ${MAX_GROUPS} 个`);
-        newGroupName = validateGroupName(groups, options.newGroupName);
     }
     // 按名称（忽略大小写）索引分组；重名时取最先出现的，与逐个 find 的结果一致。
     const groupIdByNameKey = new Map();
@@ -718,7 +686,7 @@ export function planCharacterImport(library, parsed, options = {}, { makeId } = 
     };
     const resolveTargetGroup = (groupName) => {
         if (mode === 'existing-group') return fixedGroupId;
-        const name = mode === 'new-group' ? newGroupName : groupName;
+        const name = groupName;
         if (!name) return UNGROUPED_ID;
         const existingId = groupIdByNameKey.get(lowerKey(name));
         return existingId === undefined ? createGroupNamed(name) : existingId;

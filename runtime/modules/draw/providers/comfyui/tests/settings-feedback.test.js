@@ -92,18 +92,24 @@ test('a partial configuration save reports the actual stage once', async () => {
     assert.match(h.notices[0][0], /角色设置已保存.*配置.*失败/);
 });
 
-test('popup uses the host component and renders untrusted text as text', () => {
+test('save notice disappears automatically, has no confirmation and escapes its text', () => {
     const { document } = parseHTML('<html><body></body></html>');
-    let popup;
-    const Popup = class { constructor(...args) { popup = args; } show() { return Promise.resolve(1); } };
+    const calls = [];
+    const toastr = { options: { timeOut: 9000 }, error: (...args) => calls.push(args) };
     const show = bind(section('function showSettingsNotice(', '// 自定义输入对话框'), {
-        document, getContext: () => ({ Popup, POPUP_TYPE: { TEXT: 1 } }), console,
+        document, toastr, console,
     });
     show('<img src=x onerror=alert(1)>', 'error');
-    assert.match(popup[0].textContent, /<img src=x/);
-    assert.equal(popup[0].querySelector('img'), null);
-    assert.equal(popup[3].okButton, '知道了');
-    assert.equal(popup[3].cancelButton, false);
+    assert.equal(calls.length, 1);
+    const [message, title, options] = calls[0];
+    assert.equal(message, '<img src=x onerror=alert(1)>');
+    assert.equal(title, undefined);
+    assert.equal(options.closeButton, false);
+    assert.equal(options.escapeHtml, true);
+    assert.ok(options.timeOut > 0 && options.timeOut <= 5000);
+    assert.notEqual(options.containerId, 'toast-container');
+    assert.equal(document.querySelector('dialog,button,img'), null);
+    assert.deepEqual(toastr.options, { timeOut: 9000 }, 'other plugins keep their notification options');
 });
 
 test('character actions share one area and the header contains the live total', () => {
@@ -111,11 +117,13 @@ test('character actions share one area and the header contains the live total', 
     const actions = doc.querySelector('.char-management-actions');
     assert.ok(actions, 'one shared actions area above the list');
     for (const id of ['comfy-shared-char-add', 'comfy-shared-char-export', 'comfy-shared-char-import',
-        'comfy-import-from-chat', 'comfy-shared-character-toolbar', 'comfy-role-collapse-all', 'comfy-role-expand-all']) {
+        'comfy-import-from-chat', 'comfy-role-collapse-all', 'comfy-role-expand-all']) {
         assert.ok(actions.contains(doc.getElementById(id)), id);
     }
     assert.ok(actions.querySelector('[data-comfy-save-shared]'));
     assert.equal(doc.querySelector('#comfy-draw-summary-preset'), null);
+    assert.equal(doc.querySelector('#comfy-group-preset-root'), null);
+    assert.equal(doc.querySelector('#comfy-shared-character-toolbar'), null);
     assert.equal(doc.querySelector('.char-summary-grid'), null);
     assert.equal(doc.querySelector('#comfy-role-save-status'), null);
     const counter = doc.querySelector('.char-list-card-header #comfy-draw-character-result-count');

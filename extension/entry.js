@@ -3,7 +3,6 @@ import { eventSource, event_types } from '../../../../../script.js';
 import { ComfyDrawStorage } from '../runtime/core/server-storage.js';
 import { initComfyDraw, cleanupComfyDraw } from '../runtime/modules/draw/providers/comfyui/comfy-draw.js';
 import { setupDrawGenerateInterceptor, cleanupDrawGenerateInterceptor } from '../runtime/modules/draw/shared/draw-common.js';
-import { startGroupPresetWatcher, stopGroupPresetWatcher } from '../runtime/modules/draw/shared/character-group-presets-runtime.js';
 import { startImageJobRecovery, stopImageJobRecovery } from '../runtime/modules/draw/shared/image-job-recovery-runtime.js';
 import { initChatMessageImages, cleanupChatMessageImages } from '../runtime/modules/draw/shared/chat-message-images.js';
 import { installDrawFacade } from './draw-facade.mjs';
@@ -33,7 +32,6 @@ async function start() {
       window.isStImageEnabled = true;
       if (!await initComfyDraw()) throw new Error('独立绘图初始化失败，请检查日志');
       setupDrawGenerateInterceptor({ shouldStrip: () => window.isStImageEnabled });
-      startGroupPresetWatcher();
       startImageJobRecovery();
       initChatMessageImages();
       started = true;
@@ -54,7 +52,6 @@ function stop() {
   window.isStImageEnabled = false;
   cleanupChatMessageImages();
   stopImageJobRecovery();
-  stopGroupPresetWatcher();
   cleanupDrawGenerateInterceptor();
   cleanupComfyDraw();
   cleanups.clear();

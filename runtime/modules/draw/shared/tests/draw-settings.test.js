@@ -149,76 +149,8 @@ test('an old client saving characters without groups keeps stored groups and gro
     assert.equal(next.characterGroups.length, 1);
 });
 
-test('character group presets default to empty and old settings stay compatible', () => {
-    const empty = normalizeSharedDrawSettings({});
-    assert.deepEqual(empty.characterGroupPresets, []);
-    assert.equal(empty.characterGroupPresetApplied, null);
-    const old = normalizeSharedDrawSettings({
-        characterGroups: [{ id: 'g1', name: '主线' }],
-        characterTags: [{ id: 'a', name: '阿璃', groupId: 'g1' }],
-    });
-    assert.deepEqual(old.characterGroupPresets, []);
-    assert.equal(old.characterGroupPresetApplied, null);
-    assert.deepEqual(old.characterTags.map(c => c.id), ['a']);
-    assert.deepEqual(normalizeSharedDrawSettings({ characterGroupPresets: 'junk', characterGroupPresetApplied: 5 }).characterGroupPresets, []);
-});
 
-test('character group presets are normalized against the current groups and the applied record against presets', () => {
-    const normalized = normalizeSharedDrawSettings({
-        characterGroups: [{ id: 'g1', name: '主线' }, { id: 'g2', name: '支线' }],
-        characterTags: [{ id: 'a', name: '阿璃', groupId: 'g1' }],
-        characterGroupPresets: [{
-            id: 'p1',
-            name: 'alpha',
-            revision: 4,
-            groupStates: { g1: true, g2: false, ghost: true, __ungrouped__: false, bad: 'yes' },
-            bindings: [{ type: 'character', avatar: 'a.png', name: '甲' }, { type: 'character', avatar: 'a.png' }, { avatar: '' }],
-        }],
-        characterGroupPresetApplied: { presetId: 'p1', revision: 4, appliedAt: 99 },
-    });
-    assert.deepEqual(normalized.characterGroupPresets, [{
-        id: 'p1',
-        name: 'alpha',
-        revision: 4,
-        groupStates: { g1: true, g2: false },
-        bindings: [{ type: 'character', avatar: 'a.png', name: '甲' }],
-    }]);
-    assert.deepEqual(normalized.characterGroupPresetApplied, { presetId: 'p1', revision: 4, appliedAt: 99 });
 
-    // 分组被删除后，预设里的悬空键被清理；预设被删除后，应用记录被清空
-    const afterGroupDelete = normalizeSharedDrawSettings({ ...normalized, characterGroups: [{ id: 'g1', name: '主线' }] });
-    assert.deepEqual(afterGroupDelete.characterGroupPresets[0].groupStates, { g1: true });
-    const afterPresetDelete = normalizeSharedDrawSettings({ ...normalized, characterGroupPresets: [] });
-    assert.equal(afterPresetDelete.characterGroupPresetApplied, null);
-
-    // 规范化是幂等的
-    assert.deepEqual(normalizeSharedDrawSettings(normalized), { ...normalized, updatedAt: 0 });
-});
-
-test('character group presets are shared by every provider save path and never pollute prototypes', () => {
-    const stored = normalizeSharedDrawSettings({
-        characterGroups: [{ id: 'g1', name: '主线' }],
-        characterGroupPresets: [{ id: 'p1', name: 'alpha', groupStates: { g1: true }, bindings: [{ avatar: 'a.png' }] }],
-        characterGroupPresetApplied: { presetId: 'p1', revision: 1, appliedAt: 5 },
-    });
-    // 三个 Provider 共用的共享 key：provider 保存、共享保存都不能丢掉预设与应用记录
-    const providerSave = mergeNovelDrawProviderSettingsIntoStorageRoot(stored, { apiKey: 'k', characterGroupPresets: [] });
-    assert.equal(providerSave.characterGroupPresets.length, 1);
-    assert.equal(providerSave.characterGroupPresetApplied.presetId, 'p1');
-    const sharedSave = mergeSharedDrawSettingsIntoStorageRoot(providerSave, providerSave);
-    assert.deepEqual(sharedSave.characterGroupPresets, stored.characterGroupPresets);
-    assert.deepEqual(sharedSave.characterGroupPresetApplied, stored.characterGroupPresetApplied);
-    // 旧客户端只回传角色库字段：预设随草稿保留
-    const edited = normalizeSharedDrawSettings({ ...stored, characterTags: [{ id: 'a', name: '阿璃', groupId: 'g1' }], characterGroups: stored.characterGroups });
-    assert.equal(edited.characterGroupPresets.length, 1);
-
-    const hostile = normalizeSharedDrawSettings(JSON.parse(
-        '{"characterGroupPresets":[{"id":"p","name":"x","groupStates":{"__proto__":true,"constructor":false}}]}',
-    ));
-    assert.deepEqual(hostile.characterGroupPresets[0].groupStates, {});
-    assert.equal(({}).polluted, undefined);
-    assert.equal(Object.getPrototypeOf(hostile.characterGroupPresets[0].groupStates), Object.prototype);
-});
 
 test('group switches (enabled:false) survive normalization, provider saves, shared saves and old-client round trips', () => {
     const normalized = normalizeSharedDrawSettings({
@@ -257,12 +189,4 @@ test('group switches (enabled:false) survive normalization, provider saves, shar
 test('groups that never used the switch stay byte-identical (no enabled key invented)', () => {
     const normalized = normalizeSharedDrawSettings({ characterGroups: [{ id: 'g1', name: '主线' }], characterTags: [] });
     assert.equal(JSON.stringify(normalized.characterGroups), '[{"id":"g1","name":"主线"}]');
-});
-
-test('phase-A presets carrying the legacy ungrouped key are cleaned on load', () => {
-    const normalized = normalizeSharedDrawSettings({
-        characterGroups: [{ id: 'g1', name: '主线' }],
-        characterGroupPresets: [{ id: 'p1', name: 'old', groupStates: { g1: false, __ungrouped__: true } }],
-    });
-    assert.deepEqual(normalized.characterGroupPresets[0].groupStates, { g1: false });
 });

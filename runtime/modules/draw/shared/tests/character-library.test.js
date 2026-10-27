@@ -9,7 +9,6 @@ import {
     MAX_IMPORT_CHARACTERS,
     addCharacter,
     countEnabledCharacters,
-    createGroup,
     deleteCharacters,
     deleteGroup,
     duplicateCharacters,
@@ -30,7 +29,6 @@ import {
     planCharacterImport,
     renameGroup,
     selectEnabledCharacters,
-    setCharactersEnabled,
     setGroupEnabled,
     shiftCharacter,
 } from '../character-library.js';
@@ -113,19 +111,6 @@ test('group names: empty, reserved, duplicate and overlong are handled', () => {
 
 // ───────────── 分组管理 ─────────────
 
-test('createGroup/renameGroup validate names', () => {
-    let library = lib([]);
-    const created = createGroup(library, '主线', { makeId: counterIds() });
-    library = created.library;
-    assert.equal(library.groups[0].name, '主线');
-    assert.throws(() => createGroup(library, ' 主线 '), /已存在/);
-    assert.throws(() => createGroup(library, ''), /不能为空/);
-    assert.throws(() => createGroup(library, '未分组'), /保留/);
-    library = createGroup(library, '配角', { makeId: counterIds() }).library;
-    assert.throws(() => renameGroup(library, library.groups[1].id, '主线'), /已存在/);
-    assert.equal(renameGroup(library, library.groups[0].id, '主线'). groups[0].name, '主线');
-    assert.equal(renameGroup(library, library.groups[1].id, '路人').groups[1].name, '路人');
-});
 
 test('deleteGroup dissolves by default and can delete members', () => {
     const library = lib(
@@ -271,7 +256,6 @@ test('group operations keep the group switch: rename, move, place, delete other 
     assert.deepEqual(library.groups.map(g => [g.id, g.enabled]), [['g3', false], ['g1', false]]);
     const { library: withChar } = addCharacter(library, { name: 'N' }, { groupId: 'g1', makeId: counterIds() });
     assert.equal(withChar.groups, library.groups);
-    assert.equal(createGroup(library, '新', { makeId: counterIds() }).library.groups.at(-1).enabled, undefined, 'new groups start on without an enabled key');
 });
 
 test('countEnabledCharacters and selectEnabledCharacters use the effective state and accept a library', () => {
@@ -298,13 +282,6 @@ test('characterLibraryFromSettings maps characterTags/characterGroups and tolera
     assert.deepEqual(characterLibraryFromSettings({ characterTags: 'x', characterGroups: {} }), { characters: [], groups: [] });
 });
 
-test('setCharactersEnabled ignores unknown ids and counts enabled', () => {
-    const library = lib([char('1', 'A'), char('2', 'B'), char('3', 'C', { enabled: false })]);
-    const off = setCharactersEnabled(library, ['1', 'zzz'], false);
-    assert.equal(countEnabledCharacters(off), 1);
-    assert.equal(off.characters[1], library.characters[1]);
-    assert.equal(countEnabledCharacters(setCharactersEnabled(off, ['1', '3'], true)), 3);
-});
 
 // ───────────── 添加 / 移动 / 排序 ─────────────
 
@@ -420,7 +397,7 @@ function sampleLibrary() {
     );
 }
 
-test('exportCharacters: all/group/selection scopes in display order', () => {
+test('exportCharacters: all/group scopes in display order', () => {
     const library = sampleLibrary();
     const all = exportCharacters(library, { scope: 'all' }, { now: 0 });
     assert.equal(all.type, CHARACTER_EXPORT_TYPE);
@@ -433,11 +410,6 @@ test('exportCharacters: all/group/selection scopes in display order', () => {
     assert.deepEqual(group.characters.map(c => c.id), ['1', '4']);
     assert.deepEqual(group.groups.map(g => g.id), ['g2']);
 
-    const selection = exportCharacters(library, { scope: 'selection', ids: ['4', '3', 'zzz'] });
-    assert.deepEqual(selection.characters.map(c => c.id), ['3', '4']);
-    assert.deepEqual(selection.groups.map(g => g.id), ['g1', 'g2']);
-
-    assert.throws(() => exportCharacters(library, { scope: 'selection', ids: [] }), /没有可导出/);
     assert.throws(() => exportCharacters(library, { scope: 'group', groupId: 'g3' }), /没有可导出/);
     assert.throws(() => exportCharacters(library, { scope: 'bogus' }), /范围无效/);
 });
@@ -598,18 +570,6 @@ test('existing-group mode: replace moves into target, skip leaves untouched, kee
     assert.throws(() => planCharacterImport(library, parsed, { mode: 'existing-group', groupId: 'nope' }), /不存在/);
 });
 
-test('new-group mode creates the group, rejects bad names, merges nothing silently', () => {
-    const library = lib([char('1', 'A')], [{ id: 'g1', name: '甲' }]);
-    const parsed = parsedOf([char('1', 'A新'), char('2', 'B')]);
-    const plan = planCharacterImport(library, parsed, { mode: 'new-group', newGroupName: '导入组' }, { makeId: counterIds() });
-    assert.equal(plan.summary.groupsCreated, 1);
-    const groupId = plan.library.groups.find(g => g.name === '导入组').id;
-    assert.deepEqual(plan.library.characters.map(c => [c.id, c.groupId]), [['1', groupId], ['2', groupId]]);
-    assert.throws(() => planCharacterImport(library, parsed, { mode: 'new-group', newGroupName: '甲' }), /已存在/);
-    assert.throws(() => planCharacterImport(library, parsed, { mode: 'new-group', newGroupName: '' }), /不能为空/);
-    assert.throws(() => planCharacterImport(library, parsed, { mode: 'new-group', newGroupName: '未分组' }), /保留/);
-    assert.throws(() => planCharacterImport(library, parsed, { mode: 'bogus' }), /模式无效/);
-});
 
 test('export then auto-import into the same library is idempotent', () => {
     const library = sampleLibrary();
@@ -635,7 +595,7 @@ test('export files never carry the group switch, even when the local group is of
         [char('1', 'A', { groupId: 'g1' }), char('2', 'B', { groupId: 'g2' })],
         [{ id: 'g1', name: '甲', enabled: false }, { id: 'g2', name: '乙' }],
     );
-    for (const request of [{ scope: 'all' }, { scope: 'group', groupId: 'g1' }, { scope: 'selection', ids: ['1', '2'] }]) {
+    for (const request of [{ scope: 'all' }, { scope: 'group', groupId: 'g1' }]) {
         const exported = exportCharacters(library, request);
         assert.ok(exported.groups.length > 0);
         for (const group of exported.groups) {
@@ -679,17 +639,12 @@ test('import: groups created by the file start on; groups mapped to a local grou
     assert.equal(plan.summary.totalAfter, 3);
 });
 
-test('import: existing-group and new-group modes keep the local switch / start on', () => {
+test('import: existing-group mode keeps the local switch', () => {
     const library = lib([], [{ id: 'g1', name: '关着', enabled: false }]);
     const parsed = parsedOf([char('a', 'A'), char('b', 'B')]);
     const into = planCharacterImport(library, parsed, { mode: 'existing-group', groupId: 'g1' }, { makeId: counterIds() });
     assert.equal(into.library.groups[0].enabled, false);
     assert.equal(into.summary.enabledAfter, 0);
-    const fresh = planCharacterImport(library, parsed, { mode: 'new-group', newGroupName: '新建' }, { makeId: counterIds() });
-    assert.equal(fresh.library.groups.length, 2);
-    assert.equal(fresh.library.groups[0].enabled, false);
-    assert.equal(Object.hasOwn(fresh.library.groups[1], 'enabled'), false);
-    assert.equal(fresh.summary.enabledAfter, 2);
 });
 
 test('import: a same-id replacement keeps the local character state and a closed group', () => {
@@ -732,20 +687,17 @@ test('library functions never mutate their inputs', () => {
         isGroupEnabled(library, 'g1');
         setGroupEnabled(library, 'g1', false);
         selectEnabledCharacters(library);
-        createGroup(library, '新', { makeId: make });
         renameGroup(library, 'g1', '改');
         deleteGroup(library, 'g1');
         moveGroup(library, 'g1', 1);
         placeGroup(library, 'g2', 'g1');
         addCharacter(library, { name: 'N' }, { groupId: 'g1', makeId: make });
-        setCharactersEnabled(library, ['1'], false);
         deleteCharacters(library, ['1']);
         moveCharacters(library, ['1'], { groupId: 'g1' });
         shiftCharacter(library, '4', -1);
         duplicateCharacters(library, ['1'], { makeId: make });
         exportCharacters(library, { scope: 'all' });
         planCharacterImport(library, parsed, {}, { makeId: make });
-        planCharacterImport(library, parsed, { mode: 'new-group', newGroupName: 'N' }, { makeId: make });
         planCharacterImport(library, parsed, { mode: 'existing-group', groupId: 'g1', sameIdPolicy: 'keep-both' }, { makeId: make });
     });
 });
@@ -948,7 +900,6 @@ test('planCharacterImport stays fast for 20000 entries in every placement mode (
     const parsed = bulkParsed(20000, { grouped: true });
     const scenarios = [
         {},
-        { mode: 'new-group', newGroupName: '批量' },
         { mode: 'existing-group', groupId: '' },
     ];
     for (const options of scenarios) {

@@ -76,15 +76,6 @@ import { buildCharacterTestPrompt } from "./character-test-prompt.js";
 import { buildStoryIndexInstruction, parseStoryIndex, selectCharacterStoryEvidence, buildStoryDetailInstruction } from "./text-story-detail.js";
 import { namedTagsChineseText, reconcileChineseNamedLines } from "./chinese-named-tags.js";
 import { describeCharacterSaveError } from "./character-save-errors.js";
-import { bindGroupPresetPanel } from "../../shared/character-group-presets-draft-binding.js";
-import {
-    applyGroupPresetForCurrentChat,
-    getActiveCharacterAvatars,
-    listHostCharacters,
-    onGroupPresetApplied,
-    onGroupPresetContextChanged,
-    saveGroupPresets,
-} from "../../shared/character-group-presets-runtime.js";
 import { hashStableValue } from "../../shared/generation-fingerprint.js";
 import {
     createScenePlannerDefaultPresets,
@@ -242,7 +233,6 @@ function updateComfyCharacterCardTitle(card) {
     if (secondary) secondary.textContent = types[type] || type || '未分类';
 }
 
-let groupPresetBinding = null;
 let promptChainPreviewFrame = 0;
 let ensureComfyDrawPanelRef = null;
 let destroyComfyDrawPanelsRef = null;
@@ -1552,22 +1542,24 @@ function querySettingsAll(selector) {
 }
 
 function showSettingsNotice(message, level = 'success') {
-    try {
-        const { Popup, POPUP_TYPE } = getContext();
-        const content = document.createElement('div');
-        const title = document.createElement('h3');
-        title.textContent = { success: '操作完成', error: '操作失败', warning: '请注意' }[level] || '提示';
-        const text = document.createElement('p');
-        text.textContent = String(message || '');
-        text.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;';
-        content.append(title, text);
-        // 保存结果已确定；弹窗关闭不参与存储事务，也不阻塞按钮恢复。
-        void new Popup(content, POPUP_TYPE.TEXT, '', {
-            okButton: '知道了', cancelButton: false, allowVerticalScrolling: true,
-        }).show().catch(error => console.warn('[ComfyDraw] 保存提醒显示失败:', error));
-    } catch (error) {
-        console.warn('[ComfyDraw] 保存提醒显示失败:', error);
+    if (!document.getElementById('sti-save-notice-style')) {
+        const style = document.createElement('style');
+        style.id = 'sti-save-notice-style';
+        style.textContent = `
+            #sti-save-notices { position:fixed; z-index:2147483007; top:calc(env(safe-area-inset-top, 0px) + 64px); left:50%; transform:translateX(-50%); width:min(420px, calc(100% - 32px)); pointer-events:none; }
+            #sti-save-notices > .toast { width:100%; box-sizing:border-box; padding:12px 16px; margin:0 0 8px; border:1px solid #46515f; border-radius:10px; background:#202832; background-image:none !important; box-shadow:0 6px 20px #0004; color:#e6edf3; font-size:14px; line-height:1.5; opacity:1; pointer-events:auto; overflow-wrap:anywhere; }
+            #sti-save-notices > .toast-success { border-color:#557564; }
+            #sti-save-notices > .toast-error { border-color:#a55d5d; }
+        `;
+        document.head.appendChild(style);
     }
+    const show = toastr[level] || toastr.info;
+    show.call(toastr, String(message || ''), undefined, {
+        containerId: 'sti-save-notices', positionClass: '',
+        timeOut: level === 'error' ? 4500 : 2000, extendedTimeOut: 0,
+        closeButton: false, tapToDismiss: true, escapeHtml: true,
+        preventDuplicates: true, progressBar: false, showDuration: 120, hideDuration: 180,
+    });
 }
 
 // 自定义输入对话框：替代原生 await askInputDialog()。移动端原生 prompt 会强制页面缩放/重排，导致整个 UI 上移。
@@ -3015,14 +3007,12 @@ function getSharedCharacterGroupsFromForm() {
 function ensureCharacterLibraryUi() {
     const doc = getSettingsDocument();
     const list = querySettings('#comfy-shared-character-list');
-    const toolbar = querySettings('#comfy-shared-character-toolbar');
-    if (!doc || !list || !toolbar) return null;
+    if (!doc || !list) return null;
     if (characterLibraryUi?.document === doc) return characterLibraryUi;
     characterLibraryUi?.destroy();
     characterLibraryUi = createCharacterLibraryUi({
         document: doc,
         listElement: list,
-        toolbarElement: toolbar,
         readCharacters: readCharacterCardsFromForm,
         renderCard: renderCharacterCard,
         renderEmpty: createCharacterEmptyState,
@@ -3037,47 +3027,8 @@ function ensureCharacterLibraryUi() {
 }
 
 function destroyCharacterLibraryUi() {
-    destroyGroupPresetBinding();
     characterLibraryUi?.destroy();
     characterLibraryUi = null;
-}
-
-// 分组预设卡片：预设不属于角色草稿，修改立即持久化；展示用的分组 / 角色取自角色库草稿（用户所见）。
-// 预设自动应用后，把草稿里受影响分组的开关同步成最新值，避免之后“保存角色”写回旧值。
-function ensureGroupPresetBinding() {
-    const doc = getSettingsDocument();
-    const container = querySettings('#comfy-group-preset-root');
-    const ui = characterLibraryUi;
-    if (!doc || !container || !ui) return null;
-    if (groupPresetBinding?.document === doc) {
-        groupPresetBinding.render();
-        return groupPresetBinding;
-    }
-    groupPresetBinding?.destroy();
-    groupPresetBinding = bindGroupPresetPanel({
-        document: doc,
-        container,
-        getLibrary: () => ui.getLibrary(),
-        syncGroupEnabled: (groups, ids) => ui.syncGroupEnabled(groups, ids),
-        runtime: {
-            applyGroupPresetForCurrentChat,
-            getActiveCharacterAvatars,
-            listHostCharacters,
-            onGroupPresetApplied,
-            onGroupPresetContextChanged,
-            saveGroupPresets,
-        },
-        settings: { get: getSharedDrawSettings },
-        toast: (message, level) => {
-            showSettingsNotice(message, level || 'info');
-        },
-    });
-    return groupPresetBinding;
-}
-
-function destroyGroupPresetBinding() {
-    groupPresetBinding?.destroy();
-    groupPresetBinding = null;
 }
 
 // 用 tags / groups 重绘整个角色列表（丢弃当前草稿）；groups 缺省时沿用当前草稿的分组。
@@ -3830,7 +3781,6 @@ function fillSharedDrawForm() {
     renderUploadedBooks(sharedDrawSettings.worldbooks?.uploadedBooks || []);
     renderFilterRules(sharedDrawSettings.messageFilterRules || []);
     renderCharacterTagList(sharedDrawSettings.characterTags || [], sharedDrawSettings.characterGroups || []);
-    ensureGroupPresetBinding();
 }
 
 async function saveSharedDrawSettings({ notify = false } = {}) {

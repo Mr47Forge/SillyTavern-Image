@@ -1,4 +1,4 @@
-// 角色标签库界面（SD WebUI / ComfyUI 共用）：分组、折叠、多选与批量、复制、拖拽排序、导入导出。
+// 角色标签库界面（SD WebUI / ComfyUI 共用）：已有分组、折叠、复制、拖拽排序、导入导出。
 // 与 NovelAI 面板的区别：这里的角色列表是“每个角色一张展开的整表单卡”，DOM 才是真值，点“保存角色”才落盘。
 // 因此所有库操作都作用在“草稿”上：先 getLibrary() 从表单读出当前草稿（含未保存的编辑），
 // 交给 character-library.js 的纯函数得到新库，再 render() 重绘；本模块从不写盘，保存由宿主页面完成。
@@ -12,7 +12,6 @@ import {
     UNGROUPED_ID,
     UNGROUPED_NAME,
     addCharacter as addLibraryCharacter,
-    createGroup,
     deleteCharacters as deleteLibraryCharacters,
     deleteGroup,
     duplicateCharacters,
@@ -24,7 +23,6 @@ import {
     parseCharacterImport,
     placeGroup,
     renameGroup,
-    setCharactersEnabled,
     setGroupEnabled,
     shiftCharacter,
 } from './character-library.js';
@@ -64,13 +62,6 @@ export function resolveInsertion(items, pointerY, draggingIds = []) {
     return { position: 'after', refId: others[others.length - 1].id };
 }
 
-/** 拖动角色手柄时实际移动的集合：多选模式下拖动已选中的某一项，整体移动所有已选项；否则只动被拖的那一个。 */
-export function resolveDragIds({ kind, id, selectMode = false, selectedIds = [] } = {}) {
-    if (kind !== 'char') return [id];
-    const selected = new Set(selectedIds);
-    return selectMode && selected.has(id) && selected.size > 1 ? [...selected] : [id];
-}
-
 function collapseKeyOf(groupId) {
     return groupId || UNGROUPED_COLLAPSE_KEY;
 }
@@ -103,11 +94,10 @@ function stripGroupId(character) {
  * @param {object} options
  * @param {Document} options.document 宿主页面（设置 iframe）的 document
  * @param {Element} options.listElement 角色列表容器；本模块在其中渲染分组与卡片
- * @param {Element} options.toolbarElement 工具栏容器；本模块在其中渲染“新建分组 / 多选”和批量栏
  * @param {function} options.readCharacters ({ keepEmpty }) => 从表单读出的角色数组。每个角色必须带 id（卡片的 dataset.characterId）；
  *        keepEmpty 为 true 时不丢弃全空的新卡片（库操作期间要保留它们，只有保存时才丢弃）
  * @param {function} options.renderCard ({ character, ordinal }) => 卡片元素。根节点 class 含 sd-char-card、dataset.characterId 为角色 id；
- *        头部含 .sd-char-card-header > .sd-char-card-title 与 .btn-group，本模块往里加拖拽手柄、复选框与复制按钮
+ *        头部含 .sd-char-card-header > .sd-char-card-title 与 .btn-group，本模块往里加拖拽手柄与复制按钮
  * @param {function} options.renderEmpty () => 没有任何角色也没有分组时显示的占位元素
  * @param {function} [options.onChange] 列表重绘或卡片增删后调用，参数 { count }
  * @param {{success: function, warning: function, error: function}} [options.notify] 提示（toastr）
@@ -124,7 +114,6 @@ export function createCharacterLibraryUi(options = {}) {
     const {
         document,
         listElement: list,
-        toolbarElement: toolbar,
         readCharacters,
         renderCard,
         renderEmpty,
@@ -133,7 +122,7 @@ export function createCharacterLibraryUi(options = {}) {
         nameFieldSelector = '[data-sd-char-field="name"]',
     } = options;
     if (!document?.body) throw new TypeError('缺少 document');
-    if (!list || !toolbar) throw new TypeError('缺少列表或工具栏容器');
+    if (!list) throw new TypeError('缺少列表容器');
     if (typeof readCharacters !== 'function' || typeof renderCard !== 'function') {
         throw new TypeError('缺少 readCharacters / renderCard');
     }
@@ -153,8 +142,6 @@ export function createCharacterLibraryUi(options = {}) {
     const state = {
         groups: [],
         order: [], // 角色 id，按库数组顺序；排序的唯一事实来源，读取草稿时据此还原数组顺序
-        selectMode: false,
-        selected: new Set(),
         collapsed: loadCollapsed(),
         rendered: false,
         drag: null,
@@ -250,8 +237,6 @@ export function createCharacterLibraryUi(options = {}) {
             group.enabled === false ? { id: group.id, name: group.name, enabled: false } : { id: group.id, name: group.name }
         ));
         state.order = characters.map(character => String(character.id || ''));
-        const existing = new Set(state.order);
-        for (const id of [...state.selected]) if (!existing.has(id)) state.selected.delete(id);
 
         clearNode(list);
         state.rendered = true;
@@ -276,8 +261,6 @@ export function createCharacterLibraryUi(options = {}) {
             }
         }
         restoreGroupScroll(groupScroll);
-        renderToolbar();
-        syncSelectionControls();
         emitChange();
     }
 
@@ -304,12 +287,6 @@ export function createCharacterLibraryUi(options = {}) {
             },
         }, [iconNode(document, `fa-solid ${collapsed ? 'fa-chevron-right' : 'fa-chevron-down'}`)]);
         header.appendChild(collapseButton);
-        if (state.selectMode) {
-            header.appendChild(create(document, 'input', {
-                className: 'lwb-cl-group-select',
-                attrs: { type: 'checkbox', 'aria-label': `选择分组 ${group.name} 的全部角色` },
-            }));
-        }
         if (!group.virtual) {
             header.appendChild(create(document, 'span', {
                 className: 'lwb-cl-handle',
@@ -414,12 +391,6 @@ export function createCharacterLibraryUi(options = {}) {
                     'aria-label': `拖动排序 ${label}`,
                 },
             }));
-            if (state.selectMode) {
-                tools.appendChild(create(document, 'input', {
-                    className: 'lwb-cl-select',
-                    attrs: { type: 'checkbox', 'data-select-char': id, 'aria-label': `选择 ${label}` },
-                }));
-            }
             title.insertBefore(tools, title.firstChild);
         }
         const actions = card.querySelector('.sd-char-card-header .btn-group');
@@ -461,109 +432,10 @@ export function createCharacterLibraryUi(options = {}) {
         }
     }
 
-    // ── 工具栏与批量栏 ───────────────────────────────────
-    let toolbarNodes = null;
-
-    function buildToolbar() {
-        clearNode(toolbar);
-        const bar = create(document, 'div', { className: 'lwb-cl-toolbar' });
-        const addGroup = create(document, 'button', {
-            className: 'btn btn-sm',
-            attrs: { type: 'button', 'data-role': 'group-add' },
-        }, [iconNode(document, 'fa-solid fa-folder-plus'), create(document, 'span', { text: ' 新建分组' })]);
-        const selectToggle = create(document, 'button', {
-            className: 'btn btn-sm',
-            attrs: { type: 'button', 'data-role': 'select-toggle', 'aria-pressed': 'false' },
-        }, [iconNode(document, 'fa-regular fa-square-check'), create(document, 'span', { text: ' 多选' })]);
-        const hint = create(document, 'span', {
-            className: 'form-hint lwb-cl-toolbar-hint',
-            text: '拖动 ⋮⋮ 调整顺序或分组；分组与排序同样需要点击“保存角色”后生效',
-        });
-        bar.append(addGroup, selectToggle, hint);
-
-        const batch = create(document, 'div', { className: 'lwb-cl-batch-bar', attrs: { 'data-role': 'batch-bar', hidden: '' } });
-        const count = create(document, 'span', { className: 'lwb-cl-batch-count', text: '已选 0 个', attrs: { 'data-role': 'batch-count' } });
-        batch.appendChild(count);
-        const batchButton = (action, text, { needsSelection = true, danger = false, title = '' } = {}) => {
-            const button = create(document, 'button', {
-                className: `btn btn-sm${danger ? ' btn-danger' : ''}`,
-                text,
-                attrs: { type: 'button', 'data-batch': action, ...(title ? { title } : {}) },
-            });
-            if (needsSelection) button.setAttribute('data-needs-selection', '');
-            return button;
-        };
-        const target = create(document, 'select', {
-            className: 'input lwb-cl-batch-target',
-            attrs: { 'aria-label': '目标分组', 'data-role': 'batch-target' },
-        });
-        batch.append(
-            batchButton('select-all', '全选', { needsSelection: false }),
-            batchButton('enable', '启用'),
-            batchButton('disable', '停用'),
-            target,
-            batchButton('move', '移到'),
-            batchButton('copy-to', '复制到'),
-            batchButton('copy', '就地复制'),
-            batchButton('export', '导出所选', { title: '把所选角色（可跨组）导出为文件' }),
-            batchButton('delete', '删除', { danger: true }),
-            batchButton('exit', '完成', { needsSelection: false }),
-        );
-        toolbar.append(bar, batch);
-        toolbarNodes = { addGroup, selectToggle, batch, count, target };
-    }
-
-    function renderToolbar() {
-        if (!toolbarNodes) buildToolbar();
-        const { selectToggle, batch, count, target } = toolbarNodes;
-        selectToggle.classList.toggle('active', state.selectMode);
-        selectToggle.setAttribute('aria-pressed', String(state.selectMode));
-        if (state.selectMode) batch.removeAttribute('hidden');
-        else batch.setAttribute('hidden', '');
-        count.textContent = `已选 ${state.selected.size} 个`;
-        const previous = readSelectValue(target);
-        clearNode(target);
-        for (const group of [{ id: UNGROUPED_ID, name: UNGROUPED_NAME }, ...state.groups]) {
-            target.appendChild(create(document, 'option', { text: group.name, attrs: { value: group.id } }));
-        }
-        selectValue(target, state.groups.some(group => group.id === previous) ? previous : UNGROUPED_ID);
-        batch.querySelectorAll('[data-needs-selection]').forEach((button) => {
-            if (state.selected.size === 0) button.setAttribute('disabled', '');
-            else button.removeAttribute('disabled');
-        });
-    }
-
     function readSelectValue(select) {
         const options = Array.from(select.querySelectorAll('option'));
         const picked = options.find(option => option.selected) || options[0];
         return picked ? picked.value : '';
-    }
-
-    function selectValue(select, value) {
-        const match = Array.from(select.querySelectorAll('option')).find(option => option.value === value);
-        if (match) match.selected = true;
-    }
-
-    /** 把选中集合同步回复选框（含分组复选框的半选态）与批量栏计数。 */
-    function syncSelectionControls() {
-        list.querySelectorAll('.lwb-cl-select').forEach((box) => {
-            box.checked = state.selected.has(box.dataset.selectChar);
-        });
-        list.querySelectorAll('.lwb-cl-group-select').forEach((box) => {
-            const section = box.closest('.lwb-cl-group');
-            const ids = cardsIn(section).map(cardId);
-            const picked = ids.filter(id => state.selected.has(id)).length;
-            box.checked = ids.length > 0 && picked === ids.length;
-            box.indeterminate = picked > 0 && picked < ids.length;
-            box.disabled = ids.length === 0;
-        });
-        if (toolbarNodes) {
-            toolbarNodes.count.textContent = `已选 ${state.selected.size} 个`;
-            toolbarNodes.batch.querySelectorAll('[data-needs-selection]').forEach((button) => {
-                if (state.selected.size === 0) button.setAttribute('disabled', '');
-                else button.removeAttribute('disabled');
-            });
-        }
     }
 
     // ── 操作 ─────────────────────────────────────────────
@@ -620,15 +492,7 @@ export function createCharacterLibraryUi(options = {}) {
 
     function deleteCharacters(ids) {
         run(() => {
-            ids.forEach(id => state.selected.delete(id));
             apply(deleteLibraryCharacters(getLibrary(), ids));
-        });
-    }
-
-    function clearCharacters() {
-        run(() => {
-            state.selected.clear();
-            apply({ characters: [], groups: getLibrary().groups });
         });
     }
 
@@ -675,59 +539,11 @@ export function createCharacterLibraryUi(options = {}) {
                 if (members.length) {
                     removeMembers = askConfirm(`该分组有 ${members.length} 个角色。\n\n确定：连同角色一起删除\n取消：保留角色，移到“未分组”`);
                 }
-                if (removeMembers) members.forEach(character => state.selected.delete(character.id));
                 apply(deleteGroup(library, groupId, { deleteCharacters: removeMembers }));
             }
         });
     }
 
-    function createNewGroup() {
-        run(() => {
-            const name = askPrompt('新分组名称', '');
-            if (name === null || name === undefined) return;
-            apply(createGroup(getLibrary(), name, { makeId }).library);
-        });
-    }
-
-    function setSelectMode(on) {
-        state.selectMode = Boolean(on);
-        if (!state.selectMode) state.selected.clear();
-        render(getLibrary());
-    }
-
-    function runBatchAction(action) {
-        if (action === 'exit') { setSelectMode(false); return; }
-        if (action === 'select-all') {
-            cardsIn().forEach(card => state.selected.add(cardId(card)));
-            syncSelectionControls();
-            return;
-        }
-        const ids = [...state.selected];
-        if (!ids.length) return;
-        const target = toolbarNodes ? readSelectValue(toolbarNodes.target) : UNGROUPED_ID;
-        run(() => {
-            const library = getLibrary();
-            if (action === 'enable' || action === 'disable') {
-                apply(setCharactersEnabled(library, ids, action === 'enable'));
-            } else if (action === 'move') {
-                apply(moveCharacters(library, ids, { groupId: target }));
-            } else if (action === 'copy' || action === 'copy-to') {
-                const { library: next, newIds } = action === 'copy'
-                    ? duplicateCharacters(library, ids, { makeId })
-                    : duplicateCharacters(library, ids, { toGroupId: target, makeId });
-                state.selected.clear();
-                newIds.forEach(id => state.selected.add(id));
-                apply(next);
-            } else if (action === 'export') {
-                exportFile({ scope: 'selection', ids });
-            } else if (action === 'delete') {
-                if (!askConfirm(`确定删除选中的 ${ids.length} 个角色？`)) return;
-                deleteCharacters(ids);
-            }
-        });
-    }
-
-    // ── 导出 / 导入 ──────────────────────────────────────
     function downloadJson(fileName, data) {
         const blob = new win.Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = win.URL.createObjectURL(blob);
@@ -756,7 +572,7 @@ export function createCharacterLibraryUi(options = {}) {
 
     let exportDialog = null;
 
-    /** “导出”入口：先选导出范围（全部 / 某个分组 / 当前已选），确认后才下载；取消不导出。导出的是草稿，且不含全空的新卡片。 */
+    /** “导出”入口：先选导出范围（全部 / 某个分组），确认后才下载；取消不导出。导出的是草稿，且不含全空的新卡片。 */
     function openExportDialog() {
         if (!getLibrary({ keepEmpty: false }).characters.length) {
             notify.warning('没有可导出的角色');
@@ -766,7 +582,6 @@ export function createCharacterLibraryUi(options = {}) {
         exportDialog = openCharacterExportDialog({
             document,
             library: () => getLibrary({ keepEmpty: false }),
-            selectedIds: () => [...state.selected],
             onConfirm: ({ request, groupName }) => { exportFile(request, groupName); },
             onClose: () => { exportDialog = null; },
         });
@@ -826,7 +641,7 @@ export function createCharacterLibraryUi(options = {}) {
 
     function startDrag(event, kind, id) {
         if (event.button !== undefined && event.button !== 0) return;
-        const ids = resolveDragIds({ kind, id, selectMode: state.selectMode, selectedIds: [...state.selected] });
+        const ids = [id];
         state.drag = {
             kind,
             ids,
@@ -983,16 +798,7 @@ export function createCharacterLibraryUi(options = {}) {
 
     listen(list, 'change', (event) => {
         const box = event.target;
-        if (box.classList?.contains('lwb-cl-select')) {
-            if (box.checked) state.selected.add(box.dataset.selectChar); else state.selected.delete(box.dataset.selectChar);
-            syncSelectionControls();
-        } else if (box.classList?.contains('lwb-cl-group-select')) {
-            const section = box.closest('.lwb-cl-group');
-            cardsIn(section).forEach((card) => {
-                if (box.checked) state.selected.add(cardId(card)); else state.selected.delete(cardId(card));
-            });
-            syncSelectionControls();
-        } else if (box.classList?.contains('lwb-cl-card-group')) {
+        if (box.classList?.contains('lwb-cl-card-group')) {
             run(() => apply(moveCharacters(getLibrary(), [box.dataset.cardGroup], { groupId: readSelectValue(box) })));
         } else if (box.hasAttribute?.('data-character-enabled-control')) {
             // 卡片自己的启用开关变了：不重绘，只刷新分组头的计数（分组开关不受角色开关影响）
@@ -1011,52 +817,19 @@ export function createCharacterLibraryUi(options = {}) {
     listen(document, 'pointerup', event => endDrag(event));
     listen(document, 'pointercancel', event => endDrag(event, true));
 
-    buildToolbar();
-    listen(toolbar, 'click', (event) => {
-        const button = event.target.closest?.('button');
-        if (!button) return;
-        if (button.dataset.role === 'group-add') createNewGroup();
-        else if (button.dataset.role === 'select-toggle') setSelectMode(!state.selectMode);
-        else if (button.dataset.batch && !button.disabled) runBatchAction(button.dataset.batch);
-    });
-
     return {
         document,
         render,
         /** 以当前草稿重绘（表单内容原样保留）。 */
         rerender: () => render(getLibrary()),
-        /**
-         * 只把草稿里分组的开关同步成 latestGroups 里的值（预设在面板外改了分组开关时用，避免之后“保存角色”写回旧值）。
-         * groupIds 给定时只同步这些分组，缺省同步全部同 id 分组；角色、分组名、顺序等其它草稿内容不动。
-         * 有开关变化才重绘（表单内容原样保留），返回是否变化。
-         */
-        syncGroupEnabled(latestGroups, groupIds) {
-            if (!state.rendered || !Array.isArray(latestGroups)) return false;
-            const only = Array.isArray(groupIds) ? new Set(groupIds) : null;
-            const latest = new Map(latestGroups.map(group => [group?.id, group?.enabled !== false]));
-            let changed = false;
-            const groups = state.groups.map((group) => {
-                if ((only && !only.has(group.id)) || !latest.has(group.id)) return group;
-                const enabled = latest.get(group.id);
-                if ((group.enabled !== false) === enabled) return group;
-                changed = true;
-                return { ...group, enabled };
-            });
-            if (!changed) return false;
-            render({ ...getLibrary(), groups });
-            return true;
-        },
         getLibrary,
         /** 保存用：全空的新卡片会被丢弃（与旧版“保存角色”行为一致）。 */
         getCharacters: ({ keepEmpty = false } = {}) => getLibrary({ keepEmpty }).characters,
         getGroups: () => state.groups.map(group => ({ ...group })),
         getCardCount: () => cardsIn().length,
         isRendered: () => state.rendered,
-        getSelectedIds: () => [...state.selected],
-        isSelectMode: () => state.selectMode,
         addCharacter,
         deleteCharacters,
-        clearCharacters,
         duplicate,
         openExportDialog,
         importFile,
