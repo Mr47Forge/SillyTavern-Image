@@ -1,23 +1,8 @@
-// Display-only projection for streamed <image> instructions.
-// Never mutates message.mes, submits jobs, or changes saved slot identity.
+import { scanDrawImageBlocks } from './image-marker-syntax.js';
+
+// Display only: match the exact instruction grammar used for real job parsing.
 export function scanStreamingImageBlocks(source) {
-    const text = String(source || '');
-    const blocks = [];
-    const opening = /<image\s*>/gi;
-    let match;
-    while ((match = opening.exec(text))) {
-        const closing = /<\/image\s*>/gi;
-        closing.lastIndex = opening.lastIndex;
-        const end = closing.exec(text);
-        const stop = end ? end.index : text.length;
-        blocks.push({
-            body: text.slice(opening.lastIndex, stop),
-            raw: text.slice(match.index, end ? closing.lastIndex : stop),
-            ordinal: blocks.length + 1, complete: Boolean(end),
-        });
-        opening.lastIndex = end ? closing.lastIndex : text.length;
-    }
-    return blocks;
+    return scanDrawImageBlocks(source, {allowIncomplete:true});
 }
 
 function textRangeFor(root, expected) {
@@ -34,7 +19,8 @@ function textRangeFor(root, expected) {
     const exact = text.indexOf(target);
     let from = exact, to = exact < 0 ? -1 : exact + target.length;
     if (from < 0) {
-        const escaped = target.replace(/[.*+?^\u0024{}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+        // Markdown may render line breaks as separate elements with no text-node whitespace.
+        const escaped = target.replace(/[.*+?^\u0024{}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*');
         const match = new RegExp(escaped).exec(text);
         if (!match) return null;
         from = match.index; to = match.index + match[0].length;
@@ -86,7 +72,8 @@ export function projectStreamingImageBlocks(root, source, messageId, makeCard, r
     let projected = 0;
     for (let i = blocks.length - 1; i >= 0; i--) {
         const block = blocks[i];
-        const opener = elements[i] && elements[i].isConnected ? elements[i] : null;
+        const htmlIndex = blocks.slice(0, i + 1).filter(item => item.raw.startsWith('<')).length - 1;
+        const opener = block.raw.startsWith('<') && elements[htmlIndex]?.isConnected ? elements[htmlIndex] : null;
         const card = makeDraftCard(root, block, messageId, makeCard, total);
         if (opener?.tagName.toLowerCase() === 'image') {
             const paragraph = opener.closest('p');

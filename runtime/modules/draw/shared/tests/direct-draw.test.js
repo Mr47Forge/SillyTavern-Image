@@ -28,6 +28,30 @@ test('structured direct fields parse and keep the final append field', () => {
     const parsed = parseDrawImageDirectives(block)[0];
     assert.equal(parsed.characters[0].action, 'painting'); assert.equal(parsed.post_prompt, 'soft shadows');
 });
+test('bracket image directives parse four real picture tasks without a second LLM call', () => {
+    const source = ['An opening scene.', ...[1, 2, 3, 4].map(i =>
+        `[image]\nprompt: distinct scene ${i}\nnegative: blur\ncharacters: []\npost_prompt: soft light\nafter: An opening scene.\n[/image]`)].join('\n');
+    const parsed = parseDrawImageDirectives(source);
+    assert.equal(parsed.length, 4);
+    assert.deepEqual(parsed.map(item => item.imageIndex), [0, 1, 2, 3]);
+    assert.equal(parsed[3].prompt, 'distinct scene 4');
+    assert.equal(parsed[0].post_prompt, 'soft light');
+    const stripped = stripDirectDrawSource(source);
+    assert.ok(stripped.includes('An opening scene.'));
+    assert.ok(!stripped.includes('[image]'));
+    assert.ok(!stripped.includes('prompt:'));
+    assert.equal(readDirectDrawDirectives({mes:source}).length, 4);
+    assert.equal(buildDirectDrawTasks(parsed, {maxImages:4}, {sourceText:source}).length, 4);
+    assert.equal(stripDrawImageSlots('[image:slot-real] [image]'), ' [image]');
+});
+
+test('mixed bracket and XML directives retain numbering and real slots', () => {
+    const source = 'Story [image:slot-existing]\n[image]\nprompt: first\n[/image]\n<image>\nprompt: second\n</image>';
+    assert.deepEqual(parseDrawImageDirectives(source).map(item=>item.prompt),['first','second']);
+    assert.match(stripDirectDrawSource(source),/Story/);
+    assert.doesNotMatch(stripDirectDrawSource(source),/prompt:|\[image\]/);
+});
+
 test('legacy comma-separated people still work', () => {
     const parsed = parseDrawImageDirectives('<image>\nprompt: studio\ncharacters: 画师\n</image>');
     assert.equal(build(parsed)[0].chars[0].name, 'Alice');
@@ -261,6 +285,34 @@ test('new direct-only entry has no planner submission or fallback', () => {
     assert.ok(!/session\.(received|observe|requesting|retry)\(/.test(tags));
     assert.match(tags, /generateAndInsertImages\(\{ messageId: index \}\)/);
 });
+test('chat reopen resumes only complete unclaimed directives in auto mode', async () => {
+    const cases = [
+        {mode:'auto',state:'ready',stopped:true,expected:1},
+        {mode:'manual',state:'ready',stopped:true,expected:0},
+        {mode:'auto',state:'placed',stopped:true,expected:0},
+        {mode:'auto',state:'missing',stopped:true,expected:0},
+        {mode:'auto',state:'ready',stopped:false,expected:0},
+    ];
+    for(const scenario of cases) {
+        let calls=0;
+        const ctx = {
+            moduleInitialized:true,moduleLifecycleGeneration:7,
+            getSettings:()=>({mode:scenario.mode}),
+            getContext:()=>({chat:[{mes:'[image]\\nprompt: scene\\n[/image]'}],
+                streamingProcessor:{isStopped:scenario.stopped}}),
+            getDirectDrawReplyState:()=>({state:scenario.state}),
+            autoGenerateForLastAI:async()=>{calls++;},
+            setTimeout:fn=>{fn();},console,
+        };
+        vm.runInNewContext(fn(main,'resumeMissedAutomaticDraw'),ctx);
+        ctx.resumeMissedAutomaticDraw();
+        await Promise.resolve();
+        assert.equal(calls,scenario.expected,JSON.stringify(scenario));
+        ctx.resumeMissedAutomaticDraw(6);
+        assert.equal(calls,scenario.expected,'stale lifecycle cannot resume');
+    }
+});
+
 test('both old planner settings and direct settings normalize to direct without changing prompt values', () => {
     const ctx = { normalizePresets: x => structuredClone(x), normalizeWorkflowPresets: x => structuredClone(x),
         BUILTIN_WORKFLOWS: [], DEFAULT_COMFY_DRAW_SETTINGS: { timeout: 120000 },

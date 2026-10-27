@@ -100,7 +100,7 @@ function enhance(lease) {
     const source = message.mes, swipeIndex = message.swipe_id ?? 0;
     // Show a real card at the first streamed <image> token, before the
     // completed reply is normalized and its permanent image slots are saved.
-    if (/<image\s*>/i.test(source)) {
+    if (/<image\s*>|\[image\]/i.test(source)) {
         const count = window.stimageComfyDraw?.getSettings?.()?.maxImages ?? 0;
         projectStreamingImageBlocks(lease.content, source, lease.messageId,
             options => createPendingCard(lease.content.ownerDocument, options), count);

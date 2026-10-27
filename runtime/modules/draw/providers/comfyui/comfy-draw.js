@@ -4284,6 +4284,20 @@ async function autoGenerateForLastAI() {
     }
 }
 
+// A chat opened after GENERATION_ENDED can contain complete directives that
+// were never recognized. Resume only in explicit auto mode, without asking
+// the LLM to regenerate the reply or submitting already owned slots.
+function resumeMissedAutomaticDraw(generation = moduleLifecycleGeneration) {
+    setTimeout(() => {
+        if (!moduleInitialized || generation !== moduleLifecycleGeneration || getSettings().mode !== 'auto') return;
+        const ctx = getContext();
+        if (ctx.streamingProcessor?.isStopped === false) return;
+        const last = ctx.chat?.at(-1);
+        if (!last || last.is_user || last.is_system || getDirectDrawReplyState(last).state !== 'ready') return;
+        void autoGenerateForLastAI().catch(error => console.error('[ComfyDraw] resume missed draw', error));
+    }, 400);
+}
+
 async function generateAutomaticTarget(target) {
     const settings = getSettings();
     if (!moduleInitialized || target.lifecycle !== moduleLifecycleGeneration || settings.mode !== 'auto') return;
@@ -5293,6 +5307,7 @@ export async function initComfyDraw() {
     events.on(event_types.CHAT_CHANGED, () => {
         floatingPanel.refreshDrawRunUiState?.();
         setTimeout(renderExistingPanels, 150);
+        resumeMissedAutomaticDraw(initGeneration);
     });
     events.on(event_types.MESSAGE_SWIPED, () => {
         floatingPanel.refreshDrawRunUiState?.();
@@ -5313,6 +5328,7 @@ export async function initComfyDraw() {
 
     setTimeout(() => {
         renderExistingPanels();
+        resumeMissedAutomaticDraw(initGeneration);
     }, 300);
 
     preparedImageDispose?.();

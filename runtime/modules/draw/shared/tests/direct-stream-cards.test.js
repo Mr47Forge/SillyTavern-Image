@@ -45,6 +45,26 @@ test('four completed instructions remain in order with narrative between', () =>
     assert.doesNotMatch(root.textContent, /prompt:|distinct scene/);
     assert.match(root.textContent, /Section 4/);
 });
+test('bracket image directives create pending cards without showing raw instructions', () => {
+    const source = 'Opening.\n\n[image]\nprompt: scene 1\ncharacters: []\nafter: Opening.\n[/image]\n\nMiddle.\n\n[image]\nprompt: scene 2\ncharacters: []\nafter: Middle.\n[/image]';
+    const {root,found} = show(source, 2);
+    assert.equal(found,2);
+    assert.equal(root.querySelectorAll('.sti-nd-img').length,2);
+    assert.doesNotMatch(root.textContent,/prompt:|characters:|\[\/image\]|scene 1|scene 2/);
+    assert.match(root.textContent,/Opening\./);
+    assert.match(root.textContent,/Middle\./);
+});
+test('incomplete bracket directive renders a provisional card', () => {
+    const source='Opening.\n\n[image]\nprompt: new scene';
+    const {root,found}=show(source, 4);
+    assert.equal(found,1);
+    assert.equal(root.querySelectorAll('.sti-nd-img').length,1);
+    assert.doesNotMatch(root.textContent,/prompt:|new scene|\[image\]/);
+});
+test('an actual picture slot is not mistaken for a bracket image instruction', () => {
+    assert.deepEqual(scanStreamingImageBlocks('Hello [image:slot-real]'),[]);
+});
+
 test('ordinary conversation and already committed slot markers are not changed', () => {
     const source = 'Story with [image:slot-xyz] but no raw instruction.';
     const {root, found} = show(source);

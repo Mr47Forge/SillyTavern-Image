@@ -16,21 +16,33 @@ export function stripUnownedDrawImageSlots(sourceText, ownedSlotIds = new Set())
         ownedSlotIds.has(id) ? marker : '');
 }
 // 剧情直出标记：剧情模型在回复尾部输出 <image>...</image> 块，插件解析后直接出图（跳过场景规划）。
-export function parseDrawImageDirectives(sourceText,{skipInvalid=false}={}) {
+// Model-generated picture instructions may use either XML or bracket delimiters.
+// Neither syntax matches durable [image:slot-id] picture placeholders.
+export function scanDrawImageBlocks(sourceText, { allowIncomplete = false } = {}) {
     const text = String(sourceText ?? '');
+    const blocks = [];
+    const opening = /<image\s*>|\[image\]/gi;
+    let match;
+    while ((match = opening.exec(text))) {
+        const closing = match[0].startsWith('<') ? /<\/image\s*>/gi : /\[\/image\]/gi;
+        closing.lastIndex = opening.lastIndex;
+        const end = closing.exec(text);
+        if (!end && !allowIncomplete) break;
+        const stop = end ? end.index : text.length;
+        blocks.push({start: match.index, end: end ? closing.lastIndex : stop,
+            body: text.slice(opening.lastIndex, stop),
+            raw: text.slice(match.index, end ? closing.lastIndex : stop),
+            ordinal: blocks.length + 1, complete: Boolean(end)});
+        opening.lastIndex = end ? closing.lastIndex : text.length;
+    }
+    return blocks;
+}
+
+export function parseDrawImageDirectives(sourceText,{skipInvalid=false}={}) {
     const results = [];
-    let start = 0;
     let imageIndex = 0;
-    while (true) {
-        const opening=/<image\s*>/ig;opening.lastIndex=start;
-        const match=opening.exec(text);
-        if(!match)break;
-        const open=match.index;
-        const closing=/<\/image\s*>/ig;closing.lastIndex=open+match[0].length;
-        const end=closing.exec(text);
-        if(!end)break;
-        const close=end.index;
-        const body = text.slice(open + match[0].length, close);
+    for (const block of scanDrawImageBlocks(sourceText)) {
+        const body = block.body;
         const lines = body.split(String.fromCharCode(10));
         let prompt = '';
         let negative = '';
@@ -77,11 +89,15 @@ export function parseDrawImageDirectives(sourceText,{skipInvalid=false}={}) {
             results.push({ imageIndex, prompt, negative, characters,...(parseError?{parseError}:{}), ...(after ? { after } : {}), ...(postPrompt ? { post_prompt: postPrompt } : {}) });
         }
         imageIndex++;
-        start = close + end[0].length;
     }
     return results;
 }
 
 export function stripDrawImageDirectives(sourceText) {
-    return String(sourceText??'').replace(/<image\s*>[\s\S]*?<\/image\s*>/gi,'');
+    const source = String(sourceText ?? '');
+    let result = source;
+    for (const block of scanDrawImageBlocks(source).reverse()) {
+        result = result.slice(0, block.start) + result.slice(block.end);
+    }
+    return result;
 }
