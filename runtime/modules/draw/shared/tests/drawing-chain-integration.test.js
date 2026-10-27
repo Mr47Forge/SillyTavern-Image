@@ -6,7 +6,7 @@ import { build } from 'esbuild';
 import { indexedDB } from 'fake-indexeddb';
 import { parseHTML } from 'linkedom';
 import { buildDirectDrawTasks, buildDirectDrawInstruction, readDirectDrawDirectives } from '../direct-draw.js';
-import { parseDrawImageDirectives } from '../image-marker-syntax.js';
+import { parseDrawImageDirectives, stripUnownedDrawImageSlots } from '../image-marker-syntax.js';
 import { mountImageCardAtVisibleAnchor } from '../visible-image-anchor.js';
 import { buildRecentAppearanceLedger, pinImageCharacterAppearances } from '../character-appearance-ledger.js';
 import { getDirectDrawReplyState } from '../direct-draw.js';
@@ -47,7 +47,8 @@ test('real DOM removes direct instructions before a save failure without deletin
  const code=moduleSource.slice(moduleSource.indexOf('export async function generateAndInsertImages('),moduleSource.indexOf('export async function initComfyDraw(')).replace('export async','async');
  const {rememberDirectDrawDirectives,stripDirectDrawSource}=await import('../direct-draw.js');
  const {setActiveMessageText}=await import('../scene-placement.js');
- const env={console,readDirectDrawDirectives,rememberDirectDrawDirectives,stripDirectDrawSource,setActiveMessageText,
+ const env={console,readDirectDrawDirectives,rememberDirectDrawDirectives,stripDirectDrawSource,stripUnownedDrawImageSlots,setActiveMessageText,
+  getOwnedImageSlotIds:api.getOwnedImageSlotIds,
   syncRenderedMessageFromState:api.syncRenderedMessageFromState,createGenerationJob:()=>({controller:new AbortController()}),
   observeFloorImageJob:()=>()=>{},classifyError(){},ensureDrawImageStyles(){},openDB:api.openDB,
   loadSettings:async()=>{},loadSharedDrawSettings:async()=>{},cloneSettingsObject:structuredClone,

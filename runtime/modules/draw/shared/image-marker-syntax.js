@@ -8,6 +8,13 @@ export function createDrawImageSlotRegex(flags = 'gi') {
 export function stripDrawImageSlots(sourceText) {
     return String(sourceText ?? '').replace(createDrawImageSlotRegex(), '');
 }
+
+// Model output may forge [image:slot-*] text. Only IDs already owned by the
+// current message or an actual image job may survive before slot placement.
+export function stripUnownedDrawImageSlots(sourceText, ownedSlotIds = new Set()) {
+    return String(sourceText ?? '').replace(createDrawImageSlotRegex(), (marker, id) =>
+        ownedSlotIds.has(id) ? marker : '');
+}
 // 剧情直出标记：剧情模型在回复尾部输出 <image>...</image> 块，插件解析后直接出图（跳过场景规划）。
 export function parseDrawImageDirectives(sourceText,{skipInvalid=false}={}) {
     const text = String(sourceText ?? '');

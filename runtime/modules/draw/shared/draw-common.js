@@ -439,11 +439,21 @@ export async function getOwnedImageSlotIds(message){
 // Project an existing text slot immediately, before gallery I/O. This is only a
 // loading surface: it cannot create slots, claim requests or rebuild host text.
 function mountImageSlotShells(content, messageId, message) {
+    // A model can invent [image:slot-*] IDs. Do not display those as loading
+    // pictures before gallery hydration proves that an actual job owns them.
+    const shellFor = (slotId, options) => {
+        const html = buildPendingImageHtml({ slotId, messageId, loading: true, ...options });
+        const claimed = message.extra?.sti_comfy_slots?.[slotId]
+            || getDrawSavedEntry(message, slotId) || getSlotActivity(slotId);
+        return claimed ? html : html.replace('class="sti-nd-img"',
+            'class="sti-nd-img" data-sti-unverified-slot="1"')
+            .replace(/style="([^"]*)"/, 'style="$1;display:none;"');
+    };
     const replacements = [...extractSlotIds(message.mes)]
         .filter(slotId => !content.querySelector(buildDrawSlotSelector(slotId)))
         .map(slotId => {
             const activity = getSlotActivity(slotId);
-            return { slotId, html: buildPendingImageHtml({ slotId, messageId, loading: true,
+            return { slotId, html: shellFor(slotId, {
                 label: activity?.label || DRAW_SLOT_COPY.loading,
                 index: activity ? activity.index + 1 : 0, total: activity?.total || 0 }) };
         });
@@ -471,11 +481,12 @@ function mountImageSlotShells(content, messageId, message) {
     let preceding=null;
     for(const slotId of extractSlotIds(message.mes)){
         let card=content.querySelector(buildDrawSlotSelector(slotId));
-        const needsRescue=!card || actuallyHidden(card);
+        // A hidden verification shell at its original marker is not a lost card:
+        // moving it to the end changes scene order and can expose fake slots.
+        const needsRescue=!card || (!card.hasAttribute('data-sti-unverified-slot') && actuallyHidden(card));
         if(!card){
             const holder=content.ownerDocument.createElement('template');
-            holder.innerHTML=buildPendingImageHtml({slotId,messageId,loading:true,
-                label:DRAW_SLOT_COPY.loading});
+            holder.innerHTML=shellFor(slotId,{label:DRAW_SLOT_COPY.loading});
             card=holder.content.firstElementChild;
         }
         if(!card)continue;

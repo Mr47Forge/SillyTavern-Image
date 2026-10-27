@@ -31,7 +31,7 @@ import { renderDirectDrawFields } from '../../shared/direct-draw-preview.js';
 import { isSceneSlotAlive } from "../../shared/scene-placement.js";
 import { getSlotActivity, setSlotActivity, clearSlotActivity } from "../../shared/slot-activity.js";
 import { getPendingImageJobSlots } from "../../shared/pending-image-jobs.js";
-import { stripDrawImageSlots, parseDrawImageDirectives, stripDrawImageDirectives } from "../../shared/image-marker-syntax.js";
+import { stripDrawImageSlots, stripUnownedDrawImageSlots, parseDrawImageDirectives, stripDrawImageDirectives } from "../../shared/image-marker-syntax.js";
 import { assertSceneSourceUnchanged } from "../../shared/scene-placement.js";
 import {
     loadSharedDrawSettings,
@@ -5169,9 +5169,15 @@ export async function generateAndInsertImages({
         let capturedText = message.mes;
         const capturedSwipe = message.swipe_id ?? 0;
         const directives = promptOverride.trim() ? [] : readDirectDrawDirectives(message);
+        // Model-authored [image:slot-*] tokens are not actual Draw jobs.
+        // Preserve previously owned image slots, but never persist invented IDs
+        // next to the four real slots about to be created.
+        const ownedBefore = directives.length ? await getOwnedImageSlotIds(message) : null;
         // Display cleanup is independent of compilation/transport success.
         // Keep the original inputs in metadata and synchronize the active swipe.
-        const cleanText = directives.length ? stripDirectDrawSource(capturedText) : capturedText;
+        const cleanText = directives.length
+            ? stripUnownedDrawImageSlots(stripDirectDrawSource(capturedText), ownedBefore)
+            : capturedText;
         if (cleanText !== capturedText) {
             rememberDirectDrawDirectives(message, directives);
             setActiveMessageText(message, cleanText);
@@ -5184,7 +5190,7 @@ export async function generateAndInsertImages({
         }
         // Do not append an additional full batch to already placed image slots.
         // Explicit single-slot rerolls use the existing-slot path instead.
-        if (!promptOverride.trim() && (await getOwnedImageSlotIds(message)).size) {
+        if (!promptOverride.trim() && (ownedBefore || await getOwnedImageSlotIds(message)).size) {
             const current = resolveFloorImageJobTarget(job, getContext());
             if (current.message !== message || message.mes !== capturedText || (message.swipe_id ?? 0) !== capturedSwipe)
                 throw new Error('剧情或回复分支已经变化，请在当前回复重新绘图');

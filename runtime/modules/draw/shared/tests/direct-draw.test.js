@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import { readFileSync, existsSync } from 'node:fs';
 import { buildDirectDrawInstruction, buildDirectDrawTasks, readDirectDrawDirectives,
     rememberDirectDrawDirectives, stripDirectDrawSource, getDirectDrawWorldbook } from '../direct-draw.js';
-import { parseDrawImageDirectives, stripDrawImageSlots } from '../image-marker-syntax.js';
+import { parseDrawImageDirectives, stripDrawImageSlots, stripUnownedDrawImageSlots } from '../image-marker-syntax.js';
 import { compile } from '../../providers/comfyui/compiler.js';
 import { selectPhotoCharacter } from '../../providers/comfyui/role-photo-reference.js';
 import { buildWardrobeLedger, formatWardrobeLedger } from '../wardrobe-continuity.js';
@@ -287,7 +287,7 @@ for (const scenario of [{ backend: true }, { backend: false }, { backend: true, 
         selectedPresetId: 'p', useImageBackendJobs: backend };
     const shared = { characterTags: [painter], characterGroups: [], messageFilterRules: [] };
     const host = { chatId: 'synthetic', chat: [message] };
-    const ctx = { readDirectDrawDirectives, rememberDirectDrawDirectives, stripDirectDrawSource, buildDirectDrawTasks,
+    const ctx = { readDirectDrawDirectives, rememberDirectDrawDirectives, stripDirectDrawSource, stripUnownedDrawImageSlots, buildDirectDrawTasks,
         characterLibraryFromSettings, selectEnabledCharacters, buildWardrobeLedger, buildRecentAppearanceLedger:()=>new Map(), structuredClone, AbortController, console,
         getSettings: () => settings, getSharedDrawSettings: () => shared,getOwnedImageSlotIds:async()=>new Set(),setActiveMessageText:(m,s)=>{m.mes=s;},syncRenderedMessageFromState:async()=>{},getActiveDrawingWorldbook:async()=>'',
         getActivePreset: s => s.presets[0], cloneSettingsObject: structuredClone, DEFAULT_MESSAGE_FILTER_RULES: [],

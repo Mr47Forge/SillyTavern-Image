@@ -99,6 +99,23 @@ async function seedImage(slotId, suffix, options = {}) {
     return imgId;
 }
 
+test('four real images cannot be followed by four visible phantom loading cards', async t => {
+    const real = Array.from({length:4},(_,i)=>`real-${i+1}`);
+    const fake = Array.from({length:4},(_,i)=>`slot-00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`);
+    const source = 'Story.\n' + [...real,...fake].map(id=>`[image:${id}]`).join('\n');
+    const {message,root}=mountMessage(t,source);
+    message.extra.sti_comfy_direct={source:'Story.',directives:[]};
+    message.extra.sti_comfy_slots=Object.fromEntries(real.map(id=>[id,{status:'success'}]));
+    for(const id of real) await seedImage(id,'image');
+    const hydrated=api.renderPreviewsForMessage(0,{content:root});
+    for(const id of real) assert.notEqual(root.querySelector(`[data-slot-id="${id}"]`)?.style.display,'none');
+    for(const id of fake) assert.equal(root.querySelector(`[data-slot-id="${id}"]`)?.style.display,'none');
+    await hydrated;
+    for(const id of real) assert.ok(root.querySelector(`[data-slot-id="${id}"] img`));
+    for(const id of fake) assert.equal(root.querySelector(`[data-slot-id="${id}"]`),null);
+    assert.equal((message.mes.match(/\[image:/g)||[]).length,8); // This regression test does not edit old chats.
+});
+
 test('host-rendered slots have a card before asynchronous gallery hydration', async t => {
     const { root } = mountMessage(t, 'Before[image:loading-slot]After');
     const iframe = document.createElement('iframe');
@@ -560,7 +577,8 @@ async function seedGalleryImage(characterName, slotId, imgId, { timestamp, ...op
 
 async function deleteRecordBehindTheCache(imgId) {
     const raw = await new Promise((resolve, reject) => {
-        const request = indexedDB.open('sti_novel_draw_previews');
+        // Owner-isolated IndexedDB uses the authenticated fixture suffix.
+        const request = indexedDB.open('sti_novel_draw_previews::fixture');
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
     });

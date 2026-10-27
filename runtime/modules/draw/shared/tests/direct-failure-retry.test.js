@@ -3,16 +3,18 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { readDirectDrawDirectives, rememberDirectDrawDirectives, stripDirectDrawSource } from '../direct-draw.js';
+import { stripUnownedDrawImageSlots } from '../image-marker-syntax.js';
 
 const source=readFileSync(new URL('../../providers/comfyui/comfy-draw.js',import.meta.url),'utf8');
 const code=source.slice(source.indexOf('export async function generateAndInsertImages('),source.indexOf('export async function initComfyDraw(')).replace('export async','async');
-function fixture({failed=false}={}){
+function fixture({failed=false,inventedSlots=0}={}){
  const story='画家打开画室。';
  const message={mes:story+'\n<image>\nprompt: adult woman painting\nafter: '+story+'\n</image>',extra:{}};
  if(failed){message.mes+='\n[image:slot-old]';message.extra.sti_comfy_slots={'slot-old':{status:'failed'}};}
+ for(let i=1;i<=inventedSlots;i++)message.mes+=`\n[image:slot-00000000-0000-4000-8000-${String(i).padStart(12,'0')}]`;
  const host={chatId:'fixture',chat:[message]};let visible=message.mes,requests=0,finished=0;
  const container={querySelector:()=>failed?{}:null};
- const env={console,readDirectDrawDirectives,rememberDirectDrawDirectives,stripDirectDrawSource,
+ const env={console,readDirectDrawDirectives,rememberDirectDrawDirectives,stripDirectDrawSource,stripUnownedDrawImageSlots,
   setActiveMessageText:(m,s)=>{m.mes=s;},getContext:()=>host,findLastAIMessageId:()=>0,
   createGenerationJob:()=>({controller:new AbortController()}),observeFloorImageJob:()=>()=>{},
   ensureDrawImageStyles(){},openDB:async()=>{},loadSettings:async()=>{},loadSharedDrawSettings:async()=>{},
@@ -27,6 +29,24 @@ function fixture({failed=false}={}){
  vm.runInNewContext(code,env);
  return {env,message,get visible(){return visible;},get requests(){return requests;},get finished(){return finished;}};
 }
+test('four fake model-generated image IDs are removed before four real slots can be committed',async()=>{
+ const f=fixture({inventedSlots:4});
+ await assert.rejects(f.env.generateAndInsertImages({messageId:0}),/fixture invalid directive/);
+ assert.equal((f.message.mes.match(/\[image:/g)||[]).length,0);
+ assert.doesNotMatch(f.visible,/\[image:slot-/);
+ assert.equal(f.requests,0);
+ assert.equal(readDirectDrawDirectives(f.message).length,1);
+});
+
+test('previously owned image slot stays while fake model IDs are rejected',async()=>{
+ const f=fixture({failed:true,inventedSlots:4});
+ const result=await f.env.generateAndInsertImages({messageId:0});
+ assert.equal(result.submitted,1);
+ assert.equal((f.message.mes.match(/\[image:/g)||[]).length,1);
+ assert.match(f.message.mes,/\[image:slot-old\]/);
+ assert.doesNotMatch(f.message.mes,/00000000-0000-4000/);
+});
+
 test('directive source disappears even when task building fails; input remains available for retry',async()=>{
  const f=fixture();await assert.rejects(f.env.generateAndInsertImages({messageId:0}),/fixture invalid/);
  assert.ok(!f.visible.includes('prompt:'));assert.ok(!f.message.mes.includes('<image>'));
