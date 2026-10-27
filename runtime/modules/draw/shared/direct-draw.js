@@ -324,7 +324,7 @@ export function buildDirectDrawInstruction({ preset = {}, prompts = {}, characte
         '绘图正向 prompt 里，已出镜的女性角色采用写实中国女性、自然东亚五官外貌（Chinese, East Asian facial features），这属于原有角色特征；不能因此增加人数、补充路人或加入额外女性。没有女性出镜则不要写女性或外貌标签。',
         '以下 image 格式仅是正文之外的绘图附加段。正文继续使用酒馆预设的规则与格式。',
         '绘图块使用以下文本格式，不调用旧规划工具。characters 列出全部实际出镜人物；只用角色库姓名。服装 costume 与连续状态 state 是独立字段，action 只写当前画面动作；已录入角色也须依据当前中文资料填写英文 appear，不要留空。',
-        '女性 NSFW 外阴外观统一为白虎馒头穴。',
+        '女性 NSFW 外阴外观：无阴毛，大阴唇饱满闭合，小阴唇自然状态不外露。',
         'Only the drawing program writes bracketed slot IDs; model text must contain <image> blocks but no bracketed slot tokens.',
         '<image>', 'prompt: 英文画面提示词（单行，描述场景、构图、光线、视角；与人物字段合成完整画面）',
         'negative: 本画面额外的负向提示词（单行，没有则留空）',
