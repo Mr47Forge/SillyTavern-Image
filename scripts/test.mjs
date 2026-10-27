@@ -3,7 +3,7 @@ import { readdirSync } from 'node:fs';
 const shared='runtime/modules/draw/shared/tests/';
 const files=[
  'scripts/install-server.test.mjs',
- ...['audit-followup','audit-regressions','direct-draw','wardrobe-continuity','scene-placement',
+ ...['audit-followup','audit-regressions','direct-draw','wardrobe-continuity','scene-placement','male-image-exclusion',
  'prepared-slot-executor','image-card-redraw-provider','removed-settings-pages'].map(name=>shared+name+'.test.js'),
  ...['capsule-lifecycle','cancel-capsule-unlock','cancellation-storage-timeout','draw-cancellation-ui',
  'draw-work-cancellation','backend-image-jobs','recoverable-image-jobs','confirmable-chat-save',

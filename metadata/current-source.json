@@ -831,7 +831,7 @@
     {
       "path": "runtime/modules/draw/shared/tests/audit-followup.test.js",
       "sourceSha256": "33f45c3fbc8abe26b1cb16cc6db52ddd9e3ae1f0133d2e42dff7b76b98e81839",
-      "repositorySha256": "33f45c3fbc8abe26b1cb16cc6db52ddd9e3ae1f0133d2e42dff7b76b98e81839"
+      "repositorySha256": "d8c618af7622583a14e513083bee004fb9e2fde5fa37f2a63d9810463b6ab53f"
     },
     {
       "path": "runtime/modules/draw/shared/tests/audit-regressions.test.js",
@@ -1490,7 +1490,8 @@
     "Backend runtime rebuilt with the existing build script",
     "Matching backend download ZIP and SHA256SUMS generated; excluded from their own archive",
     "Documentation and product lockfile updated; live settings and services unchanged",
-    "Changed publication text uses LF; repositorySha256 describes exact published bytes"
+    "Changed publication text uses LF; repositorySha256 describes exact published bytes",
+    "Wardrobe tests use two female actors while preserving all assertions; dedicated male-filter tests remain enabled"
   ],
   "transformedPaths": [
     "manifest.json",
@@ -1502,7 +1503,8 @@
     "runtime/modules/draw/shared/tests/drawing-chain-integration.test.js",
     "runtime/modules/draw/shared/tests/wardrobe-continuity.test.js",
     "server-plugin/tests/settings.test.cjs",
-    "server-plugin/runtime/tests/draw-run-manager.test.js"
+    "server-plugin/runtime/tests/draw-run-manager.test.js",
+    "runtime/modules/draw/shared/tests/audit-followup.test.js"
   ],
   "removedPreviousSourcePaths": [
     "runtime/modules/agent-core/dist/agent-core-browser.js",
@@ -1520,6 +1522,7 @@
   ],
   "reviewedDistributionDifferences": [
     "manifest.json",
+    "runtime/modules/draw/shared/tests/audit-followup.test.js",
     "runtime/modules/draw/shared/tests/audit-regressions.test.js",
     "runtime/modules/draw/shared/tests/direct-draw.test.js",
     "runtime/modules/draw/shared/tests/drawing-chain-integration.test.js",
