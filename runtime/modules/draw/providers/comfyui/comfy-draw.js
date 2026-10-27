@@ -4905,7 +4905,14 @@ async function handleImageDelegatedClick(event) {
     if (action === 'view-prompt-log') {
         container.querySelector('.sti-nd-menu-wrap')?.classList.remove('open');
         const id=container.dataset.imgId;
-        const record=id ? await getPreview(id).catch(()=>null) : null;
+        const slotId=container.dataset.slotId;
+        let record=id ? await getPreview(id).catch(()=>null) : null;
+        // A restored image can have slot history even if its direct ID lookup
+        // missed the cache. Never show another image's prompt under this ID.
+        if (!record && slotId) {
+            const bySlot=await getPreviewsBySlot(slotId).catch(()=>[]);
+            record=id ? bySlot.find(item=>item.imgId===id) : bySlot[0];
+        }
         openImageDiagnostics(record || {
             imgId:id||'',timestamp:Date.now(),
             positive:container.dataset.positive||'',negativePrompt:'',

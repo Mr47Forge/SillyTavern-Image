@@ -17,6 +17,8 @@ function followVisibleViewport(overlay) {
         const top = Math.round((vv && vv.offsetTop) || 0);
         overlay.style.setProperty('top', top + 'px', 'important');
         overlay.style.setProperty('height', height + 'px', 'important');
+        // Use the actual visual viewport, not the settings panel's stale --vvh.
+        overlay.style.setProperty('--sti-diagnostics-vvh', height + 'px');
         overlay.style.setProperty('bottom', 'auto', 'important');
     };
     apply();
@@ -188,7 +190,7 @@ function addLabeledSection(container,label,text,doc) {
     heading.style.cssText='font-size:12px;color:#55e6b0;margin:10px 0 6px';
     heading.textContent=label;
     const detail=doc.createElement('pre');
-    detail.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 Consolas,monospace;margin:0 0 10px;background:#252a35;border-radius:7px;padding:10px;color:#f4f4f5';
+    detail.style.cssText='display:block;box-sizing:border-box;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font:12px/1.65 Consolas,monospace;margin:0 0 12px;background:#252a35;border-radius:7px;padding:12px;color:#f4f4f5';
     detail.textContent=String(text);
     container.append(heading,detail);
 }
@@ -218,26 +220,29 @@ export function openImageDiagnostics(record={},opts={}) {
     Object.assign(overlay.style,{
         position:'fixed',top:'0',left:'0',right:'0',height:'100%',zIndex:'100012',
         background:'rgba(0,0,0,.77)',display:'flex',alignItems:'center',
-        justifyContent:'center',padding:'16px',
+        justifyContent:'center',padding:'12px',boxSizing:'border-box',
     });
     const card=doc.createElement('div');
     Object.assign(card.style,{
         background:'#191d26',color:'#f4f4f5',border:'1px solid #444b5a',
-        borderRadius:'12px',width:'min(760px,100%)',maxWidth:'100%',
-        maxHeight:'calc(var(--vvh, 100vh) - 40px)',
+        borderRadius:'12px',width:'min(820px,100%)',maxWidth:'100%',minWidth:'0',
+        // A flex column with only max-height lets flex:1 1 0 collapse the log body.
+        // Reserve a real height so positive/negative prompts stay scrollable.
+        height:'min(760px, calc(var(--sti-diagnostics-vvh, 100dvh) - 24px))',
+        maxHeight:'calc(var(--sti-diagnostics-vvh, 100dvh) - 24px)',
+        minHeight:'0',boxSizing:'border-box',
         display:'flex',flexDirection:'column',overflow:'hidden',
     });
-    card.style.maxHeight='calc(var(--vvh, 100vh) - 40px)';
     const header=doc.createElement('div');
-    Object.assign(header.style,{display:'flex',padding:'15px 18px',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid #444b5a'});
+    Object.assign(header.style,{display:'flex',padding:'14px 16px',alignItems:'center',justifyContent:'space-between',gap:'12px',flexShrink:'0',borderBottom:'1px solid #444b5a'});
     const title=doc.createElement('strong');
     title.textContent=opts.errors?'独立绘图 · 错误日志':'本张图片 · 提示词日志';
     const close=doc.createElement('button');
     close.textContent='关闭';close.type='button';
-    Object.assign(close.style,{background:'#293140',color:'#f4f4f5',border:'1px solid #444b5a',borderRadius:'7px',padding:'6px 12px',cursor:'pointer'});
+    Object.assign(close.style,{background:'#293140',color:'#f4f4f5',border:'1px solid #444b5a',borderRadius:'7px',padding:'6px 12px',cursor:'pointer',flexShrink:'0'});
     header.append(title,close);
     const body=doc.createElement('div');
-    Object.assign(body.style,{overflowY:'auto',padding:'15px 18px',lineHeight:'1.5',fontSize:'13px',whiteSpace:'normal',flex:'1 1 0',minHeight:'0'});
+    Object.assign(body.style,{overflowY:'auto',overflowX:'hidden',padding:'14px 16px',lineHeight:'1.6',fontSize:'13px',whiteSpace:'normal',flex:'1 1 auto',minHeight:'0',minWidth:'0',boxSizing:'border-box',overscrollBehavior:'contain',WebkitOverflowScrolling:'touch'});
     const raw=record||{};
     if (opts.errors) {
         if (!opts.items?.length) body.textContent='暂无错误记录。';
@@ -256,6 +261,10 @@ export function openImageDiagnostics(record={},opts={}) {
         addLabeledSection(body,'图片 / 时间 / 状态',info.id+' · '+info.time+' · '+info.status,doc);
         addLabeledSection(body,'最终正向提示词',info.positive,doc);
         addLabeledSection(body,'最终负向提示词',info.negative,doc);
+        if (!info.positive && !info.negative && !info.traceNodes.length) {
+            if (raw.tags) addLabeledSection(body,'原始绘图提示词（非最终 ComfyUI 提示词）',raw.tags,doc);
+            addLabeledSection(body,'提示词记录状态','此图片没有可读取的完整提示词记录。图片仍可查看；本地历史缓存缺失时无法凭图片还原最终提示词。',doc);
+        }
         for(const node of info.traceNodes) addLabeledSection(body,'工作流节点 '+node.id+'（'+node.type+'）',node.text,doc);
         const params=['Seed: '+(info.seed??'无记录'),'Steps: '+(info.steps??'无记录'),'CFG: '+(info.cfg??'无记录'),info.sampler,info.scheduler].filter(Boolean).join(' · ');
         addLabeledSection(body,'生成参数',params,doc);
