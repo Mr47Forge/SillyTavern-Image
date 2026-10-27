@@ -1,4 +1,5 @@
 import { parseDrawImageDirectives, stripDrawImageDirectives, stripDrawImageSlots } from './image-marker-syntax.js';
+import { stripModelDiagnosticFooter } from './model-diagnostic-footer.js';
 import { joinTags, assembleCharacterPrompts, usesChineseAppearance } from './character-prompts.js';
 import { createSceneSource, resolveSceneAnchor } from './scene-source.js';
 import { hasOwnedImageSlots } from './image-directive-identity.js';
@@ -11,7 +12,7 @@ import { buildMaleImageOnlyRule, filterMaleImageDirective, containsMaleAnatomy, 
 export function stripDirectDrawSource(text) {
     let clean = stripDrawImageDirectives(String(text || ''));
     for (const tag of parseChatImageTags(clean).reverse()) clean = clean.slice(0, tag.start) + clean.slice(tag.end);
-    return clean;
+    return stripModelDiagnosticFooter(clean);
 }
 
 function sourceText(message) {

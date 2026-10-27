@@ -8,6 +8,7 @@ import { buildPendingImageHtml, ensureDrawImageStyles, isMessageBeingEdited, ren
 import { DRAW_SLOT_COPY } from './image-record.js';
 import { subscribeChatImagePlacement } from './chat-image-placement.js';
 import { projectStreamingImageBlocks } from './direct-stream-cards.js';
+import { suppressRenderedModelDiagnosticFooter } from './model-diagnostic-footer.js';
 
 const events = createModuleEvents('chatMessageImages');
 const leases = new Map();
@@ -98,6 +99,7 @@ function enhance(lease) {
     if (!message || isMessageBeingEdited(lease.messageId)) return;
     for (const node of lease.nodes.keys()) if (!lease.content.contains(node)) lease.nodes.delete(node);
     const source = message.mes, swipeIndex = message.swipe_id ?? 0;
+    suppressRenderedModelDiagnosticFooter(lease.content, source);
     // Show a real card at the first streamed <image> token, before the
     // completed reply is normalized and its permanent image slots are saved.
     if (/<image\s*>|\[image\]/i.test(source)) {
