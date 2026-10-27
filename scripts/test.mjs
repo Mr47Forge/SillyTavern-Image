@@ -4,6 +4,7 @@ const shared='runtime/modules/draw/shared/tests/';
 const files=[
  'scripts/install-server.test.mjs',
  ...['audit-followup','audit-regressions','direct-draw','wardrobe-continuity','scene-placement','male-image-exclusion',
+ 'direct-failure-retry','drawing-chain-integration','all-fixes-continuity','draw-run-client','scene-plan-contract',
  'prepared-slot-executor','image-card-redraw-provider','removed-settings-pages'].map(name=>shared+name+'.test.js'),
  ...['capsule-lifecycle','cancel-capsule-unlock','cancellation-storage-timeout','draw-cancellation-ui',
  'draw-work-cancellation','backend-image-jobs','recoverable-image-jobs','confirmable-chat-save',
@@ -11,7 +12,7 @@ const files=[
  ...readdirSync('runtime/modules/draw/providers/comfyui/tests').filter(name=>name.endsWith('.test.js'))
   .map(name=>'runtime/modules/draw/providers/comfyui/tests/'+name),
  'server-plugin/tests/integration.test.cjs',
- ...['cancellation','job-manager','job-routes','provider-adapters'].map(name=>'server-plugin/runtime/tests/'+name+'.test.js'),
+ ...['legacy-planner-cleanup','cancellation','job-manager','job-routes','provider-adapters'].map(name=>'server-plugin/runtime/tests/'+name+'.test.js'),
 ];
 const result=spawnSync(process.execPath,['--test','--test-timeout=15000',...files],{stdio:'inherit'});
 process.exit(result.status??1);

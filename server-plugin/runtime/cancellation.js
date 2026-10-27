@@ -35,9 +35,8 @@ function createCancellationRegistry({ now = Date.now, retentionMs = CANCELLATION
         }
     };
     return {
-        // Admission reserves the space needed to stop accepted work. Draw Runs
-        // reserve both their planner and their deterministic child before paying
-        // for planning; the child manager takes ownership at dispatch.
+        // Admission reserves the space needed to stop accepted image jobs.
+        // Legacy run IDs remain accepted as cancellation intent only.
         reserve(owner, targets) {
             sweep();
             const keys = keysOf(owner, targets);
@@ -78,7 +77,7 @@ function normalizeCancellation(body) {
     return { jobIds: [...new Set(jobIds)], runIds: [...new Set(runIds)] };
 }
 
-function registerCancellationRoutes(router, { registry, jobManager, drawRunManager }) {
+function registerCancellationRoutes(router, { registry, jobManager }) {
     router.post('/v1/cancel', (req, res) => {
         const owner = req.user?.profile?.handle;
         if (typeof owner !== 'string' || !owner) return res.status(403).send({ ok: false, code: 'authenticated_profile_required' });
@@ -88,10 +87,9 @@ function registerCancellationRoutes(router, { registry, jobManager, drawRunManag
             if (req.body?.owner !== owner) throw failure(COPY.ownerChanged, 'cancellation_owner_mismatch', 409);
             const targets = normalizeCancellation(req.body);
             // All validation and capacity checks precede effects. The whole
-            // operation is synchronous: neither scheduler can advance between
-            // cancelling a planner/child and the remaining selected jobs.
+            // operation is synchronous: the scheduler cannot advance between
+            // recording cancellation intent and cancelling the selected image jobs.
             registry.remember(owner, targets);
-            for (const id of targets.runIds) drawRunManager.cancel(owner, id);
             jobManager.cancelJobs(owner, targets.jobIds);
             return res.status(200).send({ ok: true });
         } catch (error) {

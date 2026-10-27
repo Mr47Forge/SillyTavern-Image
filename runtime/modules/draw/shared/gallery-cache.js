@@ -185,7 +185,6 @@ export function getPreviewDisplayUrl(preview = {}) {
     const parsed = parseBase64Image(preview?.base64);
     const savedUrl = safeImageUrl(preview?.savedUrl);
     if (!parsed?.data) return savedUrl;
-    if (!parsed?.data) return '';
 
     if (typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function' || typeof atob !== 'function') {
         return `data:${parsed.mime};base64,${parsed.data}`;

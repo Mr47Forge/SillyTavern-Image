@@ -129,7 +129,9 @@ import { prepareImageInput } from '../../shared/prepared-image-input.js';
 import { acquireFloorImageJob, getFloorImageJob, getFloorImageJobs, getFloorImagePhase, getFloorImageState, releaseFloorImageJob, observeFloorImageJob, failFloorImageJob, clearFloorImageJobs, resolveFloorImageJobTarget, rebaseFloorImageJobsAfterSwipeDeletion } from '../../shared/floor-image-job.js';
 import { createImageRequestAttempt, imageHttpFailure, withImageRequestOutcome, ImageRequestOutcome } from '../../shared/image-request-outcome.js';
 import { createImageCardRedrawProvider } from "../../shared/image-card-redraw-provider.js";
-import { redrawImageCard, removeChatImageSlot, restoreImageCard, retryFloorFailedImageCards } from "../../shared/image-card-actions.js";
+import { redrawImageCard, removeChatImageSlot, restoreImageCard, retryFloorFailedImageCards, redrawFloorFailedImageCards } from "../../shared/image-card-actions.js";
+import { setActiveMessageText } from '../../shared/scene-placement.js';
+import { syncRenderedMessageFromState } from '../../shared/draw-common.js';
 import { persistCardTagEdits, readCardTagEditor } from "../../shared/card-tag-editor.js";
 import { getCurrentUserHandle } from "/scripts/user.js";
 import { hasPreviewImage, DRAW_SLOT_COPY } from "../../shared/image-record.js";
@@ -5368,11 +5370,37 @@ export async function generateAndInsertImages({
 
         const comfySettings = cloneSettingsObject(getSettings());
         const sharedSettingsSnapshot = cloneSettingsObject(getSharedDrawSettings());
-        const capturedText = message.mes, capturedSwipe = message.swipe_id ?? 0;
+        let capturedText = message.mes;
+        const capturedSwipe = message.swipe_id ?? 0;
         const directives = promptOverride.trim() ? [] : readDirectDrawDirectives(message);
+        // Display cleanup is independent of compilation/transport success.
+        // Keep the original inputs in metadata and synchronize the active swipe.
+        const cleanText = directives.length ? stripDirectDrawSource(capturedText) : capturedText;
+        if (cleanText !== capturedText) {
+            rememberDirectDrawDirectives(message, directives);
+            setActiveMessageText(message, cleanText);
+            capturedText = cleanText;
+            await syncRenderedMessageFromState(liveId, { chatId: ctx.chatId, expectedMessage: message });
+            const displayedTarget = resolveFloorImageJobTarget(job, getContext());
+            if (displayedTarget.message !== message || message.mes !== capturedText || (message.swipe_id ?? 0) !== capturedSwipe
+                || isMessageBeingEdited(displayedTarget.messageId)) throw new Error('剧情或回复分支已经变化，请在当前回复重新绘图');
+            await saveChatConditional();
+        }
         // Do not append an additional full batch to already placed image slots.
         // Explicit single-slot rerolls use the existing-slot path instead.
         if (!promptOverride.trim() && (await getOwnedImageSlotIds(message)).size) {
+            const current = resolveFloorImageJobTarget(job, getContext());
+            if (current.message !== message || message.mes !== capturedText || (message.swipe_id ?? 0) !== capturedSwipe)
+                throw new Error('剧情或回复分支已经变化，请在当前回复重新绘图');
+            await syncRenderedMessageFromState(current.messageId, { chatId: ctx.chatId, expectedMessage: message });
+            const renderedTarget = resolveFloorImageJobTarget(job, getContext());
+            if (renderedTarget.message !== message || message.mes !== capturedText || (message.swipe_id ?? 0) !== capturedSwipe
+                || isMessageBeingEdited(renderedTarget.messageId)) throw new Error('剧情或回复分支已经变化，请在当前回复重新绘图');
+            const failedCard = document.querySelector(`.mes[mesid="${current.messageId}"] .sti-nd-img[data-state="failed"]`);
+            if (!automatic && failedCard) {
+                const retry = await redrawFloorFailedImageCards('comfyui', failedCard);
+                if (retry?.submitted > 0) return retry;
+            }
             const error = new Error('这条回复已有图片槽位，请等待任务恢复或对指定图片重新生成，不能重复提交整批图片。');
             error.code='DUPLICATE_IMAGE_BATCH';
             throw error;
@@ -5385,14 +5413,9 @@ export async function generateAndInsertImages({
         const current = resolveFloorImageJobTarget(job, getContext());
         if (current.message !== message || message.mes !== capturedText || (message.swipe_id ?? 0) !== capturedSwipe
             || isMessageBeingEdited(current.messageId)) throw new Error('剧情或回复分支已经变化，请在当前回复重新绘图');
-        if (directives.length) {
-            rememberDirectDrawDirectives(message, directives);
-            message.mes = stripDirectDrawSource(message.mes);
-            await saveChatConditional();
-        }
         signal.throwIfAborted();
         const savedTarget = resolveFloorImageJobTarget(job, getContext());
-        const expectedText = directives.length ? stripDirectDrawSource(capturedText) : capturedText;
+        const expectedText = capturedText;
         if (savedTarget.message !== message || message.mes !== expectedText || (message.swipe_id ?? 0) !== capturedSwipe
             || isMessageBeingEdited(savedTarget.messageId)) throw new Error('保存期间剧情或回复分支已变化，请在当前回复重新绘图');
         return await runPreparedComfySlots({ ctx, message, messageId: savedTarget.messageId, swipeIndex: capturedSwipe,

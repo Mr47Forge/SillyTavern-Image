@@ -3,7 +3,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync, existsSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { buildDirectDrawInstruction, buildDirectDrawTasks, readDirectDrawDirectives,
     rememberDirectDrawDirectives, stripDirectDrawSource, getDirectDrawWorldbook } from '../direct-draw.js';
 import { parseDrawImageDirectives, stripDrawImageSlots } from '../image-marker-syntax.js';
@@ -58,12 +57,6 @@ test('direct negative composition honors effective overrides and keeps character
     const out = compile(build(), { ...recipe, negativePrefix: 'OVERRIDE GLOBAL', negativePromptOverride: 'OVERRIDE EXTRA' }).artifacts[0].promptData;
     for (const term of ['OVERRIDE GLOBAL', 'OVERRIDE EXTRA', 'red hair', 'gloves', 'blur']) assert.ok(out.negative.includes(term));
     assert.ok(!out.negative.includes('low quality'));
-});
-test('deployed backend artifact and frontend compile the migrated fields identically', () => {
-    const require = createRequire(import.meta.url);
-    const backend = require(new URL('../../../../../server-plugin/runtime/draw-runs/vendor/draw-run-runtime.cjs', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
-    const tasks = build();
-    assert.equal(JSON.stringify(compile(tasks, recipe)), JSON.stringify(backend.compileDrawRunImages('comfyui', tasks, recipe)));
 });
 test('aliases cannot bypass character limits, duplicates do not double count', () => {
     assert.throws(() => build([{ ...directive, characters: ['Alice', 'Beatrice'] }]), /超过/);
@@ -290,7 +283,7 @@ for (const scenario of [{ backend: true }, { backend: false }, { backend: true, 
     const host = { chatId: 'synthetic', chat: [message] };
     const ctx = { readDirectDrawDirectives, rememberDirectDrawDirectives, stripDirectDrawSource, buildDirectDrawTasks,
         characterLibraryFromSettings, selectEnabledCharacters, buildWardrobeLedger, buildRecentAppearanceLedger:()=>new Map(), structuredClone, AbortController, console,
-        getSettings: () => settings, getSharedDrawSettings: () => shared,getOwnedImageSlotIds:async()=>new Set(),getActiveDrawingWorldbook:async()=>'',
+        getSettings: () => settings, getSharedDrawSettings: () => shared,getOwnedImageSlotIds:async()=>new Set(),setActiveMessageText:(m,s)=>{m.mes=s;},syncRenderedMessageFromState:async()=>{},getActiveDrawingWorldbook:async()=>'',
         getActivePreset: s => s.presets[0], cloneSettingsObject: structuredClone, DEFAULT_MESSAGE_FILTER_RULES: [],
         normalizeNumber: (n, fallback) => Number(n) || fallback, createComfySeed: () => 123, COMFY_REQUEST_DELAY_MS: 0,
         createGenerationJob: () => ({ controller: new AbortController() }), getContext: () => host,
@@ -306,7 +299,7 @@ for (const scenario of [{ backend: true }, { backend: false }, { backend: true, 
     vm.runInNewContext(['getEffectiveParams', 'createComfyGenerationRecipe', 'buildTasksFromMessage', 'runPreparedComfySlots', 'generateAndInsertImages']
         .map(name => fn(main, name)).join('\n'), ctx);
     if (switchDuringSave) {
-        await assert.rejects(() => ctx.generateAndInsertImages({ messageId: 0 }), /回复分支已变化/);
+        await assert.rejects(() => ctx.generateAndInsertImages({ messageId: 0 }), /回复分支.*变化/);
         assert.equal(submitted, undefined); return;
     }
     await ctx.generateAndInsertImages({ messageId: 0 });

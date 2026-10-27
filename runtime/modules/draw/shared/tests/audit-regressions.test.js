@@ -1,7 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 import { buildDirectDrawTasks, buildDirectDrawInstruction } from '../direct-draw.js';
 import { parseDrawImageDirectives } from '../image-marker-syntax.js';
 import { applyWardrobeContinuity } from '../wardrobe-continuity.js';
@@ -63,11 +61,4 @@ test('host helper sends requests through active model, with no legacy API key',a
     assert.equal(calls[0].systemPrompt,'Return JSON');
     assert.equal(calls[0].responseLength,600);
     assert.ok(!('apiKey' in calls[0]));
-});
-test('rebuilt runtime is accepted by envelope without an obsolete NovelAI export',()=>{
-    const require=createRequire(import.meta.url);
-    const {createEnvelopeValidator}=require(fileURLToPath(new URL('../../../../../server-plugin/runtime/draw-runs/envelope.js', import.meta.url)));
-    assert.equal(typeof createEnvelopeValidator({
-        hashSceneSource(){},assertDrawRunId(){},assertSubmitScenePlanTool(){}
-    }),'function');
 });

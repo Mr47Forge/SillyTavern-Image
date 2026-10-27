@@ -19,10 +19,16 @@ test('floor retry uses the same portable complete input reader as individual ret
  const input={tags:'artist',negativePrompt:'keep-negative',postPrompt:'warm light',characterPrompts:[{name:'阿青',prompt:'black hair',uc:'blue hair'}]};
  const message={mes:'画家正在工作。 [image:slot-one]',swipe_id:0,extra:{sti_comfy_slots:{'slot-one':{imgId:'img-one',status:'failed',input}}}};
  const ctx={chatId:'fixture',chat:[message]},card={dataset:{mesid:'0',slotId:'slot-one',imgId:'img-one',tags:'artist'}};let captured,reads=0;
- const env={getContext:()=>ctx,DRAW_SLOT_COPY:{},collectFailedImageCards:()=>[card],isSceneSlotAlive:()=>true,resumeOwnedJobs:async()=>{},getPendingImageJobSlots:async()=>new Set(),redraws:new Map(),getSlotActivity:()=>null,
- getCardPreview:async()=>null,getDrawSavedPreview:()=>null,captureImageCardTarget:()=>({message,slotId:'slot-one',assertCurrent(){}}),
+ const cards=[card,...['unknown','pending'].map(status=>{
+  const slotId='slot-'+status;message.mes+=' [image:'+slotId+']';
+  message.extra.sti_comfy_slots[slotId]={imgId:'img-'+status,status,input};
+  return {dataset:{...card.dataset,slotId}};
+ })];
+ const env={getContext:()=>ctx,DRAW_SLOT_COPY:{},collectFailedImageCards:()=>cards,isSceneSlotAlive:()=>true,resumeOwnedJobs:async()=>{},getPendingImageJobSlots:async()=>new Set(),redraws:new Map(),getSlotActivity:()=>null,
+ getCardPreview:async()=>null,getDrawSavedPreview:()=>null,captureImageCardTarget:card=>({message,slotId:card.dataset.slotId,assertCurrent(){}}),
  readImageCardTarget:async target=>{reads++;return getImageSlotRecord(target.message,target.slotId);},
  generatePreparedChatImages:async(_p,args)=>{captured=args.tasks;},renderPreviewsForMessage:async()=>{}};
  await new Function(...Object.keys(env),'return ('+fn.trim()+')("comfyui",arguments[arguments.length-1],0);')(...Object.values(env),card);
- assert.equal(reads,1);assert.deepEqual(captured[0].characterPrompts,input.characterPrompts);assert.equal(captured[0].negativePrompt,input.negativePrompt);assert.equal(captured[0].post_prompt,input.postPrompt);
+ assert.equal(reads,3);assert.equal(captured.length,1);assert.equal(captured[0].placement.slotId,'slot-one');
+ assert.deepEqual(captured[0].characterPrompts,input.characterPrompts);assert.equal(captured[0].negativePrompt,input.negativePrompt);assert.equal(captured[0].post_prompt,input.postPrompt);
 });

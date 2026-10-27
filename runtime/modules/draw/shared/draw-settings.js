@@ -1,7 +1,6 @@
 // 共享画图设置与 NovelAI Provider 设置共用现行 settings 根对象；此模块只拥有通用字段。
 import { normalizeGroupPresetState } from './character-group-presets.js';
 import { normalizeCharacterLibrary } from './character-library.js';
-import { normalizePlannerRetry } from './planner-retry.js';
 
 const SERVER_FILE_KEY = 'settings';
 export const DEFAULT_SHARED_GALLERY_CACHE_DAYS = 3;
@@ -10,7 +9,6 @@ const DEFAULT_SHARED_DRAW_SETTINGS = {
     cacheDays: DEFAULT_SHARED_GALLERY_CACHE_DAYS,
     useWorldInfo: false,
     timeout: 120000,
-    plannerMaxRetries: 3,
     characterTags: [],
     characterGroups: [],
     characterGroupPresets: [],
@@ -92,7 +90,6 @@ export function normalizeSharedDrawSettings(saved = {}) {
         timeout: Number.isFinite(timeout) && timeout > 0
             ? Math.min(600000, Math.max(10000, Math.floor(timeout)))
             : DEFAULT_SHARED_DRAW_SETTINGS.timeout,
-        plannerMaxRetries: normalizePlannerRetry({ maxRetries: source.plannerMaxRetries }).maxRetries,
         characterTags: characterLibrary.characters,
         characterGroups: characterLibrary.groups,
         characterGroupPresets: groupPresetState.presets,

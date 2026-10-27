@@ -149,20 +149,6 @@ test('an old client saving characters without groups keeps stored groups and gro
     assert.equal(next.characterGroups.length, 1);
 });
 
-test('planner retry count defaults to 3, is clamped to 0-10 and survives provider and shared saves', () => {
-    assert.equal(normalizeSharedDrawSettings({}).plannerMaxRetries, 3);
-    assert.equal(normalizeSharedDrawSettings({ plannerMaxRetries: 0 }).plannerMaxRetries, 0);
-    assert.equal(normalizeSharedDrawSettings({ plannerMaxRetries: 6.8 }).plannerMaxRetries, 6);
-    assert.equal(normalizeSharedDrawSettings({ plannerMaxRetries: 50 }).plannerMaxRetries, 10);
-    assert.equal(normalizeSharedDrawSettings({ plannerMaxRetries: -2 }).plannerMaxRetries, 3);
-    assert.equal(normalizeSharedDrawSettings({ plannerMaxRetries: 'x' }).plannerMaxRetries, 3);
-
-    const stored = normalizeSharedDrawSettings({ plannerMaxRetries: 5 });
-    const providerSave = mergeNovelDrawProviderSettingsIntoStorageRoot(stored, { apiKey: 'k' });
-    assert.equal(providerSave.plannerMaxRetries, 5);
-    assert.equal(mergeSharedDrawSettingsIntoStorageRoot(providerSave, providerSave).plannerMaxRetries, 5);
-});
-
 test('character group presets default to empty and old settings stay compatible', () => {
     const empty = normalizeSharedDrawSettings({});
     assert.deepEqual(empty.characterGroupPresets, []);
