@@ -7,7 +7,6 @@ import { createDrawImageSlotRegex } from './image-marker-syntax.js';
 import { getContext } from "/scripts/extensions.js";
 import { saveBase64AsFile } from "/scripts/utils.js";
 import { hasPreviewImage, DRAW_SLOT_COPY, PreviewStatus } from './image-record.js';
-import { IMAGE_SAVE_LABEL_HTML } from './image-save-ui.js';
 import { writeImageError, openImageDiagnostics } from './image-diagnostics.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1423,7 +1422,7 @@ function ensureGalleryStyles() {
     if (document.getElementById('nd-gallery-styles')) return;
     const style = document.createElement('style');
     style.id = 'nd-gallery-styles';
-    style.textContent = `#nd-gallery-overlay{position:fixed;top:var(--vv-top,0);left:0;width:100vw;height:var(--vvh, 100vh);z-index:100008;display:none;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px)}#nd-gallery-overlay.visible{display:flex;flex-direction:column;align-items:center;justify-content:center}.nd-gallery-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:20px;cursor:pointer;z-index:10}.nd-gallery-close:hover{background:rgba(255,255,255,0.2)}.nd-gallery-main{display:flex;align-items:center;gap:16px;max-width:90vw;max-height:70vh}.nd-gallery-nav{width:48px;height:48px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:24px;cursor:pointer;flex-shrink:0}.nd-gallery-nav:hover{background:rgba(255,255,255,0.2)}.nd-gallery-nav:disabled{opacity:0.3;cursor:not-allowed}.nd-gallery-img-wrap{position:relative;max-width:calc(90vw - 140px);max-height:70vh}.nd-gallery-img{max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5)}.nd-gallery-saved-badge{position:absolute;top:12px;left:12px;background:rgba(62,207,142,0.9);padding:4px 10px;border-radius:6px;font-size:11px;color:#fff;font-weight:600}.nd-gallery-thumbs{display:flex;gap:8px;margin-top:20px;padding:12px;background:rgba(0,0,0,0.3);border-radius:12px;max-width:90vw;overflow-x:auto}.nd-gallery-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.6;transition:all 0.15s;flex-shrink:0}.nd-gallery-thumb:hover{opacity:0.9}.nd-gallery-thumb.active{border-color:#d4a574;opacity:1}.nd-gallery-thumb.saved{border-color:rgba(62,207,142,0.8)}.nd-gallery-actions{display:flex;gap:12px;margin-top:16px}.nd-gallery-btn{padding:10px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;font-size:13px;cursor:pointer;transition:all 0.15s}.nd-gallery-btn:hover{background:rgba(255,255,255,0.2)}.nd-gallery-btn.primary{background:rgba(212,165,116,0.3);border-color:rgba(212,165,116,0.5)}.nd-gallery-btn.danger{color:#f87171;border-color:rgba(248,113,113,0.3)}.nd-gallery-btn.danger:hover{background:rgba(248,113,113,0.15)}.nd-gallery-info{text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,0.6)}`;
+    style.textContent = `#nd-gallery-overlay{position:fixed;top:var(--vv-top,0);left:0;width:100vw;height:var(--vvh, 100vh);z-index:100008;display:none;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px)}#nd-gallery-overlay.visible{display:flex;flex-direction:column;align-items:center;justify-content:center}.nd-gallery-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:20px;cursor:pointer;z-index:10}.nd-gallery-close:hover{background:rgba(255,255,255,0.2)}.nd-gallery-main{display:flex;align-items:center;gap:16px;max-width:90vw;max-height:70vh}.nd-gallery-nav{width:48px;height:48px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:24px;cursor:pointer;flex-shrink:0}.nd-gallery-nav:hover{background:rgba(255,255,255,0.2)}.nd-gallery-nav:disabled{opacity:0.3;cursor:not-allowed}.nd-gallery-img-wrap{position:relative;max-width:calc(90vw - 140px);max-height:70vh}.nd-gallery-img{max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5)}.nd-gallery-saved-badge{position:absolute;top:12px;left:12px;background:rgba(62,207,142,0.9);padding:4px 10px;border-radius:6px;font-size:11px;color:#fff;font-weight:600}.nd-gallery-thumbs{display:flex;gap:8px;margin-top:20px;padding:12px;background:rgba(0,0,0,0.3);border-radius:12px;max-width:90vw;overflow-x:auto}.nd-gallery-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.6;transition:all 0.15s;flex-shrink:0}.nd-gallery-thumb:hover{opacity:0.9}.nd-gallery-thumb.active{border-color:#d4a574;opacity:1}.nd-gallery-thumb.saved{border-color:rgba(62,207,142,0.8)}.nd-gallery-actions{display:flex;gap:12px;margin-top:16px}.nd-gallery-btn{padding:10px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;font-size:13px;cursor:pointer;transition:all 0.15s}.nd-gallery-btn:hover{background:rgba(255,255,255,0.2)}.nd-gallery-btn.danger{color:#f87171;border-color:rgba(248,113,113,0.3)}.nd-gallery-btn.danger:hover{background:rgba(248,113,113,0.15)}.nd-gallery-info{text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,0.6)}`;
     style.textContent += '#nd-gallery-overlay .nd-gallery-img-wrap{overflow:hidden;display:flex;align-items:center;justify-content:center;width:min(76vw,1200px);height:min(72vh,900px);max-width:min(76vw,1200px);max-height:72vh;touch-action:none;cursor:grab}#nd-gallery-overlay .nd-gallery-img-wrap:active{cursor:grabbing}#nd-gallery-overlay .nd-gallery-img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center;transition:transform .08s linear;user-select:none;pointer-events:none}#nd-gallery-overlay .nd-gallery-actions{flex-wrap:wrap;justify-content:center;margin-top:9px}#nd-gallery-overlay .nd-gallery-main{max-width:98vw;gap:9px}#nd-gallery-overlay .nd-gallery-thumbs{max-height:80px;margin-top:8px}#nd-gallery-overlay .nd-gallery-btn{padding:8px 13px}';
 
     style.textContent += `
@@ -1461,14 +1460,12 @@ function createGalleryOverlay() {
     overlay.id = 'nd-gallery-overlay';
     // Template-only UI markup.
     // eslint-disable-next-line no-unsanitized/property
-    overlay.innerHTML = `<button class="nd-gallery-close" id="nd-gallery-close">✕</button><div class="nd-gallery-main"><button class="nd-gallery-nav" id="nd-gallery-prev">‹</button><div class="nd-gallery-img-wrap"><img class="nd-gallery-img" id="nd-gallery-img" src="" alt=""><div class="nd-gallery-saved-badge" id="nd-gallery-saved-badge" style="display:none">已保存</div></div><button class="nd-gallery-nav" id="nd-gallery-next">›</button></div><div class="nd-gallery-thumbs" id="nd-gallery-thumbs"></div><div class="nd-gallery-actions" id="nd-gallery-actions"><button class="nd-gallery-btn" id="nd-gallery-prompt-log">提示词日志</button><button class="nd-gallery-btn primary" id="nd-gallery-use">使用此图</button><button class="nd-gallery-btn" id="nd-gallery-save">${IMAGE_SAVE_LABEL_HTML}</button><button class="nd-gallery-btn danger" id="nd-gallery-delete">🗑️ 删除</button></div><div class="nd-gallery-info" id="nd-gallery-info"></div>`;
+    overlay.innerHTML = `<button class="nd-gallery-close" id="nd-gallery-close">✕</button><div class="nd-gallery-main"><button class="nd-gallery-nav" id="nd-gallery-prev">‹</button><div class="nd-gallery-img-wrap"><img class="nd-gallery-img" id="nd-gallery-img" src="" alt=""><div class="nd-gallery-saved-badge" id="nd-gallery-saved-badge" style="display:none">已保存</div></div><button class="nd-gallery-nav" id="nd-gallery-next">›</button></div><div class="nd-gallery-thumbs" id="nd-gallery-thumbs"></div><div class="nd-gallery-actions" id="nd-gallery-actions"><button class="nd-gallery-btn" id="nd-gallery-prompt-log">提示词日志</button><button class="nd-gallery-btn danger" id="nd-gallery-delete">🗑️ 删除</button></div><div class="nd-gallery-info" id="nd-gallery-info"></div>`;
     document.body.appendChild(overlay);
 
     document.getElementById('nd-gallery-close').addEventListener('click', closeGallery);
     document.getElementById('nd-gallery-prev').addEventListener('click', () => navigateGallery(1));
     document.getElementById('nd-gallery-next').addEventListener('click', () => navigateGallery(-1));
-    document.getElementById('nd-gallery-use').addEventListener('click', useCurrentGalleryImage);
-    document.getElementById('nd-gallery-save').addEventListener('click', saveCurrentGalleryImage);
     document.getElementById('nd-gallery-delete').addEventListener('click', deleteCurrentGalleryImage);
     document.getElementById('nd-gallery-prompt-log').addEventListener('click', () => {
         const current=currentGalleryData?.previews?.[currentGalleryData.currentIndex];
@@ -1704,16 +1701,6 @@ function renderGallery() {
     document.getElementById('nd-gallery-next').disabled = currentIndex<=0
         && !(groupIndex>0);
 
-    const saveBtn = document.getElementById('nd-gallery-save');
-    if (current.savedUrl) {
-        saveBtn.disabled = true;
-    } else {
-        // Static draw-owned markup, without user input.
-        // eslint-disable-next-line no-unsanitized/property
-        saveBtn.innerHTML = IMAGE_SAVE_LABEL_HTML;
-        saveBtn.disabled = false;
-    }
-
     const displayVersion = previews.length - currentIndex;
     const date = new Date(current.timestamp).toLocaleString();
     document.getElementById('nd-gallery-info').textContent = `版本 ${displayVersion} / ${previews.length} · ${date}`;
@@ -1737,43 +1724,6 @@ async function navigateGallery(delta) {
     const maker=old.callbacks.createManagementCallbacks;
     const nextCallbacks=typeof maker==='function'?await maker(adjacent):old.callbacks;
     await openGallery(adjacent,Number(nextCallbacks.managementMessageId||0),nextCallbacks);
-}
-
-async function useCurrentGalleryImage() {
-    if (!currentGalleryData) return;
-
-    const { slotId, messageId, previews, currentIndex, callbacks } = currentGalleryData;
-    const selected = previews[currentIndex];
-    if (!selected) return;
-
-    await setSlotSelection(slotId, selected.imgId);
-    if (callbacks.onUse) callbacks.onUse(slotId, messageId, selected, previews.length);
-    closeGallery();
-    showToast('已切换显示图片');
-}
-
-async function saveCurrentGalleryImage() {
-    if (!currentGalleryData) return;
-
-    const { slotId, previews, currentIndex, callbacks } = currentGalleryData;
-    const current = previews[currentIndex];
-    if (!current || current.savedUrl) return;
-
-    try {
-        const charName = current.characterName || getChatCharacterName();
-        const image = getBase64ImagePayload(current.base64);
-        const url = await saveBase64AsFile(image.base64, charName, `novel_${current.imgId}`, image.format);
-        await updatePreviewSavedUrl(current.imgId, url);
-        current.savedUrl = url;
-        await setSlotSelection(slotId, current.imgId);
-        showToast(`已保存: ${url}`, 'success', 4000);
-        renderGalleryThumbs();
-        renderGallery();
-        if (callbacks.onSave) callbacks.onSave(current.imgId, url);
-    } catch (e) {
-        console.error('[GalleryCache] save failed:', e);
-        showToast(`保存失败: ${e.message}`, 'error');
-    }
 }
 
 function askGalleryConfirm(message) {

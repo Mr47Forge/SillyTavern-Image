@@ -18,7 +18,7 @@ import {
     deletePreview,
 } from "./gallery-cache.js";
 import { patchImageCard, reportImageCardReadError } from './image-card-view.js';
-import { IMAGE_SAVE_BUTTON_HTML, IMAGE_SAVING_INDICATOR_HTML } from './image-save-ui.js';
+import { IMAGE_SAVING_INDICATOR_HTML } from './image-save-ui.js';
 import {
     ScenePlannerError,
 } from "./scene-plan-contract.js";
@@ -330,7 +330,6 @@ export function ensureDrawImageStyles() {
 export function buildImageHtml({ slotId, imgId, url, tags, positive, messageId, state = ImageState.PREVIEW, historyCount = 1, currentIndex = 0 }) {
     const escapedTags = escapeHtml(tags);
     const escapedPositive = escapeHtml(positive);
-    const isPreview = state === ImageState.PREVIEW;
     const isBusy = state === ImageState.SAVING || state === ImageState.REFRESHING;
     let indicator = '';
     if (state === ImageState.SAVING) indicator = IMAGE_SAVING_INDICATOR_HTML;
@@ -347,7 +346,6 @@ export function buildImageHtml({ slotId, imgId, url, tags, positive, messageId, 
     const menuHtml = `<div class="sti-nd-menu-wrap${menuBusy}">
         <button class="sti-nd-menu-trigger" data-action="toggle-menu" title="操作">⋮</button>
         <div class="sti-nd-dropdown">
-            ${isPreview ? IMAGE_SAVE_BUTTON_HTML : ''}
             <button data-action="refresh-image" title="重新生成">⟳</button>
             <button data-action="view-prompt-log" title="本张图片提示词日志">日志</button>
             <button data-action="edit-tags" title="编辑TAG">✐️</button>

@@ -10,13 +10,11 @@ import {
     clearExpiredCache,
     clearAllCache,
     deletePreview,
-    updatePreviewSavedUrl,
     getPreviewDisplayUrl,
     preloadPreviewDisplayUrl,
     warmSlotPreviewNeighbors,
 } from "../../shared/gallery-cache.js";
 import { getContext } from "/scripts/extensions.js";
-import { saveBase64AsFile } from "/scripts/utils.js";
 import { getRequestHeaders, syncMesToSwipe, saveChatConditional, substituteParams } from "/script.js";
 import { extensionFolderPath } from "../../../../core/constants.js";
 import { mountServerPluginGuide } from '../../../../shared/server-plugin/installation-guide.js';
@@ -100,7 +98,7 @@ import {
     pullOneRemoteImage,
     pullCurrentChatImages,
 } from "../../shared/draw-common.js";
-import { IMAGE_SAVE_BUTTON_HTML, IMAGE_SAVING_INDICATOR_HTML } from '../../shared/image-save-ui.js';
+import { IMAGE_SAVING_INDICATOR_HTML } from '../../shared/image-save-ui.js';
 import { parseFieldDescriptions } from '../../shared/scene-plan-descriptions.js';
 import {
     DEFAULT_PROMPT_CONFIG,
@@ -4666,17 +4664,6 @@ function setImageState(container, state) {
         menuWrap.style.opacity = isBusy ? '0.3' : '';
     }
     container.style.border = state === ImageState.PREVIEW ? '1px dashed rgba(255,152,0,0.35)' : 'none';
-    const dropdown = container.querySelector('.sti-nd-dropdown');
-    if (dropdown) {
-        const saveItem = dropdown.querySelector('[data-action="save-image"]');
-        if (state === ImageState.PREVIEW && !saveItem) {
-            // Static draw-owned markup, without user input.
-            // eslint-disable-next-line no-unsanitized/method
-            dropdown.insertAdjacentHTML('afterbegin', IMAGE_SAVE_BUTTON_HTML);
-        } else if (state !== ImageState.PREVIEW && saveItem) {
-            saveItem.remove();
-        }
-    }
     container.querySelector('.sti-nd-indicator')?.remove();
     // Static draw-owned markup, without user input.
     // eslint-disable-next-line no-unsanitized/method
@@ -4793,25 +4780,6 @@ async function navigateToImage(container, targetIndex) {
 
 function buildSharedGalleryCallbacks(slotId, messageId) {
     return {
-        onUse: (sid, msgId, selected, historyCount) => {
-            const cont = document.querySelector(`.sti-nd-img[data-slot-id="${sid}"]`);
-            if (cont) syncContainerToPreview(cont, selected, historyCount, 0);
-            if (selected?.savedUrl) {
-                void syncDrawSavedFromPreview(msgId, selected, { slotId: sid }).catch(() => {});
-            } else {
-                void clearDrawSavedEntry(msgId, sid).catch(() => {});
-            }
-        },
-        onSave: async (imgId, url) => {
-            const cont = document.querySelector(`.sti-nd-img[data-img-id="${imgId}"]`);
-            if (cont) {
-                const img = cont.querySelector('img');
-                if (img) img.src = getPreviewDisplayUrl(await getPreview(imgId) || { savedUrl: url });
-                setImageState(cont, ImageState.SAVED);
-            }
-            const preview = await getPreview(imgId).catch(() => null);
-            if (preview) await syncDrawSavedFromPreview(messageId, preview, { slotId, savedUrl: url }).catch(() => {});
-        },
         onDelete: async (sid, deletedImgId, remainingPreviews) => {
             const cont = document.querySelector(`.sti-nd-img[data-slot-id="${sid}"]`);
             if (cont && cont.dataset.imgId === deletedImgId && remainingPreviews.length > 0) {
@@ -4961,7 +4929,6 @@ async function handleImageDelegatedClick(event) {
     if (action === 'cancel-edit') { toggleEditPanel(container, false); return; }
     if (action === 'save-tags') { await saveEditedTags(container); return; }
     if (action === 'save-tags-retry') { await saveTagsAndRetry(container); return; }
-    if (action === 'save-image') { container.querySelector('.sti-nd-menu-wrap')?.classList.remove('open'); await saveCurrentImage(container); return; }
     if (action === 'remove-placeholder') { await removePlaceholder(container); }
 }
 
@@ -5111,32 +5078,6 @@ async function deleteCurrentImage(container) {
     container.remove();
     toastr.success('图片已删除');
 }
-
-async function saveCurrentImage(container) {
-    const imgId = container.dataset.imgId;
-    const slotId = container.dataset.slotId;
-    if (!imgId || !slotId) return;
-    try {
-        const previews = await getPreviewsBySlot(slotId);
-        const preview = previews.find(item => item.imgId === imgId) || previews[0];
-        if (!preview?.base64 && !preview?.savedUrl) throw new Error('图片缓存不存在');
-        if (preview.savedUrl) { showSettingsNotice('这张图已经保存到服务器', 'info'); return; }
-        const ctx = getContext();
-        const charName = ctx.groupId
-            ? String(ctx.groups?.[ctx.groupId]?.id ?? 'group')
-            : String(ctx.characters?.[ctx.characterId]?.name || 'character');
-        const url = await saveBase64AsFile(preview.base64, charName, `comfy_${imgId}`, 'png');
-        await updatePreviewSavedUrl(imgId, url);
-        await syncDrawSavedFromPreview(Number(container.dataset.mesid), preview, { slotId, savedUrl: url }).catch(() => {});
-        const img = container.querySelector('img');
-        if (img) img.src = getPreviewDisplayUrl(await getPreview(imgId) || { savedUrl: url });
-        container.dataset.state = 'saved';
-        showSettingsNotice('图片已保存到服务器', 'success');
-    } catch (error) {
-        showSettingsNotice(error?.message || '保存失败', 'error');
-    }
-}
-
 
 function setupImageDelegation() {
     if (imageDelegationBound) return;
