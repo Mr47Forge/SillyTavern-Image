@@ -185,14 +185,6 @@ export function characterLibraryFromSettings(settings) {
     };
 }
 
-export function hasCharacterLibraryDraftChanges(draft, saved) {
-    const signature = value => {
-        const { characters, groups } = normalizeCharacterLibrary(value);
-        return JSON.stringify({ characters, groups });
-    };
-    return signature(draft) !== signature(saved);
-}
-
 /** 分组开关；未分组（空 id）和不存在的分组一律视为开。 */
 export function isGroupEnabled(library, groupId = UNGROUPED_ID) {
     const id = String(groupId || '');

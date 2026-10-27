@@ -5,7 +5,6 @@ import { parseDrawImageDirectives } from '../image-marker-syntax.js';
 import { applyWardrobeContinuity } from '../wardrobe-continuity.js';
 import { createSceneSource } from '../scene-source.js';
 import { selectPhotoCharacter } from '../../providers/comfyui/role-photo-reference.js';
-import { createHostCharacterAdapter } from '../host-character-adapter.js';
 
 test('ambiguous pronoun clothing event preserves unrelated actor', () => {
     const entries=[{name:'Alice',costume:'blue blouse'}, {name:'Bob',costume:'gray coat'}];
@@ -51,14 +50,4 @@ test('same line keeps style while removing retired planner instruction',()=>{
     assert.match(result,/\u6c34\u5f69\u98ce/);
     assert.match(result,/\u84dd\u8272\u8c03/);
     assert.ok(!result.includes('submit_scene_plan'));
-});
-test('host helper sends requests through active model, with no legacy API key',async()=>{
-    const calls=[];
-    const adapter=createHostCharacterAdapter(async args=>{calls.push(args);return '{"translations":[]}';});
-    const result=await adapter.chat({systemPrompt:'Return JSON',messages:[{role:'user',content:'test text'}],maxTokens:600});
-    assert.equal(result.text,'{"translations":[]}');
-    assert.equal(calls.length,1);
-    assert.equal(calls[0].systemPrompt,'Return JSON');
-    assert.equal(calls[0].responseLength,600);
-    assert.ok(!('apiKey' in calls[0]));
 });

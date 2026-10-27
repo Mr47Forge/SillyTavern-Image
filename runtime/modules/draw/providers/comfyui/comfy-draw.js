@@ -39,9 +39,8 @@ import {
     updateSharedDrawSettingsPersistent,
     normalizeSharedCacheDays,
 } from "../../shared/draw-settings.js";
-import { resolveCharacterHelperContext } from "../../shared/host-character-adapter.js";
 import { saveComfyImageToServer } from "../../shared/server-image-autosave.js";
-import { characterLibraryFromSettings, selectEnabledCharacters, hasCharacterLibraryDraftChanges } from "../../shared/character-library.js";
+import { characterLibraryFromSettings, selectEnabledCharacters } from "../../shared/character-library.js";
 import { createSerialImageRequestQueue } from "../../shared/serial-image-request-queue.js";
 import { applyRolePhotoReference } from './role-photo-reference.js';
 import { workflowPromptTrace, openImageDiagnostics, readImageErrors, clearImageErrors, writeImageError } from '../../shared/image-diagnostics.js';
@@ -69,11 +68,7 @@ import { submitRecoverableImageJob } from "../../shared/recoverable-image-jobs.j
 import { cancelFloorDrawWork, captureDrawCancellationTarget } from "../../shared/draw-run-controls.js";
 import { createCharacterEnabledControl, getCharacterEnabledFromCard } from "../../shared/character-enabled-control.js";
 import { createCharacterLibraryUi } from "../../shared/character-library-ui.js";
-import { parseImportedCharacters, mergeImportedCharacters, collectChatCharacterSource } from "./character-import.js";
-import { buildAiPromptCharacters, resolveAiOutputBudgets } from "./prompt-import.js";
-import { openPromptImportDialog } from "./prompt-import-ui.js";
 import { buildCharacterTestPrompt } from "./character-test-prompt.js";
-import { buildStoryIndexInstruction, parseStoryIndex, selectCharacterStoryEvidence, buildStoryDetailInstruction } from "./text-story-detail.js";
 import { namedTagsChineseText, reconcileChineseNamedLines } from "./chinese-named-tags.js";
 import { describeCharacterSaveError } from "./character-save-errors.js";
 import { hashStableValue } from "../../shared/generation-fingerprint.js";
@@ -2176,7 +2171,6 @@ function bindOverlayEvents() {
         });
         if (ok) fillForm(getSettings());
     });
-    querySettings('#comfy-import-from-chat')?.addEventListener('click', async (event) => { void importCharactersFromCurrentTavern(event.currentTarget); });
     querySettings('#comfy-shared-char-add')?.addEventListener('click', async () => {
         addCharacterTagDraft();
     });
@@ -3898,147 +3892,6 @@ async function saveAllSettings({ notify = false, triggerButton = null, statusEle
 
 
 
-
-async function savePastedCharacterPrompts(reviewed, onProgress = () => {}) {
-    const ui = ensureCharacterLibraryUi();
-    if (!ui) throw new Error('角色列表尚未就绪');
-    const before = ui.getLibrary();
-    // Importing a reviewed role must not silently commit another role's unsaved draft.
-    if (hasCharacterLibraryDraftChanges(before, characterLibraryFromSettings(getSharedDrawSettings())))
-        throw new Error('角色库确实有未保存修改，请先点击「保存角色」，再保存提取结果。');
-    const corrected = reviewed.map(item => ({ ...item }));
-    const entries = buildAiPromptCharacters(corrected).map((entry,i) =>
-        ({ ...entry, aliases: corrected[i].aliases || [], basis: corrected[i].basis }));
-    const rawMerged = mergeImportedCharacters(ui.getLibrary(), entries);
-    const merged = { ...rawMerged, created: rawMerged.created.length,
-        updated: rawMerged.filled.length, skipped: rawMerged.skipped.length };
-    if (!merged.changed) throw new Error('\u6ca1\u6709\u65b0\u5185\u5bb9\u53ef\u4fdd\u5b58');
-    onProgress('\u6b63\u5728\u4fdd\u5b58\u5267\u60c5\u89d2\u8272\u8d44\u6599...');
-    ui.render({ characters: merged.characters, groups: merged.groups });
-    try {
-        const ok = await saveSharedDrawSettings({ notify: false });
-        if (!ok) throw new Error('角色库保存失败，已经恢复原角色资料');
-    } catch (error) {
-        // Restore the original editing state rather than leaving a misleading unsaved replacement.
-        ui.render(before);
-        throw error;
-    }
-    refreshSettingsSummary();
-    return '保存成功：新增 ' + merged.created + ' 名，替换或补充 ' + merged.updated
-        + ' 名，跳过 ' + merged.skipped + ' 名。现在可继续粘贴下一批。';
-}
-
-async function importCharactersFromCurrentTavern(button) {
-    if (button?.disabled) return;
-    if (button) button.disabled = true;
-    const oldText = button?.textContent || '';
-    if (button) button.textContent = '正在读取当前剧情...';
-    try {
-        const ctx = getContext();
-        const messages = Array.isArray(ctx?.chat) ? ctx.chat : [];
-        const source = collectChatCharacterSource(messages, { maxMessages: 120, maxChars: 50000 });
-        if (!source.messages.length) throw new Error('当前聊天没有可分析的剧情消息');
-        if (button) button.textContent = 'AI 正在识别人物...';
-        const libraryPreview = ensureCharacterLibraryUi()?.getLibrary();
-        const existingProfiles = (libraryPreview?.characters || [])
-            .filter(role => role?.name && (role.appearanceZh || role.appearance) && source.messages.some(message => message.text.includes(role.name)))
-            .slice(0, 35)
-            .map(role => ({
-                name: role.name,
-                aliases: Array.isArray(role.aliases) ? role.aliases : [],
-                ...(role.appearanceZh ? { appearanceZh: role.appearanceZh } : { legacyAppearance: role.appearance }),
-            }));
-        const { agentCore, providerConfig } = await resolveCharacterHelperContext();
-        const adapter = agentCore.createAgentAdapter(providerConfig);
-        // Stage 1: identify only named characters. Do not generate 20 full faces in one reply.
-        const indexReply = await adapter.chat({
-            systemPrompt: buildStoryIndexInstruction(),
-            messages: [{ role: 'user', content: JSON.stringify({
-                source: 'current_chat_story',
-                messages: source.messages,
-            }) }],
-            temperature: 0.05,
-            maxTokens: Math.min(3072, resolveAiOutputBudgets(providerConfig).initial),
-            reasoning: { ...providerConfig.reasoning, mode: 'off', output: 'hide' },
-            toolChoice: 'none',
-        });
-        const indexed = parseStoryIndex(indexReply?.text || '', source.messages, { max: 20 });
-        if (!indexed.length) throw new Error('当前剧情没有识别到有明确姓名的角色，未创建空白人物');
-        const detailInstruction = buildStoryDetailInstruction();
-        const candidates = [];
-        const seen = new Set();
-        // Stage 2: detailed dossiers for two identified people at a time.
-        // Recent direct quotes and neighboring narration support correct coreference.
-        const collectBatch = async (targets, additional = false) => {
-            const evidence = selectCharacterStoryEvidence(source.messages, targets, {
-                maxChars: targets.length === 1 ? 13500 : 18000,
-                maxMessages: targets.length === 1 ? 32 : 42,
-            });
-            if (!evidence.length) return [];
-            const knownProfiles = existingProfiles.filter(profile => targets.some(character =>
-                character.name === profile.name || character.aliases?.includes(profile.name)
-                    || profile.aliases?.includes(character.name)));
-            const answer = await adapter.chat({
-                systemPrompt: detailInstruction,
-                messages: [{ role: 'user', content: JSON.stringify({
-                    source: 'current_chat_story', targetCharacters: targets,
-                    evidence, existingProfiles: knownProfiles,
-                    instruction: additional ? '逐项核对剧中已明确的面部、头发、身体和衣着线索；不可补造原文未给出的细节。' : undefined,
-                }) }],
-                temperature: 0.15,
-                maxTokens: resolveAiOutputBudgets(providerConfig).initial,
-                reasoning: { ...providerConfig.reasoning, mode: 'off', output: 'hide' },
-                toolChoice: 'none',
-            });
-            const parsed = parseImportedCharacters(answer?.text || '');
-            return parsed.filter(role => targets.some(target => role.name === target.name));
-        };
-        for (let i = 0; i < indexed.length; i += 2) {
-            const targets = indexed.slice(i, i + 2);
-            if (button) button.textContent = '提取人物 ' + (i + 1) + ' / ' + indexed.length + '...';
-            const initial = await collectBatch(targets);
-            for (const person of initial) {
-                const key = person.name.toLocaleLowerCase();
-                if (!seen.has(key)) { candidates.push(person); seen.add(key); }
-            }
-            // A brief second chance only for missing named characters; do not inflate all dossiers.
-            const missing = targets.filter(target => !seen.has(target.name.toLocaleLowerCase()));
-            for (const target of missing) {
-                try {
-                    const recovered = await collectBatch([target], true);
-                    for (const person of recovered) {
-                        const key = person.name.toLocaleLowerCase();
-                        if (!seen.has(key)) { candidates.push(person); seen.add(key); }
-                    }
-                } catch (retryError) {
-                    console.warn('[ComfyDraw] Missing story role could not be completed:', target.name, retryError);
-                }
-            }
-        }
-        if (!candidates.length) throw new Error('剧情人物已经定位，但 AI 没有生成可保存的中文外貌资料');
-        if (document.getElementById('lwb-comfy-ai-prompt-dialog')) {
-            throw new Error('请先关闭其他角色导入预览，再分析当前剧情');
-        }
-        openPromptImportDialog({
-            notify: showSettingsNotice,
-            initialResults: candidates.map(candidate => ({
-                ...candidate,
-                negativeTags: '',
-                excluded: [],
-                outfits: candidate.outfits || [],
-                dynamicStates: candidate.dynamicStates || [],
-            })),
-            save: (reviewed, onProgress) =>
-                savePastedCharacterPrompts(reviewed, onProgress),
-        });
-        toastr.info('已定位 ' + indexed.length + ' 名具名人物，其中 ' + candidates.length + ' 名生成了待核对的外貌档案');
-    } catch (error) {
-        toastr.error(error?.message || '剧情角色提取失败');
-        console.warn('[ComfyDraw] Current story character extraction failed:', error);
-    } finally {
-        if (button) { button.disabled = false; button.textContent = oldText; }
-    }
-}
 
 function addCharacterTagDraft() {
     ensureCharacterLibraryUi()?.addCharacter();

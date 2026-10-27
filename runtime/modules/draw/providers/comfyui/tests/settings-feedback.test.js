@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parseHTML } from 'linkedom';
 import { describeCharacterSaveError } from '../character-save-errors.js';
-import { openPromptImportDialog } from '../prompt-import-ui.js';
 import { setImmediate } from 'node:timers/promises';
 
 const source = readFileSync(new URL('../comfy-draw.js', import.meta.url), 'utf8');
@@ -81,7 +80,7 @@ test('silent internal saves do not open a success popup', async () => {
 
 test('a partial configuration save reports the actual stage once', async () => {
     const h = harness();
-    const save = bind(section('async function saveAllSettings(', 'async function savePastedCharacterPrompts('), {
+    const save = bind(section('async function saveAllSettings(', 'function addCharacterTagDraft('), {
         ...h.env, runSaveButtonTask: h.run,
         saveSharedDrawSettings: async () => true,
         readForm: () => ({}), persistSettings: async () => false,
@@ -117,12 +116,13 @@ test('character actions share one area and the header contains the live total', 
     const actions = doc.querySelector('.char-management-actions');
     assert.ok(actions, 'one shared actions area above the list');
     for (const id of ['comfy-shared-char-add', 'comfy-shared-char-export', 'comfy-shared-char-import',
-        'comfy-import-from-chat', 'comfy-role-collapse-all', 'comfy-role-expand-all']) {
+        'comfy-role-collapse-all', 'comfy-role-expand-all']) {
         assert.ok(actions.contains(doc.getElementById(id)), id);
     }
     assert.ok(actions.querySelector('[data-comfy-save-shared]'));
     assert.equal(doc.querySelector('#comfy-draw-summary-preset'), null);
     assert.equal(doc.querySelector('#comfy-group-preset-root'), null);
+    assert.equal(doc.querySelector('#comfy-import-from-chat'), null);
     assert.equal(doc.querySelector('#comfy-shared-character-toolbar'), null);
     assert.equal(doc.querySelector('.char-summary-grid'), null);
     assert.equal(doc.querySelector('#comfy-role-save-status'), null);
@@ -137,30 +137,4 @@ test('character actions share one area and the header contains the live total', 
     });
     refresh(); assert.match(counter.textContent, /共\s*4\s*名角色/);
     count = 3; refresh(); assert.match(counter.textContent, /共\s*3\s*名角色/);
-});
-
-test('story role review sends save feedback to a popup and keeps failed inputs', async t => {
-    const { document, window } = parseHTML('<html><body></body></html>');
-    Object.assign(globalThis, { document, window });
-    t.mock.method(globalThis, 'setInterval', () => 0);
-    const notices = [];
-    let fail = true;
-    const overlay = openPromptImportDialog({
-        initialResults: [{ name: '林安', appearanceZh: '成年女性，黑色长发', outfits: [], dynamicStates: [], excluded: [] }],
-        notify: (...args) => notices.push(args),
-        save: async () => { if (fail) throw new Error('请先保存当前角色'); return '保存成功：新增 1 名'; },
-    });
-    t.after(() => overlay.remove());
-    const button = [...overlay.querySelectorAll('button')].find(node => node.textContent === '确认并保存角色');
-    button.click();
-    for (let i = 0; i < 10; i++) await setImmediate();
-    assert.equal(notices.length, 1);
-    assert.match(notices[0][0], /请先保存当前角色/);
-    assert.equal(button.disabled, false);
-    assert.ok(overlay.querySelector('textarea').value);
-    fail = false; button.click();
-    for (let i = 0; i < 10; i++) await setImmediate();
-    assert.equal(notices.length, 2);
-    assert.deepEqual(notices[1], ['保存成功：新增 1 名', 'success']);
-    assert.equal(overlay.querySelector('[role="status"]').textContent, '');
 });
