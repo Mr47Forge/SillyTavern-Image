@@ -7,6 +7,7 @@ import { createChatImageSession } from './chat-image-session.js';
 import { buildPendingImageHtml, ensureDrawImageStyles, isMessageBeingEdited, renderPreviewsForMessage } from './draw-common.js';
 import { DRAW_SLOT_COPY } from './image-record.js';
 import { subscribeChatImagePlacement } from './chat-image-placement.js';
+import { projectStreamingImageBlocks } from './direct-stream-cards.js';
 
 const events = createModuleEvents('chatMessageImages');
 const leases = new Map();
@@ -97,6 +98,13 @@ function enhance(lease) {
     if (!message || isMessageBeingEdited(lease.messageId)) return;
     for (const node of lease.nodes.keys()) if (!lease.content.contains(node)) lease.nodes.delete(node);
     const source = message.mes, swipeIndex = message.swipe_id ?? 0;
+    // Show a real card at the first streamed <image> token, before the
+    // completed reply is normalized and its permanent image slots are saved.
+    if (/<image\s*>/i.test(source)) {
+        const count = window.stimageComfyDraw?.getSettings?.()?.maxImages ?? 0;
+        projectStreamingImageBlocks(lease.content, source, lease.messageId,
+            options => createPendingCard(lease.content.ownerDocument, options), count);
+    }
     const { matched } = findRenderedChatImageTags(lease.content, parseChatImageTags(source), lease.nodes);
     const retained = new Set(matched.map(item => item.node));
     // Only a genuinely invalidated/ambiguous projection returns to source text.

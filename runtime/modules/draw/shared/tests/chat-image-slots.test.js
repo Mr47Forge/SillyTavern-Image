@@ -184,6 +184,28 @@ function setup(t, source, { legacy = false } = {}) {
     };
 }
 
+test('streamed direct image code is hidden by an immediate provisional card without creating jobs', async t => {
+    const h = setup(t, 'Opening story.\n\n<image>\nprompt: first scene in progress');
+    h.ctx.streamingProcessor = { messageId: 0, isStopped: false, isFinished: false };
+    api.initChatMessageImages();
+    await until(() => h.root.querySelectorAll('[data-sti-direct-draft]').length === 1);
+    assert.doesNotMatch(h.root.textContent, /prompt:|scene in progress/);
+    assert.match(h.root.textContent, /Opening story/);
+    assert.equal(h.requests, 0);
+    h.message.mes += '\n</image>\n\nMore story.\n\n<image>\nprompt: second scene';
+    h.format();
+    await host.emit('MESSAGE_UPDATED', 0);
+    await until(() => h.root.querySelectorAll('[data-sti-direct-draft]').length === 2);
+    assert.doesNotMatch(h.root.textContent, /prompt:|second scene/);
+    assert.match(h.root.textContent, /More story/);
+    assert.equal(h.requests, 0);
+    h.message.mes = 'Opening story. More story.';
+    h.format();
+    await host.emit('MESSAGE_UPDATED', 0);
+    await until(() => h.root.querySelectorAll('[data-sti-direct-draft]').length === 0);
+    assert.equal(h.requests, 0);
+});
+
 test('received tags batch once without visibility, update swipe, and survive duplicate events and remount', async t => {
     const h = setup(t, 'before [img: same] middle [img: other] end [img: same]');
     api.initChatMessageImages();
