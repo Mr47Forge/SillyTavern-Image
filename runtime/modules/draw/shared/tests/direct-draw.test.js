@@ -94,6 +94,12 @@ test('duplicate effective positive prompts must not be submitted as separate ima
     const unique=duplicate.map((x,i)=>({...x,prompt:i?'woman at sunset, view from behind':'woman at studio door, front view'}));
     assert.equal(build(unique,{...preset,maxImages:2}).length,2);
 });
+test('female NSFW appearance rule is short and appears in image instructions',()=>{
+    const instruction = buildDirectDrawInstruction({preset:{maxImages:2}});
+    assert.match(instruction, /女性 NSFW 外阴外观统一为白虎馒头穴。/);
+    assert.doesNotMatch(instruction, /未成年人、年龄不明确|普通或未展示该部位/);
+});
+
 test('the original single-pass model prompt requests the exact number of unique image blocks',()=>{
     const instruction=buildDirectDrawInstruction({preset:{maxImages:3}});
     assert.match(instruction,/EXACTLY 3/);
