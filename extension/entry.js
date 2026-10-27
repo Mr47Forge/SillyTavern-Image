@@ -7,6 +7,10 @@ import { startGroupPresetWatcher, stopGroupPresetWatcher } from '../runtime/modu
 import { startImageJobRecovery, stopImageJobRecovery } from '../runtime/modules/draw/shared/image-job-recovery-runtime.js';
 import { initChatMessageImages, cleanupChatMessageImages } from '../runtime/modules/draw/shared/chat-message-images.js';
 import { installDrawFacade } from './draw-facade.mjs';
+import { getCurrentUserHandle } from '/scripts/user.js';
+import { configurePendingImageJobOwner } from '../runtime/modules/draw/shared/pending-image-jobs.js';
+
+configurePendingImageJobOwner(getCurrentUserHandle);
 
 let started = false;
 let starting = null;

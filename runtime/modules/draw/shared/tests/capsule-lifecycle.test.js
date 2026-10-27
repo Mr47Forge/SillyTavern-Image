@@ -10,6 +10,19 @@ const api = await import('data:text/javascript;base64,' + Buffer.from(code + '\n
 const BUSY = ['submitting', 'accepted', 'uncertain', 'queued', 'llm', 'gen', 'cooldown', 'reconnecting', 'cancelling'];
 const reportToPanel = (state, data, id) => api.setStateForMessage(id, state, data);
 
+test('preparing and pre-submit cancellation never claim backend acceptance',async t=>{
+ const h=await mount(t,'unsubmitted-state');
+ const r=await api.recordPendingImageJob({jobId:'unsubmitted-state',provider:'comfyui',
+  delivery:{mode:'slots',chatId:h.ctx.chatId,messageId:'0',swipeIndex:0},
+  items:[{index:0,slotId:'lifecycle-slot',imgId:'unsubmitted-image'}]});
+ t.after(()=>api.forgetPendingImageJob(r.jobId,r.leaseId));
+ assert.equal((await api.getPendingDrawWorkState(0,h.ctx)).backendAccepted,false);
+ await api.markPendingImageJobCancelling(r.jobId,r.leaseId);
+ assert.equal((await api.getPendingDrawWorkState(0,h.ctx)).backendAccepted,false);
+ await api.markPendingImageJobActive(r.jobId,r.leaseId);
+ assert.equal((await api.getPendingDrawWorkState(0,h.ctx)).backendAccepted,true);
+});
+
 async function settle() { for (let i = 0; i < 30; i++) await setImmediate(); }
 function click(node, floating) {
     if (!floating) { node.click(); return; }

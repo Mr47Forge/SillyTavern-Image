@@ -32,6 +32,7 @@ import {recordImageSlotResult} from './image-directive-identity.js';
 import { planImageJobReattach, ReattachAction } from './image-job-reattach.js';
 import { readPageFarewells } from './page-farewell.js';
 import { getPendingImageJob, listPendingImageJobs, PendingJobState,recordPendingImageJob,markPendingImageJobActive,releasePendingImageJobLease } from './pending-image-jobs.js';
+import { pendingImageJobOwnerMigrationNeeded, migratePendingImageJobOwners } from './pending-image-jobs.js';
 import { removeSceneSlotPlaceholders,isSceneSlotAlive } from './scene-placement.js';
 import { deliverPreparedImage } from './prepared-image-delivery.js';
 import {
@@ -493,7 +494,14 @@ async function runRecoveryPass() {
     const chatId = String(ctx?.chatId || '');
     if (!chatId) return;
     let allRecords;
+    let backendJobs;
     try {
+        if (await pendingImageJobOwnerMigrationNeeded()) {
+            const owner = getCurrentUserHandle();
+            backendJobs = await runtimeClient.listJobs();
+            await migratePendingImageJobOwners(backendJobs, owner);
+            if (getCurrentUserHandle() !== owner) return;
+        }
         allRecords = await listPendingImageJobs();
     } catch (error) {
         console.warn('[ImageJobs] 暂时无法读取后台任务恢复记录，稍后重试:', error);
@@ -527,7 +535,6 @@ async function runRecoveryPass() {
         scheduleRecovery(RETRY_DELAY_MS);
         return;
     }
-    let backendJobs;
     const hasPortableJobs=ctx.chat?.some(m=>Object.values(m.extra?.sti_comfy_slots||{}).some(p=>p.jobId&&p.input&&['pending','unknown'].includes(p.status)));
     if(hasPortableJobs){
         try{

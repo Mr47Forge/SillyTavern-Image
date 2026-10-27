@@ -6,7 +6,7 @@ const files=[
  ...['audit-followup','audit-regressions','direct-draw','wardrobe-continuity','scene-placement','male-image-exclusion',
  'direct-failure-retry','drawing-chain-integration','all-fixes-continuity','draw-run-client','scene-plan-contract',
  'prepared-slot-executor','image-card-redraw-provider','removed-settings-pages'].map(name=>shared+name+'.test.js'),
- ...['capsule-lifecycle','cancel-capsule-unlock','cancellation-storage-timeout','draw-cancellation-ui',
+ ...['storage-boundaries','capsule-lifecycle','cancel-capsule-unlock','cancellation-storage-timeout','draw-cancellation-ui',
  'draw-work-cancellation','backend-image-jobs','recoverable-image-jobs','confirmable-chat-save',
  'image-job-recovery-executor','image-job-reattach','image-job-recovery-runtime'].map(name=>shared+name+'.test.js'),
  ...readdirSync('runtime/modules/draw/providers/comfyui/tests').filter(name=>name.endsWith('.test.js'))

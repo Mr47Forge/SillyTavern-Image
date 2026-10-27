@@ -47,6 +47,16 @@ test('automatic events cannot resubmit old failed slots',async()=>{
  await assert.rejects(f.env.generateAndInsertImages({messageId:0,automatic:true}),e=>e.code==='DUPLICATE_IMAGE_BATCH');
  assert.equal(f.requests,0);
 });
+test('a stalled error logger cannot hold the failed floor job open',async()=>{
+ const f=fixture();let release,failed;
+ f.env.writeImageError=()=>new Promise(resolve=>{release=resolve;});
+ const operation=f.env.generateAndInsertImages({messageId:0}).catch(error=>{failed=error;});
+ try{
+  for(let i=0;i<40;i++)await Promise.resolve();
+  assert.equal(f.finished,1);
+  assert.match(failed?.message||'',/fixture invalid/);
+ }finally{release?.();await operation;}
+});
 test('switching messages during display refresh cannot retry the newly opened chat',async()=>{
  const f=fixture({failed:true});let renders=0;
  const refresh=f.env.syncRenderedMessageFromState;

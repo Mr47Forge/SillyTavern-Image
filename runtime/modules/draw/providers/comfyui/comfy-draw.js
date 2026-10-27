@@ -5427,7 +5427,7 @@ export async function generateAndInsertImages({
         // Covers manual image requests and failures occurring before a backend
         // Draw Run is accepted. The backend reports its own later failures.
         if (!signal.aborted && error?.name !== 'AbortError') {
-            await writeImageError({
+            void writeImageError({
                 stage: '直出指令解析与生图交付',
                 errorType: error?.code || 'DRAW_REQUEST_FAILED',
                 errorMessage: error?.message || '绘图任务失败',
