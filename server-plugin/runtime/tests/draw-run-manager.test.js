@@ -14,7 +14,7 @@ function createEnvelope(runId, overrides = {}) {
         version: 1,
         runId,
         sourceHash,
-        imageProvider: 'sd-webui',
+        imageProvider: 'comfyui',
         planner: {
             prompt: { systemPrompt: 'system', messages: [{ role: 'user', content: 'content' }] },
             tool: {
@@ -54,16 +54,22 @@ function createEnvelope(runId, overrides = {}) {
             },
         },
         generationRecipe: {
-            host: 'https://sd.example.test',
+            host: 'https://comfy.example.test',
             auth: 'image-secret',
             timeout: 5000,
             delayMs: 1000,
-            params: {},
+            workflowMode: 'simple',
+            customWorkflow: {
+                json: '', nodePositive: '', nodeNegative: '', nodeWidth: '',
+                nodeHeight: '', nodeSeed: '', nodeSaveImage: '',
+            },
+            params: { model: 'test-model.safetensors' },
             positivePrefix: '',
             negativePrefix: '',
             knownCharacters: [],
             promptOverride: '',
             negativePromptOverride: '',
+            seeds: [1],
         },
     };
     return Object.assign(envelope, overrides);
@@ -113,10 +119,10 @@ function createRuntime(overrides = {}) {
         },
         compileDrawRunImages(_provider, scenePlan) {
             return {
-                provider: 'sd-webui',
-                context: { url: 'https://sd.example.test', auth: 'image-secret' },
+                provider: 'comfyui',
+                context: { url: 'https://comfy.example.test', auth: 'image-secret' },
                 delay: { min: 1000, max: 1000 },
-                items: [{ request: { payload: { prompt: 'portrait' } }, timeout: 5000 }],
+                items: [{ request: { workflow: { '6': { inputs: { text: 'portrait' } } } }, timeout: 5000 }],
                 artifacts: [{
                     task: scenePlan[0],
                     tags: 'portrait',
@@ -128,7 +134,7 @@ function createRuntime(overrides = {}) {
     };
 }
 
-test('NovelAI Draw Run accepts the empty API base used for the official image endpoint', () => {
+test('NovelAI Draw Run rejects a valid legacy official-endpoint recipe as unsupported', () => {
     const envelope = createEnvelope('run-test-novel-official', {
         imageProvider: 'novelai',
         generationRecipe: {
@@ -148,7 +154,11 @@ test('NovelAI Draw Run accepts the empty API base used for the official image en
             seeds: [1],
         },
     });
-    assert.doesNotThrow(() => createEnvelopeValidator(drawRuntime)(envelope));
+    assert.throws(() => createEnvelopeValidator(drawRuntime)(envelope), {
+        status: 400,
+        code: 'invalid_draw_run',
+        message: 'NovelAI Draw Run is unsupported by this runtime',
+    });
 });
 
 test('Draw Run accepts unspecified browser limits but rejects zero image delay before Planner execution', () => {
@@ -166,7 +176,7 @@ test('Draw Run accepts unspecified browser limits but rejects zero image delay b
     assert.throws(() => validate(envelope), /generationRecipe\.delayMs must round to an integer/);
 });
 
-test('NovelAI V5 character limits are enforced at the Draw Run envelope boundary', () => {
+test('NovelAI Draw Run stays unsupported at every legacy V5 character-limit boundary', () => {
     const validate = createEnvelopeValidator(drawRuntime);
     const envelope = createEnvelope('run-test-novel-v5-limit', {
         imageProvider: 'novelai',
@@ -188,12 +198,14 @@ test('NovelAI V5 character limits are enforced at the Draw Run envelope boundary
         },
     });
 
-    envelope.planner.validationContext.effectiveMaxCharactersPerImage = 22;
-    assert.doesNotThrow(() => validate(envelope));
-    envelope.planner.validationContext.effectiveMaxCharactersPerImage = 23;
-    assert.throws(() => validate(envelope), /must be between 1 and 22/);
-    envelope.planner.validationContext.effectiveMaxCharactersPerImage = 0;
-    assert.throws(() => validate(envelope), /must be between 1 and 22/);
+    for (const characterLimit of [22, 23, 0]) {
+        envelope.planner.validationContext.effectiveMaxCharactersPerImage = characterLimit;
+        assert.throws(() => validate(envelope), {
+            status: 400,
+            code: 'invalid_draw_run',
+            message: 'NovelAI Draw Run is unsupported by this runtime',
+        });
+    }
 });
 
 function createManager({
@@ -276,8 +288,10 @@ test('one backend runtime forwards changing browser planning schemas and execute
         assert.equal(terminal.state, 'dispatched', JSON.stringify(terminal.error));
         assert.deepEqual(seenTools[index], tool);
         const job = imageJobService.get('alice', terminal.childJobId);
-        assert.equal(job.body.items[0].request.payload.prompt, 'rain, 女孩, black hair');
-        assert.equal(job.body.items[0].request.payload.negative_prompt, '');
+        assert.equal(job.body.provider, 'comfyui');
+        assert.equal(job.body.items[0].request.workflow['6'].inputs.text, 'rain, 女孩, black hair');
+        assert.equal(job.body.items[0].request.workflow['7'].inputs.text, '');
+        assert.equal(job.body.items[0].request.workflow['3'].inputs.seed, 1);
         assert.equal(terminal.handoffManifest.items[0].imgId, `img-draw-${envelope.runId}-1`);
         assert.equal(terminal.handoffManifest.items[0].insertOffset, 6);
     }
@@ -322,7 +336,8 @@ test('backend dispatches repaired complete plans and keeps incomplete or invalid
             assert.deepEqual(terminal.progress.validationFailures, []);
             const job = imageJobService.get('alice', terminal.childJobId);
             assert.equal(job.body.items.length, 1);
-            assert.equal(job.body.items[0].request.payload.prompt, 'rain');
+            assert.equal(job.body.provider, 'comfyui');
+            assert.equal(job.body.items[0].request.workflow['6'].inputs.text, 'rain');
         } else {
             assert.equal(terminal.state, 'failed');
             assert.equal(terminal.error.code, errorCode);
@@ -384,7 +399,8 @@ test('backend dispatches a decorated tagged plan once and retains ambiguous-call
             assert.equal(terminal.state, 'dispatched');
             const job = imageJobService.get('alice', terminal.childJobId);
             assert.equal(job.body.items.length, 1);
-            assert.equal(job.body.items[0].request.payload.prompt, 'book cover, title: SUMMER');
+            assert.equal(job.body.provider, 'comfyui');
+            assert.equal(job.body.items[0].request.workflow['6'].inputs.text, 'book cover, title: SUMMER');
         }
     }
 });
@@ -573,6 +589,7 @@ test('Draw Run delivers unordered and shared placements as distinct images witho
             points: [{ number: 1, offset: 6 }, { number: 2, offset: 12 }],
         },
     });
+    envelope.generationRecipe.seeds = [1, 2, 3];
     manager.create('alice', envelope, {});
     const run = await waitFor(() => {
         const current = manager.get('alice', envelope.runId);
@@ -777,7 +794,7 @@ test('retained compiler failures redact the image provider credentials still own
     const envelope = createEnvelope('run-test-004');
     envelope.agent.channel = 'sillytavern-openai-compatible';
     envelope.agent.providerConfig.provider = 'sillytavern-openai-compatible';
-    envelope.generationRecipe.host = 'https://user:pa%24%24word@sd.example.test';
+    envelope.generationRecipe.host = 'https://user:pa%24%24word@comfy.example.test';
     manager.create('alice', envelope, {});
     const failed = await waitFor(() => {
         const run = manager.get('alice', 'run-test-004');

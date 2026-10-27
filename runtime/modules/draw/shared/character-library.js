@@ -104,6 +104,7 @@ export function normalizeCharacter(raw, { id } = {}) {
         type: String(char.type || 'girl'),
         appearance: String(char.appearance || char.tags || ''),
         ...(typeof char.appearanceZh === 'string' && char.appearanceZh.trim() ? { appearanceZh: char.appearanceZh.trim() } : {}),
+        ...(char.appearanceSource === 'chinese' ? { appearanceSource: 'chinese' } : {}),
         negativeTags: String(char.negativeTags || ''),
         danbooruTag: String(char.danbooruTag || ''),
         outfits: normalizeNamedTagList(char.outfits || char.costumes || char.clothes || []),
@@ -182,6 +183,14 @@ export function characterLibraryFromSettings(settings) {
         characters: Array.isArray(settings?.characterTags) ? settings.characterTags : [],
         groups: Array.isArray(settings?.characterGroups) ? settings.characterGroups : [],
     };
+}
+
+export function hasCharacterLibraryDraftChanges(draft, saved) {
+    const signature = value => {
+        const { characters, groups } = normalizeCharacterLibrary(value);
+        return JSON.stringify({ characters, groups });
+    };
+    return signature(draft) !== signature(saved);
 }
 
 /** 分组开关；未分组（空 id）和不存在的分组一律视为开。 */
@@ -732,6 +741,10 @@ export function planCharacterImport(library, parsed, options = {}, { makeId } = 
         }
         if (existing && policy === 'replace') {
             for (const field of fields) existing[field] = cloneJson(character[field]);
+            if (fields.includes('appearanceZh')) {
+                if (character.appearanceSource === 'chinese') existing.appearanceSource = 'chinese';
+                else delete existing.appearanceSource;
+            }
             summary.replaced += 1;
             record('replaced', existing.id);
             if (mode !== 'auto' && !movedIds.has(existing.id)) {

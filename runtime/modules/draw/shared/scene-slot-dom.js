@@ -32,6 +32,28 @@ function collectTextSlots(root) {
     return { segments, matches: [...text.matchAll(createDrawImageSlotRegex())] };
 }
 
+// Source-only protocol scanner: not a parser for someone else's preset.
+// A slot inside a hidden/status region or outside maintext is never a visible text slot.
+export function findNonVisibleImageSlotIds(sourceText) {
+    const text=String(sourceText??'');
+    const hasMaintext=/<maintext\b[^>]*>/i.test(text);
+    const tokens=/<\/?(?:hidden|status_block|maintext)\b[^>]*>|\[image\s*:\s*(slot-[a-z0-9_-]+)\s*\]/gi;
+    let hidden=0,status=0,maintext=0;
+    const invisible=new Set();
+    for(const match of text.matchAll(tokens)){
+        if(match[1]){
+            if(hidden||status||(hasMaintext&&!maintext)) invisible.add(match[1]);
+            continue;
+        }
+        const tag=match[0].toLowerCase();
+        const closing=tag.startsWith('</');
+        if(/^<\/?hidden\b/.test(tag))hidden=Math.max(0,hidden+(closing?-1:1));
+        else if(/^<\/?status_block\b/.test(tag))status=Math.max(0,status+(closing?-1:1));
+        else maintext=Math.max(0,maintext+(closing?-1:1));
+    }
+    return invisible;
+}
+
 export function getRenderedSceneSlotIds(root) {
     if (!root) return new Set();
     const { matches } = collectTextSlots(root);

@@ -607,7 +607,7 @@ export async function clearSlotSelection(slotId) {
 // 预览存储
 // ═══════════════════════════════════════════════════════════════════════════
 
-export async function storePreview(opts) {
+export async function storePreview(opts,{ifAbsent=false}={}) {
     const {
         imgId,
         slotId,
@@ -641,7 +641,7 @@ export async function storePreview(opts) {
     return new Promise((resolve, reject) => {
         try {
             const tx = database.transaction(DB_STORE, 'readwrite');
-            tx.objectStore(DB_STORE).put({
+            const record={
                 imgId,
                 slotId: resolvedSlotId,
                 messageId,
@@ -664,7 +664,10 @@ export async function storePreview(opts) {
                 postPrompt,
                 promptTrace,
                 timestamp: Date.now()
-            });
+            };
+            const store=tx.objectStore(DB_STORE);
+            if(ifAbsent){const found=store.get(imgId);found.onsuccess=()=>{if(!found.result)store.put(record);};}
+            else store.put(record);
             tx.oncomplete = () => {
                 if (status === 'failed' && errorType !== 'deleted') {
                     void writeImageError({

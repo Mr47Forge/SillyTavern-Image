@@ -21,35 +21,3 @@ export function reconcileChineseNamedLines(lines, existing = []) {
     return { name, tags: before?.name === name ? before.tags : '' };
   });
 }
-export function collectUntranslatedNamedTags(characters = []) {
-  const requests=[];
-  for (const person of characters) {
-    for (const field of ['outfits','dynamicStates']) {
-      const entries=Array.isArray(person?.[field]) ? person[field] : [];
-      for(let i=0;i<entries.length;i++) {
-        const value=entries[i];
-        if(!text(value?.name)||text(value?.tags))continue;
-        requests.push({
-          id:JSON.stringify([person.id,field,i]),
-          name:person.name,
-          category:field,
-          chinese:text(value.name),
-        });
-      }
-    }
-  }
-  return requests;
-}
-export function applyNamedTagTranslations(characters, translations) {
-  return characters.map(char=>{
-    const copy={...char};
-    for(const field of ['outfits','dynamicStates']){
-      if(!Array.isArray(copy[field]))continue;
-      copy[field]=copy[field].map((item,index)=>{
-        const id=JSON.stringify([char.id,field,index]);
-        return translations.has(id) ? {...item,tags:translations.get(id)} : {...item};
-      });
-    }
-    return copy;
-  });
-}

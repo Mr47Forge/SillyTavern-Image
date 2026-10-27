@@ -17,15 +17,13 @@ test('ambiguous pronoun clothing event preserves unrelated actor', () => {
     assert.equal(result[0].chars[1].costume,'gray coat');
     assert.equal(result[0].chars[0].costume,'blue blouse');
 });
-test('half-sentence after never inserts into middle of word',()=>{
-    const text='\u6210\u5e74\u753b\u5e08\u63a8\u5f00\u753b\u5ba4\u7684\u95e8\uff0c\u968f\u540e\u6574\u7406\u753b\u5177\u3002';
-    const notices=[];
-    const result=buildDirectDrawTasks([{prompt:'artist, studio',characters:[],after:'\u753b\u5ba4'}],
-        {maxImages:1},{sourceText:text,onPlacementFallback:item=>notices.push(item)});
-    const points=createSceneSource(text).points.map(p=>p.offset);
-    assert.ok(points.includes(result[0].placement.offset));
-    assert.notEqual(result[0].placement.offset,text.indexOf('\u753b\u5ba4')+'\u753b\u5ba4'.length);
-    assert.equal(notices.length,1);
+test('half-sentence anchor cannot scatter a generated image to unrelated paragraph',()=>{
+    const story='An adult painter pushes open the studio door and arranges brushes.';
+    const tasks=buildDirectDrawTasks([{prompt:'artist portrait, studio',
+        characters:[{name:'Alice',type:'woman'}],after:'studio'}],
+        {maxImages:1},{sourceText:story,requireFemaleImage:true});
+    assert.equal(tasks.length,1);
+    assert.equal(tasks[0].placement.mode,'tail');
 });
 test('multiline JSON character arrays parse with following after field',()=>{
     const input='<image>\nprompt: studio\ncharacters: [\n'+

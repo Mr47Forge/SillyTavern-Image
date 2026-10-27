@@ -6,7 +6,7 @@ import { ImageRequestOutcome } from './image-request-outcome.js';
 
 // Both prepared scene plans and shorthand tags use this lifecycle. The host owns
 // placement; providers own transport; neither may acknowledge an unstored image.
-export async function executePreparedSlots({ items, backend, store, remove, select, commit,
+export async function executePreparedSlots({ items, backend, store, remove, select, commit, linkJob,
     run, resolveTarget, render, activity, signal, classifyError, onStateChange,
     nativeMessage = false, onPrepared, clearSelection,
     onRenderError = error => console.error(DRAW_SLOT_COPY.renderFailed, error) }) {
@@ -20,11 +20,11 @@ export async function executePreparedSlots({ items, backend, store, remove, sele
     const refresh = async (slotIds = items.map(item => item.slotId)) => {
         try { await render(slotIds); } catch (error) { onRenderError(error); }
     };
-    const commitOnce = async () => {
-        if (committed) return true;
+    const commitOnce = async (details) => {
+        if (committed) {if(details?.jobId)await linkJob?.(details);return true;}
         signal?.throwIfAborted();
         try {
-            if (await commit() === false) throw new Error(DRAW_SLOT_COPY.sourceChanged);
+            if (await commit(details) === false) throw new Error(DRAW_SLOT_COPY.sourceChanged);
             committed = true;
         } catch (error) {
             committed = error?.placementsCommitted === true;
@@ -99,14 +99,14 @@ export async function executePreparedSlots({ items, backend, store, remove, sele
                             characterPrompts: item.characterPrompts, negativePrompt: item.negativePrompt,
                             promptTrace: item.promptTrace ?? null } })),
                 },
-                commitPlacements: async () => {
+                commitPlacements: async (details) => {
                     // Deletion may precede journal creation while this batch waits
                     // in the request queue. Carry it into that newly created record.
                     for (const item of items) if (item.discarded) await discardPendingImageSlot(item.slotId);
-                    return commitOnce();
+                    return commitOnce(details);
                 },
                 settlePlacements: async ({ error, deliverItem } = {}) => {
-                    if (error && committed) for (const index of items.keys()) {
+                    if (error && (committed || uncertain && error.imageRequestOutcome === ImageRequestOutcome.NOT_SUBMITTED)) for (const index of items.keys()) {
                         await deliverItem(index, ({ guard, commitDelivery }) => fail(index, error, guard, commitDelivery));
                     }
                 },

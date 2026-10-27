@@ -12,6 +12,12 @@ import { findImageJobDeliverySlot } from './image-job-delivery-target.js';
 import { DRAW_SLOT_COPY, hasPreviewImage } from './image-record.js';
 
 const redraws = new Map();
+async function resumeOwnedJobs(message,slotIds){
+    if(slotIds.some(id=>{const p=message.extra?.sti_comfy_slots?.[id];return p?.jobId&&['pending','unknown'].includes(p.status);})){
+        const {reconcilePendingImageJobs}=await import('./image-job-recovery-runtime.js');
+        await reconcilePendingImageJobs();
+    }
+}
 
 // A failed attempt remains editable, but must not strand the slot's older images.
 // This action only changes selection; it never submits another drawing request.
@@ -135,25 +141,22 @@ async function redrawFloorFailed(provider, container, messageId, floor = { claim
     const slotIds = [];
     try {
         // 与单张重画一致：读不到后台任务日志时不当作“可以重新计费”。
+        await resumeOwnedJobs(message,candidates.map(card=>card.dataset.slotId));
         const pendingSlots = await getPendingImageJobSlots();
         const tasks = [];
         let skipped = 0;
         for (const card of candidates) {
             const slotId = card.dataset.slotId;
             if (redraws.has(slotId) || getSlotActivity(slotId) || pendingSlots.has(slotId)) { claims.delete(slotId); skipped += 1; continue; }
-            const imgId = card.dataset.imgId;
-            let record = await getCardPreview({ slotId, imgId });
-            // 与单张重画一致：缓存里没有这个版本时，用聊天里保存的记录兜底。
-            if (!record && imgId) {
-                const saved = getDrawSavedPreview(message, slotId, messageId, String(ctx.chatId));
-                if (saved?.imgId === imgId) record = saved;
-            }
+            const target = captureImageCardTarget(card);
+            const record = await readImageCardTarget(target);
+            target.assertCurrent();
             const tags = record?.tags ?? card.dataset.tags;
             if (!tags?.trim()) { claims.delete(slotId); skipped += 1; continue; }
             slotIds.push(slotId);
             tasks.push({ scene: tags, chars: (record?.characterPrompts || []).map(person => ({ name: person.name })), characterPrompts: record?.characterPrompts ?? [],
                 post_prompt: record?.postPrompt ?? '',
-                negativePrompt: record?.negativePrompt ?? undefined,
+                negativePrompt: record?.negativePrompt ?? undefined,extraNegativePrompt:record?.extraNegativePrompt,
                 placement: { mode: 'existing', slotId } });
         }
         if (!tasks.length) return { submitted: 0, skipped };
@@ -179,6 +182,7 @@ async function redraw(provider, container) {
     try {
         // A refresh drops runtime activity, not the submitted backend job. Do
         // not turn a journal read failure into permission for a paid resubmit.
+        await resumeOwnedJobs(message,[slotId]);
         if ((await getPendingImageJobSlots()).has(slotId)) return;
         const record = await readImageCardTarget(target);
         target.assertCurrent();
@@ -187,7 +191,7 @@ async function redraw(provider, container) {
         return await generatePreparedChatImages(provider, { ctx, message, messageId, sourceText, swipeIndex,
             tasks: [{ scene: tags, chars: (record?.characterPrompts || []).map(person => ({ name: person.name })), characterPrompts: record?.characterPrompts ?? [],
                 post_prompt: record?.postPrompt ?? '',
-                negativePrompt: record?.negativePrompt ?? undefined,
+                negativePrompt: record?.negativePrompt ?? undefined,extraNegativePrompt:record?.extraNegativePrompt,
                 placement: { mode: 'existing', slotId } }] });
     } finally {
         if (String(getContext().chatId) === String(ctx.chatId)) await renderPreviewsForMessage(messageId, { refreshSlotIds: [slotId] });

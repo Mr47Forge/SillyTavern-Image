@@ -1,6 +1,6 @@
 {
   "name": "sillytavern-image",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "独立定制绘图插件：剧情直出与 ComfyUI",
@@ -9,7 +9,9 @@
     "check": "node scripts/check-release.mjs",
     "test": "node scripts/test.mjs"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "devDependencies": {
     "esbuild": "0.28.1",
     "express": "5.2.1",

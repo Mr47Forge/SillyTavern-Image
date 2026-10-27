@@ -1,33 +1,44 @@
+import { runWithAbortDeadline } from '../../../shared/common/abort-utils.js';
+
 // The exact set selected by one user cancellation must survive a lost response
 // or reload. No credentials, prompts, leases or second job state machine.
 // Each entry dies only after backend ACK and its projection into delivery journals.
 const DB_NAME = 'sti_draw_cancellations';
 const STORE = 'intents';
 let opening;
+const STORAGE_TIMEOUT_MS = 15_000;
+const STORAGE_TIMEOUT_MESSAGE = '本地取消记录读写超时，请重试；原任务记录仍会保留';
 
 function open() {
-    opening ??= new Promise((resolve, reject) => {
+    opening ??= runWithAbortDeadline(signal => new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, 1);
-        request.onupgradeneeded = () => request.result.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
-        request.onerror = () => { opening = null; reject(request.error); };
+        request.onupgradeneeded = () => {
+            if (signal.aborted) { request.transaction.abort(); return; }
+            request.result.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+        };
+        request.onerror = () => reject(request.error);
         request.onsuccess = () => {
             const db = request.result;
+            if (signal.aborted) { db.close(); return; }
             db.onversionchange = () => { db.close(); opening = null; };
             db.onclose = () => { opening = null; };
             resolve(db);
         };
-    });
+    }), { timeoutMs: STORAGE_TIMEOUT_MS, timeoutMessage: STORAGE_TIMEOUT_MESSAGE })
+        .catch(error => { opening = null; throw error; });
     return opening;
 }
 
 async function transaction(mode, work) {
     const db = await open();
-    return new Promise((resolve, reject) => {
+    return runWithAbortDeadline(signal => new Promise((resolve, reject) => {
         const tx = db.transaction(STORE, mode);
+        const abort = () => { try { tx.abort(); } catch {} };
+        signal.addEventListener('abort', abort, { once: true });
         const request = work(tx.objectStore(STORE));
-        tx.oncomplete = () => resolve(request.result);
-        tx.onabort = tx.onerror = () => reject(tx.error);
-    });
+        tx.oncomplete = () => { signal.removeEventListener('abort', abort); resolve(request.result); };
+        tx.onabort = tx.onerror = () => { signal.removeEventListener('abort', abort); reject(tx.error); };
+    }), { timeoutMs: STORAGE_TIMEOUT_MS, timeoutMessage: STORAGE_TIMEOUT_MESSAGE });
 }
 
 export const drawCancellationJournal = Object.freeze({

@@ -299,10 +299,10 @@ test('a failed placement commit discards the journal entry without submitting', 
     assert.equal(journal.store.size, 0, 'CAS 失败后不得留下无对应槽位的记录');
 });
 
-test('an uncertain placement save keeps the journal and never submits', async () => {
+test('an uncertain placement save settles as unsubmitted and never reaches the backend', async () => {
     const journal = createFakeJournal();
     const client = createFakeClient();
-    const saveError = new Error('save failed');
+    const saveError = Object.assign(new Error('save failed'), { uncertain: true });
 
     await assert.rejects(
         submitRecoverableImageJob({
@@ -313,12 +313,24 @@ test('an uncertain placement save keeps the journal and never submits', async ()
             plan: basePlan(),
             commitPlacements: async () => { throw saveError; },
         }),
-        error => error === saveError,
+        error => error.cause === saveError && error.imageRequestOutcome === 'not-submitted' && !error.uncertain,
     );
 
     assert.deepEqual(client.submissions, []);
-    assert.equal(journal.store.size, 1, '保存结果不确定时必须保留 journal 供刷新后核对 slot');
-    assert.equal([...journal.store.values()][0].state, PendingJobState.PREPARING);
+    assert.equal(journal.store.size, 0, '确定未提交时必须结算自己的记录，不留下等待接回的假任务');
+});
+
+test('failed pre-submit settlement retains a released settling journal for cleanup without generation', async () => {
+    const journal = createFakeJournal(), client = createFakeClient();
+    await assert.rejects(submitRecoverableImageJob({ client, journal, provider: 'comfyui',
+        request: {}, plan: basePlan(), commitPlacements: async () => { throw Object.assign(new Error('save failed'), { uncertain: true }); },
+        resolveSettlement: () => ({ mode: 'fail' }),
+        settlePlacements: async () => { throw new Error('storage unavailable'); },
+    }), error => error.imageRequestOutcome === 'not-submitted');
+    assert.equal(client.submissions.length, 0);
+    const record = [...journal.store.values()][0];
+    assert.equal(record.state, PendingJobState.SETTLING);
+    assert.equal(record.leaseExpiresAt, 0, 'cleanup must not wait for the abandoned owner lease');
 });
 
 // POST 确认（'created'）之后才允许转 active：在那之前后端查不到 jobId 是正常的，

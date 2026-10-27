@@ -14,8 +14,8 @@ function section(start,end){
  return source.slice(a,b);
 }
 const compact=section('const expandedComfyCharacterIds = new Set();','let groupPresetBinding = null;');
-const render=section('function renderCharacterCard({ character: tag, ordinal }) {','function createCharacterEnglishDetails(');
-const fields=section('function createCharacterEnglishDetails(','function serializeNamedTagLines(');
+const render=section('function renderCharacterCard({ character: tag, ordinal }) {','function createChineseNamedTagField(');
+const fields=section('function createChineseNamedTagField(','function renderFilterRuleRow(');
 const read=section('function readCharacterCardsFromForm(','function getSharedCharacterTagsFromForm(');
 
 class FakeElement{
@@ -107,6 +107,23 @@ test('new empty roles automatically open for immediate editing',()=>{
  const card=functions.renderCharacterCard({character:newRole,ordinal:2});
  assert.equal(card.querySelector('.comfy-role-card-body').hidden,false);
 });
+
+test('role cards expose Chinese fields without a legacy English editor or preview',()=>{
+ const card=functions.renderCharacterCard({character:tag,ordinal:1});
+ assert.ok(card.querySelector('[data-sd-char-field="appearanceZh"]'));
+ assert.equal(card.querySelector('[data-sd-char-field="appearance"]'),null);
+ assert.equal(card.querySelector('.char-english-details'),null);
+});
+
+test('role type uses Chinese choices and keeps its stored value',()=>{
+ const card=functions.renderCharacterCard({character:tag,ordinal:1});
+ const field=card.querySelector('[data-sd-char-field="type"]');
+ assert.equal(field.tagName,'select');
+ assert.equal(field.value,tag.type);
+ assert.ok(field.children.some(option=>option.textContent==='成年女性'));
+ const old=functions.renderCharacterCard({character:{...tag,type:'legacy-custom-type'},ordinal:1});
+ assert.equal(old.querySelector('[data-sd-char-field="type"]').value,'legacy-custom-type');
+});
 test('group and batch management controls remain in the page',()=>{
  assert.ok(html.includes('id="comfy-role-collapse-all"'));
  assert.ok(html.includes('id="comfy-role-expand-all"'));
@@ -114,16 +131,13 @@ test('group and batch management controls remain in the page',()=>{
  assert.ok(html.includes('.sd-char-card.comfy-role-collapsed'));
 });
 
-test('current role save control uses the existing translation and persistent-save pipeline',()=>{
- const button=html.indexOf('data-comfy-save-shared');
- const status=html.indexOf('id="comfy-role-save-status"');
- const list=html.indexOf('id="comfy-shared-character-list"');
- assert.ok(button>=0 && status>button && list>status);
- assert.ok(source.includes('[data-comfy-save-shared]'));
- assert.ok(source.includes("() => saveSharedDrawSettings({ notify: false })"));
- assert.ok(source.includes("statusElementId: 'comfy-role-save-status'"));
- assert.ok(source.includes("pendingText:"));
- assert.ok(source.includes('const edits = collectChineseAppearanceEdits(characters, getSharedDrawSettings().characterTags)'));
- assert.ok(source.includes('const characterTags = await translateChineseNamedTagDrafts(appearanceTranslated)'));
- assert.ok(source.includes("settings.characterTags = characterTags"));
+test('the current role save control and live status remain available without the removed duplicate shortcut',async()=>{
+ const {parseHTML}=await import('linkedom');const {document}=parseHTML(html);
+ const save=[...document.querySelectorAll('[data-comfy-save-shared]')].find(button=>button.textContent.includes('保存角色'));
+ assert.ok(save);assert.equal(save.type||save.getAttribute('type'),'button');
+ const status=document.querySelector('#comfy-role-save-status');assert.equal(status.getAttribute('role'),'status');assert.equal(status.getAttribute('aria-live'),'polite');
+ assert.ok(document.querySelector('#comfy-role-collapse-all'));assert.ok(document.querySelector('#comfy-shared-character-list'));
+ assert.ok(source.includes("querySettingsAll('[data-comfy-save-shared]').forEach"));
+ assert.ok(source.includes('await saveAllSettings({ notify: true, triggerButton: event.currentTarget, statusElementId })'));
+ assert.equal(document.querySelector('#comfy-role-save-edits'),null,'the current UI has one shared save control instead of the retired duplicate');
 });

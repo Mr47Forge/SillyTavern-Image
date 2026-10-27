@@ -1,5 +1,6 @@
 import { getContext } from '/scripts/extensions.js';
-import { getCardPreview } from './gallery-cache.js';
+import { getCardPreview,storePreview,deletePreview } from './gallery-cache.js';
+import {getImageSlotRecord} from './image-directive-identity.js';
 import { getDrawSavedPreview } from './draw-common.js';
 import { isSceneSlotAlive } from './scene-placement.js';
 import { DRAW_SLOT_COPY } from './image-record.js';
@@ -39,5 +40,14 @@ export async function readImageCardTarget(target) {
     if (record || !target.imgId) return record;
     const saved = getDrawSavedPreview(target.message, target.slotId, target.messageId, String(target.ctx.chatId));
     if (saved?.imgId === target.imgId) return saved;
+    const portable=getImageSlotRecord(target.message,target.slotId);
+    if(portable?.imgId===target.imgId){
+        await storePreview({...portable,messageId:target.messageId,chatId:target.ctx.chatId},{ifAbsent:true});
+        try{target.assertCurrent();}catch(error){
+            if(!isSceneSlotAlive(target.message?.mes,target.slotId))await deletePreview(portable.imgId);
+            throw error;
+        }
+        const restored=await getCardPreview(target);target.assertCurrent();return restored;
+    }
     throw new Error(DRAW_SLOT_COPY.missingRecord);
 }

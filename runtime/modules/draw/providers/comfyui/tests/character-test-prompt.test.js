@@ -24,18 +24,18 @@ test('test uses body framing requested and preserves already specified hair with
  assert.doesNotMatch(out.positive,/natural black long hair/);
  assert.match(out.positive,/full length standing photograph/);
 });
-test('test requires English face prompt rather than silently using old/empty translation',()=>{
- assert.throws(()=>buildCharacterTestPrompt({name:'blank',appearance:''}),/英文/);
+test('test requires a saved appearance when both Chinese and legacy English are empty',()=>{
+ assert.throws(()=>buildCharacterTestPrompt({name:'blank',appearance:''}),/外貌/);
 });
 test('role card binds per-card save and test, and hides Danbooru input and button',()=>{
- const card=src.slice(src.indexOf('function renderCharacterCard('),src.indexOf('function createCharacterEnglishDetails('));
+ const card=src.slice(src.indexOf('function renderCharacterCard('),src.indexOf('function createChineseNamedTagField('));
  assert.match(card,/dataset\.sdCharSave/);
  assert.match(card,/dataset\.sdCharTest/);
  assert.doesNotMatch(card,/data-sd-char-danbooru|sdCharDanbooru|Danbooru Tag|danbooru-panel/);
  assert.match(src,/async function saveSingleComfyCharacterCard/);
  assert.match(src,/getSharedCharacterTagsFromForm\(\)\.find/);
- assert.match(src,/translateChineseAppearanceDrafts\(\[before\]\)/);
- assert.match(src,/translateChineseNamedTagDrafts\(translated\.characters\)/);
+ assert.doesNotMatch(src,/translateChineseAppearanceDrafts\(/);
+ assert.doesNotMatch(src,/translateChineseNamedTagDrafts\(/);
  assert.match(src,/updateSharedDrawSettingsPersistent\(draft =>/);
  assert.match(src,/openCharacterTestPreview/);
  assert.match(src,/generateImagesFromText\(\{/);

@@ -2,11 +2,13 @@ import { extensionFolderPath } from '../../core/constants.js';
 import { SERVER_PLUGIN_INSTALLATION } from './standalone-installation.js';
 
 function buildServerPluginGuideMarkup(prefix) {
+    const packageUrl = '/' + extensionFolderPath.replace(/\/runtime$/, '') + '/server-plugin/sillytavern-image-server.zip';
     return `<link rel="stylesheet" href="/${encodeURI(extensionFolderPath)}/shared/server-plugin/installation-guide.css">
     <button id="${prefix}-install-guide" class="sti-web-guide-button" type="button" aria-haspopup="dialog">${SERVER_PLUGIN_INSTALLATION.open}</button>
     <dialog id="${prefix}-install-dialog" class="sti-web-install-dialog" aria-labelledby="${prefix}-install-title">
         <header><h3 id="${prefix}-install-title">${SERVER_PLUGIN_INSTALLATION.title}</h3>
             <button type="button" id="${prefix}-install-close" class="sti-web-guide-button" autofocus>${SERVER_PLUGIN_INSTALLATION.close}</button></header>
+        <p><a class="sti-web-guide-button" href="${packageUrl}" download>下载匹配的后台安装包</a></p>
         <ol id="${prefix}-install-steps"></ol>
     </dialog>`;
 }
