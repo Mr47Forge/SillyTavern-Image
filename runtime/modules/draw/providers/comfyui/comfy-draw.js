@@ -602,7 +602,7 @@ export function getGenerationSnapshot() {
 async function persistSettings(nextSettings, okText = '已保存', { notify = true, silent = false } = {}) {
     if (!settingsLoaded) {
         console.error('[ComfyDraw] 设置尚未成功加载，拒绝保存');
-        if (notify) toastr.error('配置尚未成功加载，已禁止保存', 'ComfyUI');
+        if (notify) showSettingsNotice('配置尚未成功加载，已禁止保存', 'error');
         return false;
     }
     const next = normalizeSettings(nextSettings);
@@ -612,19 +612,19 @@ async function persistSettings(nextSettings, okText = '已保存', { notify = tr
         const ok = await ComfyDrawStorage.setAndSave(SERVER_FILE_KEY, next, { silent });
         if (ok !== false) {
             if (notify) {
-                toastr.success(okText, 'ComfyUI');
+                showSettingsNotice(okText, 'success');
             }
             return true;
         }
         if (notify) {
-            toastr.error('保存失败', 'ComfyUI');
+            showSettingsNotice('保存失败，请重试', 'error');
         }
         settingsCache = previous;
         return false;
     } catch (error) {
         settingsCache = previous;
         if (notify) {
-            toastr.error(error?.message || '保存失败', 'ComfyUI');
+            showSettingsNotice(error?.message || '保存失败，请重试', 'error');
         }
         return false;
     }
@@ -1551,6 +1551,25 @@ function querySettingsAll(selector) {
     return Array.from(getSettingsDocument()?.querySelectorAll(selector) || []);
 }
 
+function showSettingsNotice(message, level = 'success') {
+    try {
+        const { Popup, POPUP_TYPE } = getContext();
+        const content = document.createElement('div');
+        const title = document.createElement('h3');
+        title.textContent = { success: '操作完成', error: '操作失败', warning: '请注意' }[level] || '提示';
+        const text = document.createElement('p');
+        text.textContent = String(message || '');
+        text.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;';
+        content.append(title, text);
+        // 保存结果已确定；弹窗关闭不参与存储事务，也不阻塞按钮恢复。
+        void new Popup(content, POPUP_TYPE.TEXT, '', {
+            okButton: '知道了', cancelButton: false, allowVerticalScrolling: true,
+        }).show().catch(error => console.warn('[ComfyDraw] 保存提醒显示失败:', error));
+    } catch (error) {
+        console.warn('[ComfyDraw] 保存提醒显示失败:', error);
+    }
+}
+
 // 自定义输入对话框：替代原生 await askInputDialog()。移动端原生 prompt 会强制页面缩放/重排，导致整个 UI 上移。
 function askInputDialog(title, defaultValue = '') {
     return new Promise((resolve) => {
@@ -1820,7 +1839,7 @@ function bindOverlayEvents() {
     });
     querySettings('#comfy-draw-test')?.addEventListener('click', async () => {
         const saved = await saveAllSettings({ notify: false });
-        if (!saved) { toastr.error('配置没有保存成功，已停止连接测试；请先处理保存报错'); return; }
+        if (!saved) { showSettingsNotice('配置没有保存成功，已停止连接测试；请先处理保存报错', 'error'); return; }
         await testConnection();
     });
     querySettings('#comfy-draw-size-preset')?.addEventListener('change', async () => {
@@ -2081,17 +2100,8 @@ function bindOverlayEvents() {
         updateStatusText(statusElementId, '', `${label}保存中...`);
         const ok = await withSaveTimeout(updateSettingsPersistent(mutator, `${label}已保存`, { notify: false, silent: false }));
         const successText = `${label}已保存`;
-        updateStatusText(
-            statusElementId,
-            ok ? 'success' : 'error',
-            ok ? successText : `${label}保存失败，请重试`,
-        );
-        if (ok) {
-            setTimeout(() => {
-                const el = getSettingsElement(statusElementId);
-                if (el?.textContent === successText) updateStatusText(statusElementId, '', '');
-            }, 1800);
-        }
+        updateStatusText(statusElementId, '', '');
+        showSettingsNotice(ok ? successText : `${label}保存失败，请重试`, ok ? 'success' : 'error');
         if (ok) fillForm(getSettings());
         return ok;
     };
@@ -2407,16 +2417,6 @@ function bindOverlayEvents() {
     });
     querySettings('#comfy-role-collapse-all')?.addEventListener('click', () => setAllComfyCharacterCardsExpanded(false));
     querySettings('#comfy-role-expand-all')?.addEventListener('click', () => setAllComfyCharacterCardsExpanded(true));
-    querySettings('#comfy-shared-character-list')?.addEventListener('input', async (event) => {
-        if (event.target?.matches?.('input, textarea, select')) {
-            updateStatusText('comfy-role-save-status', '', '角色资料有未保存修改；点击「保存角色」保存中文资料。');
-        }
-    });
-    querySettings('#comfy-shared-character-list')?.addEventListener('change', async (event) => {
-        if (event.target?.matches?.('input, textarea, select')) {
-            updateStatusText('comfy-role-save-status', '', '角色资料有未保存修改；请点击「保存角色」。');
-        }
-    });
     querySettings('#comfy-shared-character-list')?.addEventListener('input', async (event) => {
         if (!event.target?.matches?.('[data-sd-char-field="name"], [data-sd-char-field="type"]')) return;
         updateComfyCharacterCardTitle(event.target.closest('.sd-char-card'));
@@ -3028,9 +3028,9 @@ function ensureCharacterLibraryUi() {
         renderEmpty: createCharacterEmptyState,
         onChange: () => refreshSettingsSummary(),
         notify: {
-            success: (message) => toastr.success(message),
-            warning: (message) => toastr.warning(message),
-            error: (message) => toastr.error(message),
+            success: (message) => showSettingsNotice(message, 'success'),
+            warning: (message) => showSettingsNotice(message, 'warning'),
+            error: (message) => showSettingsNotice(message, 'error'),
         },
     });
     return characterLibraryUi;
@@ -3069,8 +3069,7 @@ function ensureGroupPresetBinding() {
         },
         settings: { get: getSharedDrawSettings },
         toast: (message, level) => {
-            const show = toastr[level] || toastr.info;
-            show.call(toastr, message);
+            showSettingsNotice(message, level || 'info');
         },
     });
     return groupPresetBinding;
@@ -3311,7 +3310,7 @@ async function uploadComfyRolePhoto(card, photoButton, file) {
     photo.src = '/' + photoUrl;
     photoButton.replaceChildren(photo);
     photoButton.title = '点击更换角色照片（保存在 H28K）';
-    toastr.success('角色照片已保存在 H28K，重新打开仍会显示');
+    showSettingsNotice('角色照片已保存在 H28K，重新打开仍会显示', 'success');
 }
 
 
@@ -3378,9 +3377,9 @@ function openComfyRolePhotoViewer(card, photoButton) {
             icon.className = 'fa-solid fa-camera';
             photoButton.replaceChildren(icon);
             photoButton.title = '添加角色照片';
-            close();toastr.success('已清除照片关联');
+            close();showSettingsNotice('已清除照片关联', 'success');
         } catch(error) {
-            toastr.error('清除失败：'+String(error?.message||error));
+            showSettingsNotice('清除失败：'+String(error?.message||error), 'error');
         } finally { unlink.disabled=false; }
     });
     const done = button('关闭',close);
@@ -3404,7 +3403,7 @@ function chooseComfyRolePhoto(card, photoButton) {
             await uploadComfyRolePhoto(card, photoButton, file);
         } catch (error) {
             console.error('[SillyTavernImage] 照片上传失败:', error);
-            toastr.error(error?.message || '角色照片上传失败');
+            showSettingsNotice(error?.message || '角色照片上传失败', 'error');
         } finally {
             photoButton.disabled = false;
         }
@@ -3489,12 +3488,11 @@ function renderCharacterCard({ character: tag, ordinal }) {
         event.stopPropagation();
         void runSaveButtonTask(saveButton,
             () => saveSingleComfyCharacterCard(card.dataset.characterId), {
-                statusElementId: 'comfy-role-save-status',
                 pendingText: '正在保存当前角色...',
                 successText: '当前角色已保存。',
                 errorText: '当前角色保存失败',
                 showErrorDetails: true,
-                notify: false,
+                notify: true,
             });
     });
     testButton.addEventListener('click', async (event) => {
@@ -3913,11 +3911,10 @@ async function saveAllSettings({ notify = false, triggerButton = null, statusEle
             statusElementId,
             pendingText: '正在保存...',
             successText: '已保存到独立绘图服务端配置',
-            errorText: '保存失败，请重试',
+            errorText: () => lastSaveFailure || '保存失败，请重试',
             notify,
         });
         if (ok) await runPostSaveHooks();
-        if (!ok && lastSaveFailure) toastr.error(lastSaveFailure);
         return ok;
     }
 
@@ -3933,15 +3930,15 @@ async function saveAllSettings({ notify = false, triggerButton = null, statusEle
     if (statusElementId) {
         updateStatusText(
             statusElementId,
-            ok ? 'success' : 'error',
-            ok ? '已保存到独立绘图服务端配置' : '保存失败，请重试',
+            '',
+            '',
         );
     }
 
     if (ok && notify) {
-        toastr.success('绘图参数与角色资料已保存');
-    } else if (!ok && (notify || lastSaveFailure)) {
-        toastr.error(lastSaveFailure || '绘图参数或角色资料保存失败');
+        showSettingsNotice('绘图参数与角色资料已保存', 'success');
+    } else if (!ok && notify) {
+        showSettingsNotice(lastSaveFailure || '绘图参数或角色资料保存失败', 'error');
     }
     refreshSettingsSummary();
     return ok;
@@ -4073,6 +4070,7 @@ async function importCharactersFromCurrentTavern(button) {
             throw new Error('请先关闭其他角色导入预览，再分析当前剧情');
         }
         openPromptImportDialog({
+            notify: showSettingsNotice,
             initialResults: candidates.map(candidate => ({
                 ...candidate,
                 negativeTags: '',
@@ -4115,17 +4113,11 @@ function deleteCharacterTagDraft(characterId = '') {
 }
 
 function refreshSettingsSummary() {
-    const settings = getSettings();
-    const activePreset = getActivePreset(settings);
     const characterCount = characterLibraryUi?.isRendered()
         ? characterLibraryUi.getCardCount()
         : (getSharedDrawSettings().characterTags?.length || 0);
-    const presetEl = querySettings('#comfy-draw-summary-preset');
-    const charSideEl = querySettings('#comfy-draw-summary-characters-side');
     const charResultEl = querySettings('#comfy-draw-character-result-count');
-    if (presetEl) presetEl.textContent = activePreset?.name || '默认';
-    if (charSideEl) charSideEl.textContent = String(characterCount);
-    if (charResultEl) charResultEl.textContent = `${characterCount} / ${characterCount}`;
+    if (charResultEl) charResultEl.textContent = `共 ${characterCount} 名角色`;
 }
 
 
@@ -4328,8 +4320,9 @@ async function runSaveButtonTask(button, task, {
     successText = '已保存',
     errorText = '保存失败，请重试',
     showErrorDetails = false,
-    notify = false,
+    notify = true,
 } = {}) {
+    if (button && saveBtnStates.has(button)) return false;
     if (statusElementId) updateStatusText(statusElementId, '', pendingText);
     setSavingState(button);
     let ok = false;
@@ -4341,14 +4334,14 @@ async function runSaveButtonTask(button, task, {
         if (showErrorDetails) failureDetail = describeCharacterSaveError(error);
         ok = false;
     }
+    const failureText = typeof errorText === 'function' ? errorText() : errorText;
     const shownError = showErrorDetails
-        ? errorText + '：' + (failureDetail || '存储服务未确认保存成功')
-        : errorText;
+        ? failureText + '：' + (failureDetail || '存储服务未确认保存成功')
+        : failureText;
     handleSaveResult(ok, button);
-    if (statusElementId) updateStatusText(statusElementId, ok ? 'success' : 'error', ok ? successText : shownError);
+    if (statusElementId) updateStatusText(statusElementId, '', '');
     if (notify) {
-        if (ok) toastr.success(successText, 'ComfyUI');
-        else toastr.error(shownError, 'ComfyUI');
+        showSettingsNotice(ok ? successText : shownError, ok ? 'success' : 'error');
     }
     refreshSettingsSummary();
     return ok;
@@ -5201,11 +5194,11 @@ async function saveEditedTags(container) {
             return { positive: data.positive, negativePrompt: data.negative ?? record?.negativePrompt ?? '' };
         });
         toggleEditPanel(container, false);
-        toastr.success(DRAW_SLOT_COPY.tagSaved);
+        showSettingsNotice(DRAW_SLOT_COPY.tagSaved, 'success');
         return true;
     } catch (error) {
         console.error(DRAW_SLOT_COPY.tagSaveFailed, error);
-        toastr.error(error.message);
+        showSettingsNotice(error.message, 'error');
         return false;
     }
 }
@@ -5275,7 +5268,7 @@ async function saveCurrentImage(container) {
         const previews = await getPreviewsBySlot(slotId);
         const preview = previews.find(item => item.imgId === imgId) || previews[0];
         if (!preview?.base64 && !preview?.savedUrl) throw new Error('图片缓存不存在');
-        if (preview.savedUrl) { toastr.info('这张图已经保存到服务器'); return; }
+        if (preview.savedUrl) { showSettingsNotice('这张图已经保存到服务器', 'info'); return; }
         const ctx = getContext();
         const charName = ctx.groupId
             ? String(ctx.groups?.[ctx.groupId]?.id ?? 'group')
@@ -5286,9 +5279,9 @@ async function saveCurrentImage(container) {
         const img = container.querySelector('img');
         if (img) img.src = getPreviewDisplayUrl(await getPreview(imgId) || { savedUrl: url });
         container.dataset.state = 'saved';
-        toastr.success('图片已保存到服务器');
+        showSettingsNotice('图片已保存到服务器', 'success');
     } catch (error) {
-        toastr.error(error?.message || '保存失败');
+        showSettingsNotice(error?.message || '保存失败', 'error');
     }
 }
 

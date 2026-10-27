@@ -288,14 +288,14 @@ select.input { cursor: pointer; }
     display: flex; flex-direction: column; gap: 16px;
     position: sticky; top: 0; align-self: start;
 }
-.char-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.char-summary-item {
-    background: var(--bg-tertiary); border: 1px solid var(--border);
-    border-radius: 10px; padding: 14px 12px;
+.char-management-actions {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 12px 0; margin-bottom: 12px; border-block: 1px solid var(--border);
 }
-.char-summary-label { font-size: 11px; color: var(--text-secondary); }
-.char-summary-value { font-size: 24px; font-weight: 700; margin-top: 4px; color: var(--text-primary); }
-.char-summary-value.accent { color: var(--accent); }
+.char-management-actions .lwb-cl-toolbar,
+.char-management-actions .comfy-role-list-controls { margin: 0; }
+.char-management-actions .lwb-cl-toolbar-hint { flex-basis: 100%; }
+.char-management-actions .lwb-cl-batch-bar { position: static; margin: 8px 0 0; }
 .char-list-card { min-height: 0; }
 .char-list-card-header {
     display: flex; align-items: center; justify-content: flex-start;
@@ -355,7 +355,6 @@ select.input { cursor: pointer; }
     display: flex; flex-wrap: wrap; align-items: center;
     gap: 8px; margin: 0 0 12px;
 }
-.comfy-role-list-controls .form-hint { margin: 0; }
 .sd-char-card .comfy-role-card-body[hidden] { display: none !important; }
 .sd-char-card.comfy-role-collapsed {
     padding: 9px 12px;
@@ -1019,29 +1018,6 @@ select.input { cursor: pointer; }
                 <div class="char-management-layout">
                     <aside class="char-management-sidebar">
                         <div class="card">
-                            <div class="card-title">📊 角色概览</div>
-                            <div class="char-summary-grid">
-                                <div class="char-summary-item">
-                                    <div class="char-summary-label">总角色数</div>
-                                    <div id="comfy-draw-summary-characters-side" class="char-summary-value accent">0</div>
-                                </div>
-                                <div class="char-summary-item">
-                                    <div class="char-summary-label">当前预设</div>
-                                    <div id="comfy-draw-summary-preset" class="char-summary-value">默认</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-title">🧰 批量操作</div>
-                            <div class="btn-group">
-                                <button id="comfy-shared-char-add" class="btn btn-primary btn-sm" type="button"><i class="fa-solid fa-plus"></i> 添加角色</button>
-                                <button id="comfy-shared-char-export" class="btn btn-sm" type="button"><i class="fa-solid fa-upload"></i> 导出</button>
-                                <label class="btn btn-sm" style="cursor:pointer;"><i class="fa-solid fa-download"></i> 导入<input type="file" id="comfy-shared-char-import" accept=".json" style="display:none;"></label>
-                                <button class="btn btn-sm" type="button" data-comfy-save-shared><i class="fa-solid fa-floppy-disk"></i> 保存角色</button>
-                            </div>
-                            <p class="form-hint" style="margin-top:10px;">角色名、别名、外观、服装参考、动态外貌、角色负向标签都会被画图流程直接使用。</p>
-                        </div>
-                        <div class="card">
                             <div id="comfy-group-preset-root"></div>
                         </div>
                     </aside>
@@ -1053,15 +1029,23 @@ select.input { cursor: pointer; }
                                     <div class="card-title">👥 角色列表</div>
                                     <p class="form-hint" style="margin-top:6px;">角色底稿定好后，出图只需补当前动作、表情和互动</p>
                                 </div>
-                                <button id="comfy-import-from-chat" type="button" class="btn btn-primary btn-sm">从当前剧情生成角色外貌</button>
-                                <div id="comfy-draw-character-result-count" class="char-list-count">0 / 0</div>
+                                <div id="comfy-draw-character-result-count" class="char-list-count" role="status" aria-live="polite">共 0 名角色</div>
                             </div>
-                            <div id="comfy-shared-character-toolbar"></div>
-                            <div class="comfy-role-list-controls">
-                                <button id="comfy-role-collapse-all" class="btn btn-sm" type="button"><i class="fa-solid fa-compress"></i> 全部收起</button>
-                                <button id="comfy-role-expand-all" class="btn btn-sm" type="button"><i class="fa-solid fa-expand"></i> 全部展开</button>
-                                <span id="comfy-role-save-status" class="status-text" role="status" aria-live="polite">只填写中文并保存；本轮剧情模型生成绘图指令时会一起转成英文。</span>
+                            <div class="char-management-actions" role="group" aria-label="角色操作">
+                                <div class="btn-group">
+                                    <button id="comfy-shared-char-add" class="btn btn-primary btn-sm" type="button"><i class="fa-solid fa-plus"></i> 添加角色</button>
+                                    <button id="comfy-import-from-chat" type="button" class="btn btn-sm">从当前剧情生成角色外貌</button>
+                                    <button id="comfy-shared-char-export" class="btn btn-sm" type="button"><i class="fa-solid fa-upload"></i> 导出</button>
+                                    <label class="btn btn-sm" style="cursor:pointer;"><i class="fa-solid fa-download"></i> 导入<input type="file" id="comfy-shared-char-import" accept=".json" style="display:none;"></label>
+                                    <button class="btn btn-primary btn-sm" type="button" data-comfy-save-shared><i class="fa-solid fa-floppy-disk"></i> 保存角色</button>
+                                </div>
+                                <div id="comfy-shared-character-toolbar"></div>
+                                <div class="comfy-role-list-controls">
+                                    <button id="comfy-role-collapse-all" class="btn btn-sm" type="button"><i class="fa-solid fa-compress"></i> 全部收起</button>
+                                    <button id="comfy-role-expand-all" class="btn btn-sm" type="button"><i class="fa-solid fa-expand"></i> 全部展开</button>
+                                </div>
                             </div>
+                            <p class="form-hint">角色资料只需填写中文；生成绘图指令时由剧情模型翻译。</p>
                             <div class="char-list-body">
                                 <div id="comfy-shared-character-list" class="char-grid"></div>
                             </div>

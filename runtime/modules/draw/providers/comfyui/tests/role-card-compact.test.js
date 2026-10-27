@@ -131,11 +131,12 @@ test('group and batch management controls remain in the page',()=>{
  assert.ok(html.includes('.sd-char-card.comfy-role-collapsed'));
 });
 
-test('the current role save control and live status remain available without the removed duplicate shortcut',async()=>{
+test('the current role save control uses popup feedback without the removed duplicate shortcut',async()=>{
  const {parseHTML}=await import('linkedom');const {document}=parseHTML(html);
  const save=[...document.querySelectorAll('[data-comfy-save-shared]')].find(button=>button.textContent.includes('保存角色'));
  assert.ok(save);assert.equal(save.type||save.getAttribute('type'),'button');
- const status=document.querySelector('#comfy-role-save-status');assert.equal(status.getAttribute('role'),'status');assert.equal(status.getAttribute('aria-live'),'polite');
+ assert.equal(document.querySelector('#comfy-role-save-status'),null);
+ const count=document.querySelector('#comfy-draw-character-result-count');assert.equal(count.getAttribute('role'),'status');assert.equal(count.getAttribute('aria-live'),'polite');
  assert.ok(document.querySelector('#comfy-role-collapse-all'));assert.ok(document.querySelector('#comfy-shared-character-list'));
  assert.ok(source.includes("querySettingsAll('[data-comfy-save-shared]').forEach"));
  assert.ok(source.includes('await saveAllSettings({ notify: true, triggerButton: event.currentTarget, statusElementId })'));

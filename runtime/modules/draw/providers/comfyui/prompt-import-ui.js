@@ -16,7 +16,7 @@ function followVisibleViewport(overlay) {
     timer = setInterval(apply, 100);
 }
 // Standalone, scoped prompt import dialog. Does not change the host plugin's role-card schema.
-export function openPromptImportDialog({ save, initialResults = [] }) {
+export function openPromptImportDialog({ save, initialResults = [], notify }) {
   const doc=document;
   const prior=doc.getElementById('lwb-comfy-ai-prompt-dialog');
   if(prior){prior.querySelector('textarea')?.focus();return;}
@@ -103,9 +103,14 @@ export function openPromptImportDialog({ save, initialResults = [] }) {
     setBusy(true);status.textContent='正在检查角色库，尚未保存...';
     try{
       const result=await save(reviewed,(msg)=>{status.textContent=msg;});
-      status.textContent=result;
+      status.textContent=notify?'':result;
+      notify?.(result,'success');
       items=[];commit.hidden=true;preview.replaceChildren();
-    }catch(e){status.textContent='没有写入角色库：'+(e?.message||'保存失败');}
+    }catch(e){
+      const message='没有写入角色库：'+(e?.message||'保存失败');
+      status.textContent=notify?'':message;
+      notify?.(message,'error');
+    }
     finally{setBusy(false);}
   });
   items=initialResults;
