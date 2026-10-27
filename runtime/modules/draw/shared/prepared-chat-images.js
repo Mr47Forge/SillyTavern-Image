@@ -11,6 +11,7 @@ import { executePreparedSlots } from './prepared-slot-executor.js';
 import { setSlotActivity, clearSlotActivity } from './slot-activity.js';
 import { DRAW_SLOT_COPY } from './image-record.js';
 import { commitChatImagePlacement, restoreChatImagePlacements } from './chat-image-placement.js';
+import { bindImageSlotDirectives, recordImageSlotResult } from './image-directive-identity.js';
 
 const providers = new Map();
 
@@ -133,12 +134,22 @@ export async function submitPreparedChatImages({ ctx, message, messageId, source
         validateSource();
     }
     return executePreparedSlots({ items, backend, nativeMessage, onPrepared,
+        linkJob:async ({jobId})=>withConfirmableChatMutation(ctx,async()=>{
+            const live=getContext();
+            if(String(live.chatId)!==chatId||!live.chat.includes(message)||(message.swipe_id??0)!==swipeIndex
+                ||!ids.every(i=>isSceneSlotAlive(message.mes,i.slotId)))throw new Error(DRAW_SLOT_COPY.sourceChanged);
+            ids.forEach((item,index)=>Object.assign(message.extra.sti_comfy_slots[item.slotId],{jobId,jobIndex:index,backend:true}));
+            await saveChatAndConfirm({ctx,verify:chat=>ids.every(item=>chat.some(m=>m.extra?.sti_comfy_slots?.[item.slotId]?.jobId===jobId))});
+        }),
         store: storePreview, remove: deletePreview, clearSelection: clearSlotSelection,
         select: async (slotId, imgId) => {
             await setSlotSelection(slotId, imgId);
             const target = resolveTarget(slotId);
             if (!target || String(getContext().chatId) !== chatId) return;
-            const selectedPreview = autoSaveToServer ? await getPreview(imgId) : null;
+            const selectedPreview = await getPreview(imgId);
+            if(String(getContext().chatId)!==chatId||getContext().chat?.[target.messageId]!==target.message)
+                throw new Error(DRAW_SLOT_COPY.sourceChanged);
+            const recorded=recordImageSlotResult(target.message,slotId,selectedPreview);
             const successfulImage = selectedPreview?.status === 'success'
                 && !!(selectedPreview.base64 || selectedPreview.savedUrl);
             if (autoSaveToServer && successfulImage) {
@@ -148,15 +159,18 @@ export async function submitPreparedChatImages({ ctx, message, messageId, source
             } else {
                 // Failed/unknown cards are never files and must not retain the
                 // previous image's portable saved URL.
-                await clearDrawSavedEntry(target.messageId, slotId);
+                const cleared=await clearDrawSavedEntry(target.messageId, slotId);
+                if(recorded&&!cleared)await saveChatAndConfirm({ctx,verify:persisted=>
+                    persisted.some(m=>m.extra?.sti_comfy_slots?.[slotId]?.imgId===imgId)});
             }
         }, resolveTarget, render, run, signal, onStateChange, classifyError,
         activity: (slotId, state) => state
             ? setSlotActivity(slotId, { ...state, owner }) : clearSlotActivity(slotId, owner),
-        commit: nativeMessage ? () => {
+        commit: nativeMessage ? (details={}) => {
             // MESSAGE_RECEIVED is inside the host's own save boundary. No extra
             // chat I/O here, and no await between ownership check and mutation.
             validateSource();
+            bindImageSlotDirectives(message,tasks,ids,metadata,{...details,backend});
             placeTags();
             const liveId = getContext().chat.indexOf(message);
             // This is a committed text edit, not a progress refresh. Mounted
@@ -165,8 +179,9 @@ export async function submitPreparedChatImages({ ctx, message, messageId, source
                 insertedSlotIds: ids.map(item => item.slotId) }).catch(error => console.error(DRAW_SLOT_COPY.renderFailed, error));
             onPlacement?.();
             return true;
-        } : () => withConfirmableChatMutation(ctx, async () => {
+        } : (details={}) => withConfirmableChatMutation(ctx, async () => {
             validateSource();
+            bindImageSlotDirectives(message,tasks,ids,metadata,{...details,backend});
             // Manual tags use the same synchronous text/card handoff as native
             // tags. Persistence still gates transport, not the visible card.
             if (replacesTags) placeTags();
@@ -176,6 +191,8 @@ export async function submitPreparedChatImages({ ctx, message, messageId, source
             // Confirm slot identities because floor/swipe indices may move.
             await saveChatAndConfirm({ ctx, verify: persisted =>
                 items.every(item => findImageJobDeliverySlot(persisted, item.slotId)) });
+            console.info('[STI绘图阶段]',JSON.stringify({stage:'slots-saved',messageId,
+                slots:items.map(item=>({slotId:item.slotId,imageIndex:message.extra?.sti_comfy_slots?.[item.slotId]?.imageIndex??null}))}));
             // Source changes still revoke placement. A cancellation after the
             // save keeps the provider's existing unsubmitted-abort settlement.
             try { assertSource(plannedText); }

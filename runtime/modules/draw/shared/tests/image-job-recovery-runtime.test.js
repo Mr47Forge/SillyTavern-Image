@@ -30,7 +30,7 @@ const stubs = {
         export const isMessageBeingEdited = () => false;
         export const isAnyMessageBeingEdited = () => false;
         export const renderPreviewsForMessage = async () => {};export const syncDrawSavedFromPreview=async()=>{};
-        export const materializeDrawSavedPreview = async () => null;
+        export const materializeDrawSavedPreview = async () => null;export const clearDrawSavedEntry=async()=>false;
         export const ErrorType = { JOB_EXPIRED: { code: 'expired', label: 'expired', desc: 'expired' } };
         export const classifyError = () => ErrorType.JOB_EXPIRED;
     `,

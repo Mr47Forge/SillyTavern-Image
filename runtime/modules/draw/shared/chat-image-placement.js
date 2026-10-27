@@ -38,7 +38,9 @@ export function commitChatImageRemoval({ message, swipeIndex, slotId }) {
     if (!edits.length || (message.swipe_id ?? 0) !== swipeIndex) throw new Error(DRAW_SLOT_COPY.sourceChanged);
     const after = rebaseImageText(before, { before, edits });
     setActiveMessageText(message, after);
-    const change = { message, swipeIndex, before, after, edits };
+    const slotRecord=message.extra?.sti_comfy_slots?.[slotId];
+    if(slotRecord)delete message.extra.sti_comfy_slots[slotId];
+    const change = { message, swipeIndex, before, after, edits,slotId,slotRecord };
     notify(change);
     return change;
 }
@@ -47,6 +49,7 @@ export function rollbackChatImageRemoval(change) {
     const { message, swipeIndex, before, after, edits } = change;
     if (message.mes !== after || (message.swipe_id ?? 0) !== swipeIndex) return;
     setActiveMessageText(message, before);
+    if(change.slotRecord){message.extra||={};message.extra.sti_comfy_slots||={};message.extra.sti_comfy_slots[change.slotId]=change.slotRecord;}
     notify({ message, swipeIndex, before: after, after: before, rollbackOf: change, edits: edits.map(edit => ({
         start: rebaseImageOffset(edit.start, edits), end: rebaseImageOffset(edit.start, edits),
         marker: '', content: edit.marker,

@@ -1,4 +1,5 @@
 import { assembleCharacterPrompts, joinTags } from '../../shared/character-prompts.js';
+import {sanitizeFinalImagePositive} from '../../shared/male-image-exclusion.js';
 import { applyRolePhotoReference } from './role-photo-reference.js';
 
 export const COMFY_REQUEST_DELAY_MS = 1000;
@@ -368,7 +369,7 @@ export function compileComfyPromptForTask(task, recipe = {}) {
     const negativeOverride = String(recipe.negativePromptOverride || '').trim();
     if (promptOverride) {
         return {
-            positive: reinforceChineseFaceAppearance(joinTags(recipe.positivePrefix, promptOverride)),
+            positive: sanitizeFinalImagePositive(reinforceChineseFaceAppearance(joinTags(recipe.positivePrefix, promptOverride))),
             negative: task?.negativePrompt ?? joinTags(recipe.negativePrefix, negativeOverride),
             characterPrompts,
         };
@@ -378,7 +379,7 @@ export function compileComfyPromptForTask(task, recipe = {}) {
     return {
         // [K2] post_prompt：整图追加位，拼在所有角色之后（整条提示词最末尾）。
         // joinTags 过滤空值，未提交时与改造前逐字节一致；负向不跟。
-        positive: reinforceChineseFaceAppearance(joinTags(recipe.positivePrefix, task?.scene, charPositive, task?.post_prompt)),
+        positive: sanitizeFinalImagePositive(reinforceChineseFaceAppearance(joinTags(recipe.positivePrefix, task?.scene, charPositive, task?.post_prompt))),
         negative: task?.negativePrompt ?? joinTags(recipe.negativePrefix, negativeOverride, task?.extraNegativePrompt, charNegative),
         characterPrompts,
     };

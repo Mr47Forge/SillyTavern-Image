@@ -8,7 +8,8 @@ test('importer keeps two people separate and retains appearance details', () => 
         { name: 'Betty', type: 'woman', appearanceZh: '棕色短发，圆脸', appearance: 'short hair, round face', outfits: [] },
     ]}));
     assert.equal(list.length, 2);
-    assert.notEqual(list[0].appearance, list[1].appearance);
+    assert.equal(list[0].appearanceSource, 'chinese');
+    assert.equal(list[1].appearanceSource, 'chinese');
     assert.notEqual(list[0].appearanceZh, list[1].appearanceZh);
 });
 test('importer ignores people without appearance', () => {
@@ -85,22 +86,6 @@ test('Importer will not silently offer English descriptions as Chinese', () => {
     }]})),/\u4e2d\u6587/u);
 });
 
-
-test('Chinese cannot describe a different face than the already locked English identity', () => {
-    const prior={characters:[{
-        id:'a',name:'Alice',type:'woman',appearance:'existing fixed oval face',
-        aliases:[],
-    }],groups:[]};
-    const proposed=[{
-        name:'Alice',type:'woman',appearance:'new round face',
-        appearanceZh:'\\u5168\\u65b0\\u7684\\u5706\\u8138',
-        aliases:[],outfits:[],dynamicStates:[],
-    }];
-    const result=mergeImportedCharacters(prior,proposed);
-    assert.equal(result.changed,false);
-    assert.equal(result.characters[0].appearance,'existing fixed oval face');
-    assert.equal(result.characters[0].appearanceZh,undefined);
-});
 
 test('story collector does not erase a character description from the middle of medium messages', async () => {
     const { collectChatCharacterSource } = await import('../character-import.js');

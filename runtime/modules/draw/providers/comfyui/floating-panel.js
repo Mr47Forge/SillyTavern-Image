@@ -71,6 +71,14 @@ let floatingEl = null;
 let floatingDragState = null;
 let floatingState = FloatState.IDLE;
 let floatingMessageId = null;
+// Share duplicate-click protection between controls, but not reply branches.
+const panelCancellationsInFlight = new Set();
+function beginPanelCancellation(target) {
+    if (!target.message || [...panelCancellationsInFlight].some(active => active.message === target.message
+        && active.chatId === target.chatId && active.swipeIndex === target.swipeIndex)) return false;
+    panelCancellationsInFlight.add(target);
+    return true;
+}
 let floatingResult = { success: 0, total: 0, error: null, startTime: 0 };
 let floatingAutoResetTimer = null;
 let floatingCooldownRafId = null;
@@ -696,6 +704,13 @@ export function refreshDrawRunUiState() {
     if (messageId >= 0) void syncDrawRunPanelState(messageId);
 }
 
+function reconcilePanelsOnResume() {
+    if (document.visibilityState === 'hidden') return;
+    const ids = new Set([findLastAIMessageId()]);
+    for (const [id, panel] of panelMap) if (panel.root?.isConnected) ids.add(id);
+    for (const id of ids) if (id >= 0) void syncDrawRunPanelState(id);
+}
+
 function resolveCooldownEndTime({ cooldownUntil, duration } = {}) {
     const absolute = Number(cooldownUntil);
     if (Number.isFinite(absolute) && absolute > 0) return absolute;
@@ -886,6 +901,7 @@ function resolvePanelMessageId(panelData) {
 
 async function handleFloorAbort(messageId) {
     const target = captureDrawCancellationTarget(messageId);
+    if (!beginPanelCancellation(target)) return;
     try {
         const aborted = await runDrawCancellationAction({
             cancel: () => abortGeneration(messageId, { target }),
@@ -903,6 +919,8 @@ async function handleFloorAbort(messageId) {
     } catch (error) {
         console.error('[ComfyDraw] 中止失败:', error);
         toastr?.error?.(DRAW_SLOT_COPY.cancelFailed);
+    } finally {
+        panelCancellationsInFlight.delete(target);
     }
 }
 
@@ -924,7 +942,7 @@ function bindFloorPanelEvents(panelData) {
     }));
     el.querySelector('.nd-layer-active')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        if ([FloatState.SUBMITTING, FloatState.ACCEPTED, FloatState.UNCERTAIN, FloatState.QUEUED, FloatState.LLM, FloatState.GEN, FloatState.COOLDOWN, FloatState.RECONNECTING].includes(panelData.state)) {
+        if ([FloatState.SUBMITTING, FloatState.ACCEPTED, FloatState.UNCERTAIN, FloatState.QUEUED, FloatState.LLM, FloatState.GEN, FloatState.COOLDOWN, FloatState.RECONNECTING, FloatState.CANCELLING].includes(panelData.state)) {
             void handleFloorAbort(messageId);
         } else if ([FloatState.SUCCESS, FloatState.PARTIAL, FloatState.ERROR].includes(panelData.state)) {
             updateFloorDetailPopup(messageId);
@@ -1337,7 +1355,7 @@ function routeFloatingClick(target) {
         }
         floatingEl.classList.toggle('expanded');
     } else if (target.closest('.nd-layer-active')) {
-        if ([FloatState.SUBMITTING, FloatState.ACCEPTED, FloatState.UNCERTAIN, FloatState.QUEUED, FloatState.LLM, FloatState.GEN, FloatState.COOLDOWN, FloatState.RECONNECTING].includes(floatingState)) {
+        if ([FloatState.SUBMITTING, FloatState.ACCEPTED, FloatState.UNCERTAIN, FloatState.QUEUED, FloatState.LLM, FloatState.GEN, FloatState.COOLDOWN, FloatState.RECONNECTING, FloatState.CANCELLING].includes(floatingState)) {
             void handleFloatingAbort();
         } else if ([FloatState.SUCCESS, FloatState.PARTIAL, FloatState.ERROR].includes(floatingState)) {
             updateFloatingDetailPopup();
@@ -1375,6 +1393,7 @@ async function handleFloatingDrawClick() {
 async function handleFloatingAbort() {
     const messageId = floatingMessageId;
     const target = captureDrawCancellationTarget(messageId);
+    if (!beginPanelCancellation(target)) return;
     try {
         const aborted = messageId >= 0 && await runDrawCancellationAction({
             cancel: () => abortGeneration(messageId, { target }),
@@ -1392,6 +1411,8 @@ async function handleFloatingAbort() {
     } catch (error) {
         console.error('[ComfyDraw] 中止失败:', error);
         toastr?.error?.(DRAW_SLOT_COPY.cancelFailed);
+    } finally {
+        panelCancellationsInFlight.delete(target);
     }
 }
 
@@ -1553,6 +1574,9 @@ export function updateButtonVisibility(showFloor, showFloating) {
 
 export function initFloatingPanel() {
     drawRunActivityDispose ??= subscribeDrawRunActivity(syncDrawRunActivity);
+    document.addEventListener('visibilitychange', reconcilePanelsOnResume);
+    window.addEventListener('pageshow', reconcilePanelsOnResume);
+    window.addEventListener('online', reconcilePanelsOnResume);
     if (getSettings().showFloatingButton !== false) {
         createFloatingButton();
     }
@@ -1561,6 +1585,9 @@ export function initFloatingPanel() {
 export function destroyFloatingPanel() {
     drawRunActivityDispose?.();
     drawRunActivityDispose = null;
+    document.removeEventListener('visibilitychange', reconcilePanelsOnResume);
+    window.removeEventListener('pageshow', reconcilePanelsOnResume);
+    window.removeEventListener('online', reconcilePanelsOnResume);
     panelMap.forEach((data, messageId) => {
         if (data.autoResetTimer) clearTimeout(data.autoResetTimer);
         clearPanelCooldown(data);

@@ -15,7 +15,6 @@ const DEFAULT_SHARED_DRAW_SETTINGS = {
     characterGroups: [],
     characterGroupPresets: [],
     characterGroupPresetApplied: null,
-    danbooruLocalDB: false,
     messageFilterRules: [],
     worldbooks: { enabled: false, uploadedBooks: [], keywordFilterMode: 'auto' },
     updatedAt: 0,
@@ -98,7 +97,6 @@ export function normalizeSharedDrawSettings(saved = {}) {
         characterGroups: characterLibrary.groups,
         characterGroupPresets: groupPresetState.presets,
         characterGroupPresetApplied: groupPresetState.applied,
-        danbooruLocalDB: source.danbooruLocalDB === true,
         messageFilterRules,
         worldbooks: {
             enabled: rawWorldbooks.enabled === true,

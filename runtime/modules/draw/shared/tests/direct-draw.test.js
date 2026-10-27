@@ -1,3 +1,4 @@
+import {buildRecentAppearanceLedger} from '../character-appearance-ledger.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -11,7 +12,7 @@ import { selectPhotoCharacter } from '../../providers/comfyui/role-photo-referen
 import { buildWardrobeLedger, formatWardrobeLedger } from '../wardrobe-continuity.js';
 import { characterLibraryFromSettings, selectEnabledCharacters } from '../character-library.js';
 
-const painter = { name: 'Alice', aliases: ['画师'], enabled: true, type: 'adult artist',
+const painter = { name: 'Alice', aliases: ['画师'], enabled: true, type: 'adult female artist',
     appearance: 'silver hair', appearanceZh: '银发成年画师', negativeTags: 'red hair',
     outfits: [{ name: '工作服', tags: 'blue apron' }], dynamicStates: [{ name: '雨后', tags: 'wet hair' }],
     photoUrl: 'user/images/SillyTavernImage-role-photos/alice.jpg' };
@@ -68,11 +69,44 @@ test('aliases cannot bypass character limits, duplicates do not double count', (
     assert.throws(() => build([{ ...directive, characters: ['Alice', 'Beatrice'] }]), /超过/);
     assert.equal(build([{ ...directive, characters: ['Alice', '画师'] }])[0].chars.length, 1);
 });
-test('image counts are exact and capped at twenty', () => {
-    assert.throws(() => build([], preset), /绘图指令/);
-    assert.throws(() => build([directive], { maxImages: 2 }), /补足/);
-    assert.throws(() => build([directive, directive]), /当前要求/);
+test('strict settings count never clones missing Gemini image prompts', () => {
+    assert.throws(() => build([], preset), /\u7ed8\u56fe\u6307\u4ee4/);
+    assert.throws(() => build([directive], { maxImages: 2 }), /\u4e0d\u80fd\u590d\u5236/);
+    assert.throws(() => build([directive, directive], { maxImages: 2 }), /\u63d0\u793a\u8bcd\u76f8\u540c/);
+    assert.throws(() => build([directive], { maxImages: 21 }), /20/);
     assert.throws(() => build(Array(21).fill(directive), { maxImages: 0 }), /20/);
+});
+test('one Gemini response with three separate story beats schedules exactly three different scenes', () => {
+    const scenes=[
+        {...directive,prompt:'woman opens the studio door, wide shot',after:'\u6210\u5e74\u753b\u5e08\u63a8\u5f00\u753b\u5ba4\u7684\u95e8\u3002'},
+        {...directive,prompt:'woman paints at a window, medium shot',after:'\u5979\u5728\u7a97\u8fb9\u6574\u7406\u753b\u5177\u3002'},
+        {...directive,prompt:'woman lays brushes down at sunset, side view',after:'\u508d\u665a\u65f6\u5206\uff0c\u5979\u653e\u4e0b\u753b\u7b14\u3002'}
+    ];
+    const old=JSON.stringify(scenes);
+    const tasks=build(scenes,{...preset,maxImages:3});
+    assert.equal(tasks.length,3);
+    assert.equal(new Set(tasks.map(x=>x.scene)).size,3);
+    const compiled=compile(tasks,{...recipe,seeds:[101,102,103]});
+    assert.equal(compiled.items.length,3);
+    assert.deepEqual(compiled.items.map(x=>x.request.workflow['3'].inputs.seed),[101,102,103]);
+    assert.equal(new Set(compiled.artifacts.map(x=>x.promptData.positive)).size,3);
+    assert.ok(compiled.artifacts.every(x=>x.promptData.positive.includes('blue apron')));
+    assert.ok(compiled.artifacts.every(x=>x.promptData.negative.includes('blur')));
+    assert.equal(JSON.stringify(scenes),old);
+});
+test('duplicate effective positive prompts must not be submitted as separate images',()=>{
+    const duplicate=[{...directive,after:'\u6210\u5e74\u753b\u5e08\u63a8\u5f00\u753b\u5ba4\u7684\u95e8\u3002'},
+        {...directive,after:'\u508d\u665a\u65f6\u5206\uff0c\u5979\u653e\u4e0b\u753b\u7b14\u3002'}];
+    assert.throws(()=>build(duplicate,{...preset,maxImages:2}),/\u63d0\u793a\u8bcd\u76f8\u540c/);
+    const unique=duplicate.map((x,i)=>({...x,prompt:i?'woman at sunset, view from behind':'woman at studio door, front view'}));
+    assert.equal(build(unique,{...preset,maxImages:2}).length,2);
+});
+test('the original single-pass model prompt requests the exact number of unique image blocks',()=>{
+    const instruction=buildDirectDrawInstruction({preset:{maxImages:3}});
+    assert.match(instruction,/EXACTLY 3/);
+    assert.match(instruction,/3 DISTINCT independent prompts/);
+    assert.match(instruction,/No copies/);
+    assert.match(instruction,/No copies, no seed-only variants/);
 });
 test('anchors keep semantic position and tolerate typographic punctuation', () => {
     assert.equal(build()[0].placement.offset, text.indexOf('她在窗边整理画具。') + '她在窗边整理画具。'.length);
@@ -80,12 +114,21 @@ test('anchors keep semantic position and tolerate typographic punctuation', () =
     const tasks = build([{ ...directive, after: '成年画师说："窗外的玫瑰开了。"' }], preset, { sourceText: story });
     assert.ok(tasks[0].placement.offset < story.length);
 });
-test('bad anchors fall back visibly outside excluded sections', () => {
-    const notices = [];
-    const raw = '<think>不能选作画面的句子。</think>\n\n' + text;
-    const tasks = build([{ ...directive, after: '不能选作画面的句子。' }], preset,
-        { sourceText: raw, filterRules: [{ start: '<think>', end: '</think>' }], onPlacementFallback: n => notices.push(n) });
-    assert.equal(notices.length, 1); assert.ok(tasks[0].placement.offset > raw.indexOf('</think>'));
+test('unmatched after keeps image and follows preceding image rather than scattering',()=>{
+    const raw='<think>Not a visual beat.</think>\n\n'+text;
+    const directives=[
+        {...directive,after:'\u5979\u5728\u7a97\u8fb9\u6574\u7406\u753b\u5177\u3002'},
+        {...directive,prompt:'second portrait, alternate camera',after:'This sentence does not exist in source.'}
+    ];
+    const issues=[];
+    const tasks=buildDirectDrawTasks(directives,{maxImages:2},{sourceText:raw,
+        knownCharacters:[painter],filterRules:[{start:'<think>',end:'</think>'}],
+        skipInvalidImages:true,onImageRejected:e=>issues.push(e),
+    });
+    assert.equal(tasks.length,2);
+    assert.deepEqual(issues,[]);
+    assert.equal(tasks[1].placement.mode,'source');
+    assert.equal(tasks[1].placement.offset,tasks[0].placement.offset);
 });
 test('old inline tags use the same tasks and original paragraph', () => {
     const raw = '成年画师走进画室。[img: studio, adult painter]\n\n她开始画画。';
@@ -127,13 +170,66 @@ function fn(src, name) {
     const end = src.slice(start).search(/\n}\r?(?=\n|$)/);
     return src.slice(start, start + end + 2).replace(/^export /, '');
 }
-test('async injection preserves native system/developer presets and removes duplicate instruction', async () => {
-    const ctx = { window: { stimageComfyDraw: { getDirectDrawInstruction: async () => 'DRAW ONLY' } } };
+test('draw instruction uses independent extension channel without modifying any chat messages', async () => {
+    const injected = [];
+    const ctx = {
+        window: { stimageComfyDraw: { getDirectDrawInstruction: async () => 'DRAW ONLY' } },
+        setDrawPrompt: value => injected.push(value),
+    };
     vm.runInNewContext(fn(common, 'injectDrawDirectiveInstruction'), ctx);
-    const chat = [{ role: 'system', mes: 'NATIVE SYSTEM' }, { mes: 'USER TEXT' }, { role: 'developer', mes: 'NATIVE DEVELOPER' }];
-    await ctx.injectDrawDirectiveInstruction(chat); await ctx.injectDrawDirectiveInstruction(chat);
-    assert.equal(chat[0].mes, 'NATIVE SYSTEM'); assert.equal(chat[2].mes, 'NATIVE DEVELOPER');
-    assert.ok(chat[1].mes.startsWith('USER TEXT')); assert.equal(chat[1].mes.split('<sti-draw-instruction>').length, 2);
+    const chat = [
+        {role:'system',mes:'NATIVE SYSTEM'},
+        {mes:'<hidden>original protocol</hidden><content>USER TEXT</content>'},
+        {role:'developer',mes:'NATIVE DEVELOPER'},
+    ];
+    const original=JSON.stringify(chat);
+    await ctx.injectDrawDirectiveInstruction(chat);
+    await ctx.injectDrawDirectiveInstruction(chat);
+    assert.equal(JSON.stringify(chat),original);
+    assert.equal(JSON.stringify(injected),JSON.stringify(['','DRAW ONLY','','DRAW ONLY']));
+    assert.ok(!JSON.stringify(chat).includes('<sti-draw-instruction>'));
+});
+test('disabled plugin clears independent image instruction and does not clean chat',async()=>{
+    let handler=null,used=0;
+    const ctx={
+        registerGenerateInterceptor:(_key,callback)=>{handler=callback;},
+        GENERATE_INTERCEPTOR_ORDER:{DRAW:100},
+        setDrawPrompt:()=>{used++;},
+        window:{stimageComfyDraw:{getDirectDrawInstruction:async()=>{throw Error('must not call');}}},
+    };
+    vm.runInNewContext(fn(common,'setupDrawGenerateInterceptor'),ctx);
+    ctx.setupDrawGenerateInterceptor({shouldStrip:()=>false});
+    assert.equal(typeof handler,'function');
+    const original=[{mes:'<hidden><image>preserve me</image></hidden>'}];
+    const before=JSON.stringify(original);
+    await handler(original);
+    assert.equal(used,1);
+    assert.equal(JSON.stringify(original),before);
+});
+test('legacy image cleaning preserves hidden bodies and other plugins image markers',()=>{
+    const ctx={
+        stripDrawImageHtml:value=>value,
+    };
+    vm.runInNewContext(fn(common,'stripDrawArtifactsFromMessage'),ctx);
+    const sample='<hidden>protected <image>other extension</image> [image:custom-tag]</hidden>'
+        +'\n<content>outside [image:slot-own] [image:foreign] <image>third party</image></content>';
+    const result=ctx.stripDrawArtifactsFromMessage(sample);
+    assert.ok(result.includes('<hidden>protected <image>other extension</image> [image:custom-tag]</hidden>'));
+    assert.ok(result.includes('[image:foreign]'));
+    assert.ok(result.includes('<image>third party</image>'));
+    assert.ok(!result.includes('[image:slot-own]'));
+    const unclosed='<hidden>important [image:slot-own] <image>keep</image>';
+    assert.equal(ctx.stripDrawArtifactsFromMessage(unclosed),unclosed);
+});
+test('draw interceptor no longer mutates chat or appends instruction to last message',()=>{
+    const setup=fn(common,'setupDrawGenerateInterceptor');
+    assert.ok(!setup.includes('stripDrawArtifactsFromChat(chat)'));
+    assert.ok(!setup.includes('last.mes'));
+    const install=fn(common,'injectDrawDirectiveInstruction');
+    assert.ok(install.includes('setDrawPrompt(currentInstruction)'));
+    assert.ok(!install.includes('last.mes'));
+    assert.ok(common.includes('extension_prompt_roles.USER'));
+    assert.ok(common.includes('extension_prompt_types.IN_CHAT'));
 });
 test('real instruction builder resolves enabled native worldbook and macros without a model call', async () => {
     let scans = 0, expanded = 0;
@@ -141,14 +237,14 @@ test('real instruction builder resolves enabled native worldbook and macros with
     const ctx = { loadSharedDrawSettings: async () => {}, getSettings: () => ({}), getSharedDrawSettings: () => shared,
         getActivePromptPreset: () => ({ topSystem: 'POV', sceneRules: 'RULE', tagGuideContent: 'GUIDE' }),
         getActivePreset: () => preset, characterLibraryFromSettings, selectEnabledCharacters,
-        buildDirectDrawInstruction, getDirectDrawWorldbook, stripDirectDrawSource, buildWardrobeLedger, formatWardrobeLedger, readDirectDrawDirectives, DEFAULT_MESSAGE_FILTER_RULES: [],
+        buildDirectDrawInstruction, getDirectDrawWorldbook, stripDirectDrawSource, buildWardrobeLedger, buildRecentAppearanceLedger, formatWardrobeLedger, readDirectDrawDirectives, DEFAULT_MESSAGE_FILTER_RULES: [],
         loadScenePromptRuntime: async () => ({}), expandScenePromptText: async text => { expanded++; return text; },
         readNativeForTest: async () => ({ getWorldInfoPrompt: async (messages, _size, dryRun) => {
             scans++; assert.equal(dryRun, true); assert.equal(messages.length, 1);
             return { worldInfoBefore: 'NATIVE BEFORE', worldInfoDepth: [{ entries: ['NATIVE DEPTH'] }], worldInfoAfter: 'NATIVE AFTER' };
         } }),
     };
-    vm.runInNewContext(fn(main, 'getDirectDrawInstruction').replace("await import('/scripts/world-info.js')", 'await readNativeForTest()'), ctx);
+    vm.runInNewContext((fn(main,'getActiveDrawingWorldbook')+'\n'+fn(main, 'getDirectDrawInstruction')).replace("await import('/scripts/world-info.js')", 'await readNativeForTest()'), ctx);
     const text = await ctx.getDirectDrawInstruction([{ role: 'system', mes: 'NATIVE PRESET' }, { is_user: true, mes: '成年画师走进画室。' }]);
     for (const value of ['NATIVE BEFORE', 'NATIVE DEPTH', 'NATIVE AFTER', 'GUIDE', 'RULE']) assert.ok(text.includes(value));
     assert.equal(scans, 1); assert.equal(expanded, 1);
@@ -193,8 +289,8 @@ for (const scenario of [{ backend: true }, { backend: false }, { backend: true, 
     const shared = { characterTags: [painter], characterGroups: [], messageFilterRules: [] };
     const host = { chatId: 'synthetic', chat: [message] };
     const ctx = { readDirectDrawDirectives, rememberDirectDrawDirectives, stripDirectDrawSource, buildDirectDrawTasks,
-        characterLibraryFromSettings, selectEnabledCharacters, buildWardrobeLedger, structuredClone, AbortController, console,
-        getSettings: () => settings, getSharedDrawSettings: () => shared,
+        characterLibraryFromSettings, selectEnabledCharacters, buildWardrobeLedger, buildRecentAppearanceLedger:()=>new Map(), structuredClone, AbortController, console,
+        getSettings: () => settings, getSharedDrawSettings: () => shared,getOwnedImageSlotIds:async()=>new Set(),getActiveDrawingWorldbook:async()=>'',
         getActivePreset: s => s.presets[0], cloneSettingsObject: structuredClone, DEFAULT_MESSAGE_FILTER_RULES: [],
         normalizeNumber: (n, fallback) => Number(n) || fallback, createComfySeed: () => 123, COMFY_REQUEST_DELAY_MS: 0,
         createGenerationJob: () => ({ controller: new AbortController() }), getContext: () => host,
@@ -233,13 +329,47 @@ test('native generation uses the actual chat with saved outfits, not a stripped 
         getContext:()=>({chat:[old]}),
         characterLibraryFromSettings,selectEnabledCharacters,
         buildDirectDrawInstruction,getDirectDrawWorldbook,stripDirectDrawSource,
-        buildWardrobeLedger,formatWardrobeLedger,readDirectDrawDirectives,
+        buildWardrobeLedger,formatWardrobeLedger,readDirectDrawDirectives,buildRecentAppearanceLedger,
         DEFAULT_MESSAGE_FILTER_RULES:[],
         loadScenePromptRuntime:async()=>({}),
         expandScenePromptText:async x=>x,
     };
-    vm.runInNewContext(fn(main,'getDirectDrawInstruction'),context);
+    vm.runInNewContext(fn(main,'getActiveDrawingWorldbook')+'\n'+fn(main,'getDirectDrawInstruction'),context);
     const requestChat=[{is_user:true,mes:'Generation request with no saved metadata'}];
     const instruction=await context.getDirectDrawInstruction(requestChat);
     assert.match(instruction,/navy blazer, black skirt/);
+});
+
+
+test('missing image directives is diagnosed separately from a rejected image task', () => {
+    assert.throws(() => buildDirectDrawTasks([],{maxImages:4},{skipInvalidImages:true}),
+        e=>e.code==='DRAW_DIRECTIVES_MISSING' && /\u7ed8\u56fe\u6307\u4ee4/.test(e.message));
+    let rejected=null;
+    try {buildDirectDrawTasks([{prompt:'sketch a male',characters:[{name:'Bob',type:'male'}]}],
+        {maxImages:1},{skipInvalidImages:true,requireFemaleImage:true})}
+    catch(e){rejected=e}
+    assert.ok(rejected);
+    assert.notEqual(rejected.code,'DRAW_DIRECTIVES_MISSING');
+});
+
+test('existing tool transport receives image rule as active guide, ordinary mode remains independent',async()=>{
+    const script=fn(common,'injectDrawDirectiveInstruction');
+    const injected=[];
+    const active={installed:true,enabled:true};
+    const win={stimageComfyDraw:{getDirectDrawInstruction:async()=>'<image>4 items</image>'},
+        __antiTruncationEngine:active};
+    const ctx={window:win,setDrawPrompt:x=>injected.push(x),console:{info:()=>{}}};
+    vm.runInNewContext(script,ctx);
+    const chat=[{mes:'one story request'}],before=JSON.stringify(chat);
+    await ctx.injectDrawDirectiveInstruction(chat);
+    const guide=injected.at(-1);
+    assert.ok(guide.startsWith('\u3010ToolCall\u5f15\u5bfc\u3011[UserDrawingInstructions]'));
+    assert.match(guide,/<image>4 items<\/image>/);
+    active.enabled=false;
+    await ctx.injectDrawDirectiveInstruction(chat);
+    assert.equal(injected.at(-1),'<image>4 items</image>');
+    delete win.__antiTruncationEngine;
+    await ctx.injectDrawDirectiveInstruction(chat);
+    assert.equal(injected.at(-1),'<image>4 items</image>');
+    assert.equal(JSON.stringify(chat),before);
 });

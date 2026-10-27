@@ -17,7 +17,7 @@ export async function buildProviderFixture(provider, { platform = 'node', realHo
     const stubs = {
         'extensions.js': 'export const getContext=()=>globalThis.__review.ctx; export const extension_settings={};',
         'user.js': 'export const getCurrentUserHandle=()=>globalThis.__review.owner ?? "fixture";',
-        'script.js': 'export const getRequestHeaders=()=>({});export const syncMesToSwipe=()=>{};export const saveChatConditional=async()=>{};export const substituteParams=x=>x;export const messageFormatting=x=>globalThis.__review.format?.(x)??x;',
+        'script.js': 'export const getRequestHeaders=()=>({});export const syncMesToSwipe=()=>{};export const saveChatConditional=async()=>{};export const substituteParams=x=>x;export const messageFormatting=x=>globalThis.__review.format?.(x)??x;export const setExtensionPrompt=()=>{};export const extension_prompt_types={IN_CHAT:1};export const extension_prompt_roles={USER:1};',
         'utils.js': 'export const uuidv4=()=>crypto.randomUUID();export const saveBase64AsFile=()=>{throw new Error("unexpected upload");};',
         'event-manager.js': `export const event_types=new Proxy({},{get:(_,k)=>k});
             export const createModuleEvents=()=>{const own=[];return {on(k,fn){const h=globalThis.__review;
@@ -26,6 +26,8 @@ export async function buildProviderFixture(provider, { platform = 'node', realHo
         'server-storage.js': 'export const SdDrawStorage={getStrict:async()=>null,setAndSave:async()=>true};export const NovelDrawStorage=SdDrawStorage;export const ComfyDrawStorage=SdDrawStorage;',
         'constants.js': 'export const extensionFolderPath="fixture";',
         'draw-agent.js': 'export const getLastDrawAgentDiagnostic=()=>null;export const resolveDrawAgentContext=async()=>({});export const executeDrawAgent=()=>{throw new Error("unexpected model");};',
+        'var-commands.js': 'export const replaceXbGetVarInString=x=>x; export const replaceXbGetVarYamlInString=x=>x;',
+        'world-info.js': 'export const getWorldInfoPrompt=()=>{throw new Error("unexpected world info");};',
         'agent-settings-surface.js': 'export const attachDrawAgentSettingsSurface=()=>{};',
         'scene-planner.js': 'export class ScenePlannerError extends Error {} export const generateAndParseScenePlan=async()=>[{scene:"fixture",placement:{mode:"append"}}];export const prepareScenePlannerInput=()=>{};',
         [`${name}-prompts.js`]: `export const DEFAULT_PROMPT_CONFIG={};export const PROMPT_TEMPLATE_VERSION=1;
@@ -52,7 +54,8 @@ export async function buildProviderFixture(provider, { platform = 'node', realHo
         stubs['var-commands.js'] = 'export const replaceXbGetVarInString=x=>x; export const replaceXbGetVarYamlInString=x=>x;';
         stubs['world-info.js'] = 'export const getWorldInfoPrompt=()=>{throw new Error("unexpected world info");};';
         stubs['server-storage.js'] = `export const ComfyDrawStorage={getStrict:async()=>null,
-            setAndSave:async(key,value)=>globalThis.__review.saveSettings(key,structuredClone(value))};`;
+            setAndSave:async(key,value)=>globalThis.__review.saveSettings(key,structuredClone(value))};
+            export const NovelDrawStorage=ComfyDrawStorage;export const SdDrawStorage=ComfyDrawStorage;`;
     }
     if (realHost) for (const key of ['extensions.js', 'script.js', 'utils.js', 'user.js', 'event-manager.js', 'floating-panel.js']) delete stubs[key];
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');

@@ -360,8 +360,7 @@ select.input { cursor: pointer; }
 .sd-char-card.comfy-role-collapsed {
     padding: 9px 12px;
 }
-.sd-char-card.comfy-role-collapsed > .lwb-cl-card-group-row,
-.sd-char-card.comfy-role-collapsed > .danbooru-panel { display: none !important; }
+.sd-char-card.comfy-role-collapsed > .lwb-cl-card-group-row { display: none !important; }
 .sd-char-card.comfy-role-collapsed .sd-char-card-header {
     margin-bottom: 0; border-bottom: 0; padding-bottom: 0;
 }
@@ -452,26 +451,6 @@ select.input { cursor: pointer; }
 .wb-entry-title { font-weight: 500; }
 .wb-entry-keys { color: var(--text-secondary); font-size: 11px; }
 .wb-entry-preview { color: var(--text-muted); font-size: 11px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.danbooru-panel {
-    margin-top: 8px; padding: 12px; background: var(--bg-input);
-    border: 1px solid var(--border); border-radius: 8px;
-}
-.danbooru-panel.hidden { display: none; }
-.danbooru-search-row { display: flex; gap: 8px; margin-bottom: 8px; }
-.danbooru-search-row input { flex: 1; padding: 6px 10px; font-size: 12px; }
-.danbooru-search-row .btn { padding: 6px 12px; font-size: 12px; white-space: nowrap; }
-.danbooru-char-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
-.danbooru-char-item {
-    width: 100%; display: flex; justify-content: space-between; align-items: center;
-    padding: 6px 10px; background: var(--bg-tertiary); border: 0; border-radius: 6px;
-    cursor: pointer; font-size: 12px; color: var(--text-primary); text-align: left; transition: background 0.15s;
-}
-.danbooru-char-item:hover { background: var(--accent-soft); }
-.danbooru-char-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.danbooru-char-name { font-weight: 500; }
-.danbooru-char-series { font-size: 10px; color: var(--text-muted); font-style: italic; }
-.danbooru-tag-preview { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-.danbooru-status { font-size: 11px; color: var(--text-muted); padding: 8px 0; }
 @media (max-width: 768px) {
     .app-sidebar { display: none; }
     .mobile-nav { display: block; }
@@ -1065,15 +1044,6 @@ select.input { cursor: pointer; }
                         <div class="card">
                             <div id="comfy-group-preset-root"></div>
                         </div>
-                        <div class="card" id="comfy-danbooru-resource-panel" style="display:none !important">
-                            <div class="card-title">🔎 Danbooru 资源库</div>
-                            <label class="check-row">
-                                <input type="checkbox" id="comfy-danbooru-local">
-                                <span>启用本地角色库</span>
-                            </label>
-                            <div id="comfy-danbooru-local-status" class="status-text">未加载</div>
-                            <p class="form-hint">启用后可离线搜索角色官方 tag，并自动填入固定外貌。</p>
-                        </div>
                     </aside>
 
                     <section class="char-management-main">
@@ -1090,7 +1060,7 @@ select.input { cursor: pointer; }
                             <div class="comfy-role-list-controls">
                                 <button id="comfy-role-collapse-all" class="btn btn-sm" type="button"><i class="fa-solid fa-compress"></i> 全部收起</button>
                                 <button id="comfy-role-expand-all" class="btn btn-sm" type="button"><i class="fa-solid fa-expand"></i> 全部展开</button>
-                                <span id="comfy-role-save-status" class="status-text" role="status" aria-live="polite">修改中文后，点侧边栏「保存角色」，系统才会生成英文并保存。</span>
+                                <span id="comfy-role-save-status" class="status-text" role="status" aria-live="polite">只填写中文并保存；本轮剧情模型生成绘图指令时会一起转成英文。</span>
                             </div>
                             <div class="char-list-body">
                                 <div id="comfy-shared-character-list" class="char-grid"></div>

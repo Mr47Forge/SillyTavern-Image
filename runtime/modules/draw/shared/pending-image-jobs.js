@@ -4,6 +4,7 @@ import {
     untrackPageJobLease,
 } from './page-farewell.js';
 import { DRAW_SLOT_COPY } from './image-record.js';
+import { runWithAbortDeadline } from '../../../shared/common/abort-utils.js';
 
 // 后台生图任务的交付日志。
 //
@@ -109,36 +110,42 @@ export function isPendingImageJobItem(item) {
 }
 
 let dbOpening = null;
+const STORAGE_TIMEOUT_MS = 15_000;
+const STORAGE_TIMEOUT_MESSAGE = '本地绘图任务记录读写超时，请重试；原任务记录仍会保留';
 
 function openPendingJobsDB() {
     if (dbOpening) return dbOpening;
-    dbOpening = new Promise((resolve, reject) => {
+    dbOpening = runWithAbortDeadline(signal => new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         request.onerror = () => {
-            dbOpening = null;
             reject(request.error);
         };
         request.onsuccess = () => {
             const database = request.result;
+            if (signal.aborted) { database.close(); return; }
             database.onclose = () => { dbOpening = null; };
             database.onversionchange = () => { database.close(); dbOpening = null; };
             resolve(database);
         };
         request.onupgradeneeded = (event) => {
+            if (signal.aborted) { request.transaction.abort(); return; }
             const database = event.target.result;
             // 测试线旧 journal 从未进入正式线。schema 3 把 marker 清理纳入 adoption
             // 所有权，并冻结跨聊天读回目标；旧状态无法安全推导，升级入口一次性丢弃。
             if (database.objectStoreNames.contains(DB_STORE)) database.deleteObjectStore(DB_STORE);
             database.createObjectStore(DB_STORE, { keyPath: 'jobId' });
         };
-    });
+    }), { timeoutMs: STORAGE_TIMEOUT_MS, timeoutMessage: STORAGE_TIMEOUT_MESSAGE })
+        .catch(error => { dbOpening = null; throw error; });
     return dbOpening;
 }
 
 function runTransaction(mode, work) {
-    return openPendingJobsDB().then(database => new Promise((resolve, reject) => {
+    return openPendingJobsDB().then(database => runWithAbortDeadline(signal => new Promise((resolve, reject) => {
         try {
             const tx = database.transaction(DB_STORE, mode);
+            const abort = () => { try { tx.abort(); } catch {} };
+            signal.addEventListener('abort', abort, { once: true });
             const store = tx.objectStore(DB_STORE);
             let output;
             let workError = null;
@@ -150,13 +157,12 @@ function runTransaction(mode, work) {
                     tx.abort();
                 },
             );
-            tx.oncomplete = () => resolve(output);
-            tx.onerror = () => reject(workError || tx.error);
-            tx.onabort = () => reject(workError || tx.error);
+            tx.oncomplete = () => { signal.removeEventListener('abort', abort); resolve(output); };
+            tx.onabort = tx.onerror = () => { signal.removeEventListener('abort', abort); reject(workError || tx.error); };
         } catch (error) {
             reject(error);
         }
-    }));
+    }), { timeoutMs: STORAGE_TIMEOUT_MS, timeoutMessage: STORAGE_TIMEOUT_MESSAGE }));
 }
 
 function normalizeText(value) {
@@ -187,6 +193,7 @@ function normalizeItem(source) {
             negativePrompt: metadata.negativePrompt ?? null,
             postPrompt: metadata.postPrompt ?? null,
             promptTrace: metadata.promptTrace ?? null,
+            ...(metadata.directiveIdentity?{directiveIdentity:metadata.directiveIdentity}:{}),
             providerMetadata,
         },
     };

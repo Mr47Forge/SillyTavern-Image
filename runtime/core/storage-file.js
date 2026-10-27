@@ -47,6 +47,9 @@ export class StorageFile {
         this._cache = null;
         this._loading = null;
         this._readTimeoutMs = opts.readTimeoutMs || 0;
+        this._versioned = opts.versioned === true;
+        this._revision = undefined;
+        this._conflictError = null;
         this._dirtyVersion = 0;
         this._savedVersion = 0;
         this._saving = false;
@@ -66,14 +69,22 @@ export class StorageFile {
 
         if (!this._loading) {
             const read = async (signal) => {
-                const res = await this._fetch(`/user/files/${this.filename}`, {
+                const url = this._versioned
+                    ? `/api/plugins/sillytavern-image-server/v1/settings/${encodeURIComponent(this.filename)}`
+                    : `/user/files/${this.filename}`;
+                const res = await this._fetch(url, {
                     headers: this._getRequestHeaders(),
                     cache: 'no-cache',
                     signal,
                 });
                 throwIfSignalAborted(signal);
                 if (res.status === 404) {
-                    return Object.create(null);
+                    if (this._versioned) {
+                        const missing = await res.json();
+                        throwIfSignalAborted(signal);
+                        if (missing?.code !== 'SETTINGS_FILE_MISSING') throw new Error('设置版本接口不可用，请检查服务端插件版本');
+                    }
+                    return { data: Object.create(null), revision: null };
                 }
                 if (!res.ok) {
                     throw new Error(`存储文件读取失败（HTTP ${res.status}）`);
@@ -82,7 +93,9 @@ export class StorageFile {
                 throwIfSignalAborted(signal);
                 const parsed = text ? JSON.parse(text) : {};
                 if (!isPlainRecord(parsed)) throw new Error('存储文件格式无效');
-                return canonicalizeRecord(parsed).data;
+                const revision = this._versioned ? res.headers.get('ETag') : null;
+                if (this._versioned && !/^"[a-f0-9]{64}"$/.test(revision || '')) throw new Error('设置版本信息无效，已禁止保存');
+                return { data: canonicalizeRecord(parsed).data, revision };
             };
             const loading = (async () => {
                 const controller = new AbortController();
@@ -99,8 +112,9 @@ export class StorageFile {
                 }
                 // Only the winning, completed read can publish. A timed-out
                 // transport/body may finish later, but cannot replace this cache.
-                this._cache = data;
-                return data;
+                this._cache = data.data;
+                this._revision = data.revision;
+                return data.data;
             })();
             this._loading = loading;
             loading.finally(() => {
@@ -211,6 +225,10 @@ export class StorageFile {
             return true;
         } catch (err) {
             const saveError = this._normalizeSaveError(err);
+            if (saveError?.code === 'STORAGE_VERSION_CONFLICT') {
+                this._cache = candidate.data;
+                this._dirtyVersion = nextVersion;
+            }
             console.error('[ServerStorage] 保存失败:', saveError);
             if (!silent) throw saveError;
             return false;
@@ -263,8 +281,11 @@ export class StorageFile {
         } catch (err) {
             const saveError = this._normalizeSaveError(err);
             console.error('[ServerStorage] 保存失败:', saveError);
-            this._retryCount++;
-            this._scheduleRetry();
+            if (saveError?.code === 'STORAGE_VERSION_CONFLICT') this._resetRetryState();
+            else {
+                this._retryCount++;
+                this._scheduleRetry();
+            }
             if (!silent) throw saveError;
             return false;
         } finally {
@@ -296,26 +317,47 @@ export class StorageFile {
     }
 
     async _uploadJson(json) {
-        const base64 = toBase64(json);
+        if (this._conflictError) throw this._conflictError;
+        const base64 = this._versioned ? null : toBase64(json);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), STORAGE_UPLOAD_TIMEOUT_MS);
         let res;
         try {
-            res = await this._fetch('/api/files/upload', {
-                method: 'POST',
-                headers: this._getRequestHeaders(),
-                body: JSON.stringify({ name: this.filename, data: base64 }),
+            const headers = this._getRequestHeaders();
+            if (this._versioned && this._revision === undefined) throw new Error('设置尚未成功加载，已禁止保存');
+            res = await this._fetch(this._versioned
+                ? `/api/plugins/sillytavern-image-server/v1/settings/${encodeURIComponent(this.filename)}`
+                : '/api/files/upload', {
+                method: this._versioned ? 'PUT' : 'POST',
+                headers: this._versioned ? {
+                    ...headers, 'Content-Type': 'application/json',
+                    ...(this._revision === null ? { 'If-None-Match': '*' } : { 'If-Match': this._revision }),
+                } : headers,
+                body: this._versioned ? json : JSON.stringify({ name: this.filename, data: base64 }),
                 signal: controller.signal,
             });
         } finally {
             clearTimeout(timeoutId);
         }
+        if (this._versioned && res.status === 412) {
+            this._resetRetryState();
+            this._conflictError = new Error('设置已在其他设备或页面更新，本次未保存。请先保留当前输入，再刷新页面重新加载后修改。');
+            this._conflictError.code = 'STORAGE_VERSION_CONFLICT';
+            throw this._conflictError;
+        }
         if (!res.ok) throw new Error(`服务器返回 ${res.status}`);
+        if (this._versioned) {
+            const revision = res.headers.get('ETag');
+            if (!/^"[a-f0-9]{64}"$/.test(revision || '')) throw new Error('保存结果缺少版本信息，请刷新页面核对设置');
+            this._revision = revision;
+        }
     }
 
     clearCache() {
         if (this._loading || this._saving || this._dirtyVersion !== this._savedVersion) return false;
         this._cache = null;
+        this._revision = undefined;
+        this._conflictError = null;
         return true;
     }
 

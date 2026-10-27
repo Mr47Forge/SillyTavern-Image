@@ -4,6 +4,7 @@ import { StorageFile } from './storage-file.js';
 
 const createStorage = (filename, opts = {}) => new StorageFile(filename, {
     ...opts,
+    versioned: true,
     getRequestHeaders,
     debounce,
 });

@@ -3,39 +3,40 @@ import assert from 'node:assert/strict';
 import { buildDirectDrawTasks, buildDirectDrawInstruction } from '../direct-draw.js';
 import { compileComfyPromptForTask } from '../../providers/comfyui/compiler.js';
 
+// Both wardrobe actors are women: male actors are filtered before wardrobe merging.
 const known = [{name:'Alice',aliases:['小艾'],type:'woman',appearance:'brown hair'},
-    {name:'Bob',type:'man',appearance:'black hair'}];
+    {name:'Beth',type:'woman',appearance:'black hair'}];
 const wardrobe = [{name:'Alice',costume:'blue blouse',state:'bandaged arm'},
-    {name:'Bob',costume:'gray coat',state:'holding book'}];
+    {name:'Beth',costume:'gray coat',state:'holding book'}];
 function build(story, characters, entries=wardrobe) {
     return buildDirectDrawTasks([{prompt:'adults in a studio',characters,after:story}],{},
         {sourceText:story,knownCharacters:known,wardrobeLedger:entries})[0];
 }
 test('pronoun change accepts the one explicitly updated outfit without changing other people or injury',()=>{
-    const task=build('她换上红色裙子，Bob仍在原地等待。',
-        [{name:'小艾',costume:'red dress'},{name:'Bob',costume:'gray coat'}]);
+    const task=build('她换上红色裙子，Beth仍在原地等待。',
+        [{name:'小艾',costume:'red dress'},{name:'Beth',costume:'gray coat'}]);
     assert.equal(task.chars[0].costume,'red dress');
     assert.equal(task.chars[0].state,'bandaged arm');
     assert.equal(task.chars[1].costume,'gray coat');
     assert.match(compileComfyPromptForTask(task,{knownCharacters:known}).positive,/red dress/);
 });
 test('pronoun event with missing scene outfit keeps existing clothes',()=>{
-    const task=build('她换上红色裙子，Bob仍在原地等待。',[{name:'Alice'},{name:'Bob'}]);
+    const task=build('她换上红色裙子，Beth仍在原地等待。',[{name:'Alice'},{name:'Beth'}]);
     assert.equal(task.chars[0].costume,'blue blouse');
     assert.equal(task.chars[1].costume,'gray coat');
 });
 test('ambiguous event cannot authorize two conflicting outfit updates',()=>{
-    const task=build('她换上红色裙子。',[{name:'Alice',costume:'red dress'},{name:'Bob',costume:'green suit'}]);
+    const task=build('她换上红色裙子。',[{name:'Alice',costume:'red dress'},{name:'Beth',costume:'green suit'}]);
     assert.equal(task.chars[0].costume,'blue blouse');
     assert.equal(task.chars[1].costume,'gray coat');
 });
 test('named change cannot authorize an unrelated person outfit update',()=>{
-    const task=build('Bob换上绿色外套。',[{name:'Alice',costume:'red dress'},{name:'Bob',costume:'green coat'}]);
+    const task=build('Beth换上绿色外套。',[{name:'Alice',costume:'red dress'},{name:'Beth',costume:'green coat'}]);
     assert.equal(task.chars[0].costume,'blue blouse');
     assert.equal(task.chars[1].costume,'green coat');
 });
 test('pronoun state event updates only the one declared lasting state',()=>{
-    const task=build('她放下雨伞。',[{name:'Alice',state:'bandaged arm'},{name:'Bob',state:'holding book'}],
+    const task=build('她放下雨伞。',[{name:'Alice',state:'bandaged arm'},{name:'Beth',state:'holding book'}],
         [{name:'Alice',costume:'blue blouse',state:'bandaged arm, holding umbrella'},wardrobe[1]]);
     assert.equal(task.chars[0].state,'bandaged arm');
     assert.equal(task.chars[0].costume,'blue blouse');

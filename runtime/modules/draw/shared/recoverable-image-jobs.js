@@ -12,6 +12,8 @@ import {
     renewPendingImageJobLease,
 } from './pending-image-jobs.js';
 import { registerDrawCancellationJob, waitForDrawCancellation } from './draw-work-cancellation.js';
+import { DRAW_SLOT_ERRORS } from './image-record.js';
+import { ImageRequestOutcome, withImageRequestOutcome } from './image-request-outcome.js';
 
 // 可恢复的后台批量生图：提交顺序的唯一所有者。
 //
@@ -197,19 +199,33 @@ export async function submitRecoverableImageJob({
         return current;
     };
 
-    await fenceLease();
-    const committed = (await commitPlacements({ jobId, leaseId, record })) !== false;
-    if (!committed) {
-        // 占位符没写进去，正文里不存在这批槽位，日志也就没有任何意义了。
-        // 此时还没 POST，直接作废是唯一干净的收尾。
-        await journal.forget(jobId, leaseId).catch(() => {});
-        throw new PlacementNotCommittedError();
+    let fenced;
+    try {
+        await fenceLease();
+        const committed = (await commitPlacements({ jobId, leaseId, record })) !== false;
+        if (!committed) {
+            await journal.forget(jobId, leaseId).catch(() => {});
+            throw new PlacementNotCommittedError();
+        }
+        // 保存期间可能失去所有权；提交前必须再次确认租约。
+        fenced = await fenceLease();
+    } catch (placementError) {
+        if (isPendingJobLeaseLost(placementError) || placementError instanceof PlacementNotCommittedError) throw placementError;
+        // 此处尚未调用 runJob，聊天保存不确定不等于绘图提交不确定。
+        // 先结算失败卡再删除日志；若落库失败，留下 settling 并让出租约供恢复器收尾。
+        const failure = placementError?.uncertain
+            ? Object.assign(new Error(DRAW_SLOT_ERRORS.placement.desc, { cause: placementError }), {
+                code: DRAW_SLOT_ERRORS.placement.code, errorType: DRAW_SLOT_ERRORS.placement,
+            })
+            : placementError;
+        withImageRequestOutcome(failure, ImageRequestOutcome.NOT_SUBMITTED);
+        failure.jobId ||= jobId;
+        await finishRecoverableImageJob({
+            journal, jobId, leaseId, settlePlacements, resolveSettlement, beforeForget, afterForget, result: null, error: failure,
+        });
+        await releaseStoppedFlowLease(journal, jobId, leaseId);
+        throw failure;
     }
-
-    // 跨过了持久化与保存的多次 await，页面完全可能在这中间被冻结很久。
-    // POST 之前必须证明这条记录还属于本流程：记录已被接管或清理时继续提交，
-    // 就会凭一个没人认领的 requestId 在后端造出孤儿任务。
-    const fenced = await fenceLease();
 
     keeper = createJournalKeeper({ journal, jobId, leaseId, cancelSignal });
     keeper.observe(fenced);

@@ -1,112 +1,48 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs/promises');
-const os = require('node:os');
-const path = require('node:path');
-const { materialize } = require('../lib/workflow');
-const { storePhoto, readPhoto } = require('../lib/photos');
-const { endpoint, runGeneration, checkConnection } = require('../lib/transport');
-
-test('Krea2有照片时从采样前就读取人物身份，不进行换脸', () => {
-  const { workflow } = materialize({ prompt: '城市夜景', width: 768, height: 1152, seed: 123 }, 'face.jpg');
-  assert.equal(workflow['15'].inputs.image, 'face.jpg');
-  assert.deepEqual(workflow['5'].inputs.image1, ['15', 0]);
-  assert.deepEqual(workflow['8'].inputs.positive, ['5', 0]);
-  assert.match(workflow['5'].inputs.prompt, /城市夜景/);
-  assert.equal(Object.values(workflow).some(x => x.class_type === 'FaceFusionSwapNode'), false);
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
+const {EventEmitter}=require('node:events');
+const {getCurrentUser}=require('../lib/user-context');
+const {injectSavedRolePhotos,stripUnresolvedRolePhoto}=require('../runtime/providers/comfyui/role-photo-upload');
+const {createAsyncImageJobManager}=require('../runtime/image-jobs/job-manager');
+const {registerImageJobRoutes}=require('../runtime/image-jobs/routes');
+const comfy=require('../runtime/providers/comfyui/adapter');
+function router(){const routes=new Map();const r={routes};for(const m of ['get','post','put','patch','delete','use'])r[m]=(p,...handlers)=>routes.set(m.toUpperCase()+' '+p,handlers);return r;}
+async function invoke(r,m,p,{user,body={},params={}}={}){const q=new EventEmitter();Object.assign(q,{user,body,params});const headers={};const a={statusCode:200,status(n){this.statusCode=n;return this;},json(x){this.body=x;return this;},send(x){this.body=x;return this;},end(){return this;},setHeader(k,v){headers[k.toLowerCase()]=v;},getHeader(k){return headers[k.toLowerCase()];}};for(const h of r.routes.get(m+' '+p)||[])await h(q,a,()=>{});return a;}
+test('standalone exposes current recovery routes and removes the duplicate direct generation API',async t=>{
+ const plugin=require('../index');t.after(()=>plugin.exit());const r=router();await plugin.init(r);
+ assert.ok(r.routes.has('GET /status'));assert.ok(r.routes.has('POST /runtime/v1/jobs'));
+ assert.ok(r.routes.has('GET /runtime/v1/jobs/:jobId/results/:index'));
+ for(const key of ['POST /v1/generate','POST /v1/photos','GET /v1/photos/:id','POST /v1/check'])assert.equal(r.routes.has(key),false,key);
+ const denied=await invoke(r,'USE','/runtime');assert.equal(denied.statusCode,403);
+ const normalized=getCurrentUser({user:{profile:{handle:'alice'},directories:{userImages:path.resolve('fixture-images'),files:path.resolve('fixture-files')}}});
+ assert.equal(normalized.directories.images,path.resolve('fixture-images'));assert.equal(normalized.directories.files,path.resolve('fixture-files'));
 });
-
-test('没有照片时删除人脸参考节点并改走纯文本编码', () => {
-  const { workflow } = materialize({ prompt: '雨天咖啡馆', seed: 2 });
-  assert.equal(workflow['15'], undefined);
-  assert.equal(workflow['5'], undefined);
-  assert.deepEqual(workflow['8'].inputs.positive, ['18', 0]);
-  assert.equal(workflow['18'].inputs.text, '雨天咖啡馆');
+test('current role-photo resolver uploads only authenticated-user image references and keeps the workflow immutable',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'sti-photo-current-'));try{
+  const images=path.join(root,'alice'),folder=path.join(images,'SillyTavernImage-role-photos');await fs.mkdir(folder,{recursive:true});
+  const bytes=Buffer.concat([Buffer.from([255,216,255]),Buffer.alloc(300)]);await fs.writeFile(path.join(folder,'artist.jpg'),bytes);
+  const input={15:{class_type:'LoadImage',inputs:{image:'lwb-role-photo:user/images/SillyTavernImage-role-photos/artist.jpg'}}};let calls=0;
+  const uploaded=await injectSavedRolePhotos(input,{url:'http://fixture.invalid/comfy',imagesDirectory:images,fetchImpl:async(u,o)=>{calls++;assert.equal(new URL(u).pathname,'/comfy/upload/image');assert.equal(o.method,'POST');return Response.json({name:'owned-photo.jpg'});}});
+  assert.equal(calls,1);assert.equal(uploaded[15].inputs.image,'owned-photo.jpg');assert.ok(input[15].inputs.image.startsWith('lwb-role-photo:'));
+  await assert.rejects(injectSavedRolePhotos(input,{url:'http://fixture.invalid',imagesDirectory:path.join(root,'bob'),fetchImpl:()=>{throw new Error('must not upload');}}),e=>e.code==='ENOENT');
+  const evil={15:{class_type:'LoadImage',inputs:{image:'lwb-role-photo:user/images/../../settings.json'}}};await assert.rejects(injectSavedRolePhotos(evil,{imagesDirectory:images}),/Invalid character photo reference/);
+ }finally{await fs.rm(root,{recursive:true,force:true});}
 });
-
-test('无效尺寸、空提示词、错误节点映射会拒绝', () => {
-  assert.throws(() => materialize({ prompt: '', width: 768 }), /提示词/);
-  assert.throws(() => materialize({ prompt: '室内', width: 777 }), /64/);
-  assert.throws(() => materialize({ mode: 'custom', prompt: '室内', workflow: {}, nodeMap: {} }), /工作流节点/);
+test('current unresolved photo fallback preserves text and sampler parameters',()=>{
+ const original={15:{class_type:'LoadImage',inputs:{image:'__LWB_ROLE_PHOTO__'}},5:{class_type:'TextEncodeKrea2Reference',inputs:{prompt:'studio sunlight'}},18:{class_type:'CLIPTextEncode',inputs:{text:'old'}},8:{class_type:'KSampler',inputs:{positive:['5',0],cfg:1,steps:8}}};
+ const out=stripUnresolvedRolePhoto(original);assert.equal(out[15],undefined);assert.equal(out[5],undefined);assert.equal(out[18].inputs.text,'studio sunlight');assert.deepEqual(out[8].inputs.positive,['18',0]);assert.equal(out[8].inputs.cfg,1);assert.equal(out[8].inputs.steps,8);assert.ok(original[15]);
 });
-
-test('自定义 API 工作流只改用户指定节点', () => {
-  const { workflow: original } = materialize({ prompt: '原', seed: 3 });
-  const custom = structuredClone(original);
-  const map = { positive: '18', negative: '6', seed: '8', size: '7', save: '11' };
-  const result = materialize({ mode: 'custom', workflow: custom, nodeMap: map, prompt: '新场景', negative: '负向', seed: 2 }).workflow;
-  assert.equal(result['18'].inputs.text, '新场景');
-  assert.equal(result['6'].inputs.text, '负向');
-  assert.equal(result['8'].inputs.seed, 2);
-  assert.equal(custom['18'].inputs.text, '原');
-});
-
-test('上传照片按用户私有目录隔离，拒绝路径穿越', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'sti-test-'));
-  try {
-    const alice = { directories: { images: path.join(root, 'alice') } };
-    const bob = { directories: { images: path.join(root, 'bob') } };
-    const bytes = Buffer.concat([Buffer.from([0xff,0xd8,0xff]),Buffer.alloc(300),Buffer.from([0xff,0xd9])]);
-    const saved = await storePhoto(alice, 'data:image/jpeg;base64,' + bytes.toString('base64'));
-    assert.match(saved.id, /^[a-f0-9]{32}$/);
-    const loaded = await readPhoto(alice, saved.id);
-    assert.deepEqual(loaded.bytes, bytes);
-    await assert.rejects(() => readPhoto(bob, saved.id), /不存在/);
-    await assert.rejects(() => readPhoto(alice, '../../config.yaml'), /无效/);
-  } finally { await fs.rm(root,{recursive:true,force:true}); }
-});
-
-test('服务器 ComfyUI 任务接口完整提交并返回图片', async () => {
-  const calls = [];
-  const png = Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(320)]);
-  async function mockFetch(url, options) {
-    const u = new URL(String(url)); calls.push({ path: u.pathname + u.search, options });
-    if (u.pathname.endsWith('/system_stats')) return Response.json({ system: { comfyui_version: '0.test' } });
-    if (u.pathname.endsWith('/prompt')) {
-      const req=JSON.parse(options.body);assert.ok(req.prompt['8']);
-      return Response.json({ prompt_id: 'fake-test-prompt-1234' });
-    }
-    if (u.pathname.endsWith('/history/fake-test-prompt-1234'))
-      return Response.json({ 'fake-test-prompt-1234': { status: { status_str: 'success' }, outputs: { '11': { images: [{filename:'output.png',type:'output',subfolder:''}] } } } });
-    if (u.pathname.endsWith('/view'))
-      return new Response(png, { status: 200, headers:{ 'Content-Type':'image/png' } });
-    throw Error('Unexpected: '+u);
-  }
-  const ok = await checkConnection({host:'http://127.0.0.1:8188', fetchImpl:mockFetch});
-  assert.equal(ok.ok,true);
-  const result = await runGeneration({
-    host:'http://127.0.0.1:8188',request:{prompt:'大堂',seed:123},
-    fetchImpl:mockFetch, pollMs:5
-  });
-  assert.equal(result.ok,true);
-  assert.match(result.dataUrl,/^data:image\/png;base64,/);
-  assert.equal(result.seed,123);
-  assert.ok(calls.some(x=>x.path.includes('/view?filename=output.png')));
-});
-
-test('实际照片上传给 ComfyUI 后再采样', async () => {
-  const root=await fs.mkdtemp(path.join(os.tmpdir(),'sti-photo-'));
-  try {
-    const user={directories:{images:root}};
-    const bytes=Buffer.concat([Buffer.from([0xff,0xd8,0xff]),Buffer.alloc(300)]);
-    const saved=await storePhoto(user,'data:image/jpeg;base64,'+bytes.toString('base64'));
-    const calls=[];
-    async function mockFetch(url,options){
-      const u=new URL(String(url));calls.push(u.pathname);
-      if(u.pathname.endsWith('/upload/image')) {assert.equal(options.method,'POST');return Response.json({name:'stimage-face.jpg',subfolder:''});}
-      if(u.pathname.endsWith('/prompt')) {
-        const req=JSON.parse(options.body);
-        assert.equal(req.prompt['15'].inputs.image,'stimage-face.jpg');
-        assert.deepEqual(req.prompt['8'].inputs.positive,['5',0]);
-        return Response.json({prompt_id:'photo-demo-1234'});
-      }
-      if(u.pathname.endsWith('/history/photo-demo-1234'))return Response.json({'photo-demo-1234':{status:{status_str:'success'},outputs:{'11':{images:[{filename:'z.png',type:'output'}]}}}});
-      if(u.pathname.endsWith('/view'))return new Response(Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(200)]));
-      throw Error(u.pathname);
-    }
-    const result=await runGeneration({host:'http://127.0.0.1:8188',request:{prompt:'下雨',photoId:saved.id},user,fetchImpl:mockFetch,pollMs:5});
-    assert.equal(result.ok,true);
-    assert.deepEqual(calls.slice(0,2),['/upload/image','/prompt']);
-  } finally { await fs.rm(root,{recursive:true,force:true}); }
+test('current ComfyUI job route submits, returns, isolates and acknowledges a generated image',async t=>{
+ const previous=global.fetch;t.after(()=>global.fetch=previous);const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j0h0AAAAASUVORK5CYII=','base64');const calls=[];
+ global.fetch=async(u,o={})=>{const x=new URL(u);calls.push(x.pathname);if(x.pathname.endsWith('/prompt')){assert.equal(JSON.parse(o.body).prompt['9'].class_type,'SaveImage');return Response.json({prompt_id:'integration-current'});}if(x.pathname.endsWith('/history/integration-current'))return Response.json({'integration-current':{status:{status_str:'success'},outputs:{9:{images:[{filename:'fixture.png',type:'output'}]}}}});if(x.pathname.endsWith('/view'))return new Response(png);throw new Error('unexpected '+x.pathname);};
+ const manager=createAsyncImageJobManager({adapters:{comfyui:comfy}});t.after(()=>manager.close());const r=router();registerImageJobRoutes(r,{manager,adapters:{comfyui:comfy}});
+ const user={profile:{handle:'alice'}},params={jobId:'integration-current',index:'0'};
+ const result=await invoke(r,'POST','/v1/jobs',{user,body:{provider:'comfyui',requestId:params.jobId,context:{url:'http://fixture.invalid/comfy'},delay:{min:1,max:1},items:[{timeout:1000,request:{workflow:{9:{class_type:'SaveImage',inputs:{}}}}}]}});assert.equal(result.statusCode,202);
+ for(let i=0;i<100&&manager.getJob('alice',params.jobId).state!=='completed';i++)await new Promise(q=>setTimeout(q,2));
+ const output=await invoke(r,'GET','/v1/jobs/:jobId/results/:index',{user,params});assert.equal(output.statusCode,200);assert.deepEqual(output.body,png);
+ assert.equal((await invoke(r,'GET','/v1/jobs/:jobId/results/:index',{user:{profile:{handle:'bob'}},params})).statusCode,404);
+ assert.equal((await invoke(r,'DELETE','/v1/jobs/:jobId/results/:index',{user,params})).statusCode,200);
+ assert.equal((await invoke(r,'GET','/v1/jobs/:jobId/results/:index',{user,params})).statusCode,410);assert.deepEqual(calls,['/comfy/prompt','/comfy/history/integration-current','/comfy/view']);
 });

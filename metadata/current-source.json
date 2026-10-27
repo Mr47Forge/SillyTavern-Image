@@ -1,1116 +1,1536 @@
 {
-  "version": "0.3.0",
-  "snapshotDate": "2026-10-25",
-  "source": "Current deployed independent plugin",
+  "version": "0.3.1",
+  "snapshotDate": "2026-10-27",
+  "source": "Current deployed independent plugin on H28K",
   "files": [
     {
       "path": "extension/draw-facade.mjs",
-      "sourceSha256": "67c338e8489eac2e56fa3f29d26152069db75e42a601998963b894437d5d20aa"
+      "sourceSha256": "67c338e8489eac2e56fa3f29d26152069db75e42a601998963b894437d5d20aa",
+      "repositorySha256": "67c338e8489eac2e56fa3f29d26152069db75e42a601998963b894437d5d20aa"
     },
     {
       "path": "extension/entry.js",
-      "sourceSha256": "d3a0d3d456c7279432c0d1416e6354be2401fbf8f64c76e1fc326b77c0610952"
+      "sourceSha256": "d3a0d3d456c7279432c0d1416e6354be2401fbf8f64c76e1fc326b77c0610952",
+      "repositorySha256": "d3a0d3d456c7279432c0d1416e6354be2401fbf8f64c76e1fc326b77c0610952"
+    },
+    {
+      "path": "manifest.json",
+      "sourceSha256": "aa8f164eb327817c306ef2c514372062624bb89b7355f147230b6b1b52386048",
+      "repositorySha256": "40cd5f8ccf9e3e60349bcf20b2504a6ab61f248ef1dd1ceb21b9ba59023eaaac"
     },
     {
       "path": "runtime/COPYRIGHT",
-      "sourceSha256": "b69f894267d4eb21e527f7dede3f0811eeda79b0843a5cc956b06fd1234acab2"
-    },
-    {
-      "path": "runtime/core/constants.js",
-      "sourceSha256": "050d318e2bfb58c5a9e8fb2212300bb96eca31db3ecd1bfcc13dcd09b5100521"
-    },
-    {
-      "path": "runtime/core/debug-core.js",
-      "sourceSha256": "d3220a18b2f792c4bc971e552b59d4f12725c68379ccd562967cf85e7c8414ee"
-    },
-    {
-      "path": "runtime/core/error-details.js",
-      "sourceSha256": "85028076cd7d5d059c89ff9e5c1c71b70cd950223c9e2ca45453a4f5e975858e"
-    },
-    {
-      "path": "runtime/core/event-manager.js",
-      "sourceSha256": "7b869ed45f297718f797045aeccdc8344e3be5e3e76d5c0a1190d1484985b565"
-    },
-    {
-      "path": "runtime/core/server-storage.js",
-      "sourceSha256": "3e9c9ca33a650d3f424f0123475074ae33eb9c2ee0348d892ed6bd4934344c70"
-    },
-    {
-      "path": "runtime/core/storage-copy.js",
-      "sourceSha256": "17c86470dbd6497884fdd3ca3a304c573d51b187cf5477e72549fd88a7824852"
-    },
-    {
-      "path": "runtime/core/storage-file.js",
-      "sourceSha256": "af4239399d98c28cb5b144c705aab93668b426cf667776e3228d23eccfcc1548"
-    },
-    {
-      "path": "runtime/core/variable-path.js",
-      "sourceSha256": "338898069153282d1e717abf96f6ecbbf07b70814d91a7be7b9567597cf71f4f"
-    },
-    {
-      "path": "runtime/integrations/tauritavern/features/draw/chat-branches.js",
-      "sourceSha256": "b02754f37246050b6f9fa4b74b0e86f1ce9c25a932f1b6eca12695b14713f5f1"
-    },
-    {
-      "path": "runtime/integrations/tauritavern/tests/fixtures/cold-swipes-2.3.json",
-      "sourceSha256": "e1492668e564413bf4dc0f2cba372faf01ac3e8d2263396f90a4316c0007bf18"
-    },
-    {
-      "path": "runtime/libs/fflate.LICENSE.txt",
-      "sourceSha256": "c4a2b81d52232155bf78d4ea54a514115d8b9dfb9c0de752af68662a5672efe9"
-    },
-    {
-      "path": "runtime/libs/fflate.mjs",
-      "sourceSha256": "12ba1b34823232b3aab126545839d0d19e8f5a9c66ddfdb14b0dbd81a7af7ad4"
-    },
-    {
-      "path": "runtime/libs/js-yaml.LICENSE.txt",
-      "sourceSha256": "ee4f82f5f6cbbdd3b9eecb24e646e541b0982037b3ee5e741a9ca055d6c84c1c"
-    },
-    {
-      "path": "runtime/libs/js-yaml.mjs",
-      "sourceSha256": "d22cc5d912d909724b80d065e08cb94fc565ff618ed7fe01861093a65933615a"
-    },
-    {
-      "path": "runtime/modules/agent-core/adapters/openai-compatible-replay-policy.js",
-      "sourceSha256": "ee2e6c447e675a200ecec8b3294794eac259f9214b56492df5f59be39534dfa1"
-    },
-    {
-      "path": "runtime/modules/agent-core/adapters/openai-compatible.js",
-      "sourceSha256": "92058f89153088ed2ee114cbb381d76d0ecf085ba1dea2ec37349dc92fa0c15e"
-    },
-    {
-      "path": "runtime/modules/agent-core/adapters/request-inspection.js",
-      "sourceSha256": "8f79c8984611f7fecb6f5376c71f9662b5664c78547d6ce03ce8756f4269f1a1"
-    },
-    {
-      "path": "runtime/modules/agent-core/adapters/text-tool-protocol.js",
-      "sourceSha256": "5752d99c141c6b3da727ac579a4b33a8b51814baead7e71022263a49e934120d"
-    },
-    {
-      "path": "runtime/modules/agent-core/config.js",
-      "sourceSha256": "5ceaf0068298353d2614b331014bcf32cf1c35d3145c4f73ebe4014813ebc107"
-    },
-    {
-      "path": "runtime/modules/agent-core/dist/agent-core-browser.js",
-      "sourceSha256": "5d21c49d6b7d59e5a115559104af4b00eec3c534e7b976f68b6acf6dbb854ec9"
-    },
-    {
-      "path": "runtime/modules/agent-core/model-list-auth.js",
-      "sourceSha256": "53a66206b9d7d3d6da4df67ad2048774bac0ed1fd6c6d16a8c385c6f40c74613"
-    },
-    {
-      "path": "runtime/modules/agent-core/provider-auth.js",
-      "sourceSha256": "819480be4de4980834b5296053f1a7a62017d770f98cd13885af8976bac82c25"
-    },
-    {
-      "path": "runtime/modules/agent-core/provider-resolution.js",
-      "sourceSha256": "fc00032714f76178b5179d35a159e303682e6cd77a41821c87e8fa8f5a784af9"
-    },
-    {
-      "path": "runtime/modules/agent-core/reasoning-capabilities.js",
-      "sourceSha256": "ddcd563da71a7daf78dccdae43b5866983478371aa61631af2042828e23dfff8"
-    },
-    {
-      "path": "runtime/modules/agent-core/reasoning-config.js",
-      "sourceSha256": "27bd001f334e787ffbb29b8e31234ebe2e4db4fe473a04febe8c51b228b2ee02"
-    },
-    {
-      "path": "runtime/modules/agent-core/runtime/loose-tool-arguments.js",
-      "sourceSha256": "2416ae0925fbdd8d3a1355eb1705d60b31aa0f632e46b5f6bca98d72abedd3cc"
-    },
-    {
-      "path": "runtime/modules/agent-core/runtime/protocol.js",
-      "sourceSha256": "12525c9b46a9e3b472a4eadf7b855729b7b785fb33c1c6f1b394a5805509d10d"
-    },
-    {
-      "path": "runtime/modules/agent-core/runtime/response-completion.js",
-      "sourceSha256": "12b0c866b2a647c94d9debe410605067ef1b8010254cf41b832c14e3649f560b"
-    },
-    {
-      "path": "runtime/modules/agent-core/web/settings.js",
-      "sourceSha256": "91414397f1d74a67448d7ae1aa0046ac23c6ebd57db9b3dac9a46f0f52212f9d"
-    },
-    {
-      "path": "runtime/modules/draw/node-entry.js",
-      "sourceSha256": "647d4f0f1f076b72ff7246f5fd9ddec82f081ef64f537d1c91ae8c3af8289776"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/character-appearance-cleanup.js",
-      "sourceSha256": "ce3f3c8ca6e040b6de2668ce8768854d704afe60defc185aafe95b57a7e53ef4"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/character-import.js",
-      "sourceSha256": "9238148028bd79cedfce047247dc2945e87f7f83f2d9b556926680042b0a910e"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/character-test-prompt.js",
-      "sourceSha256": "6e54d4be57496d64e6281e889b0ba7fe7c0a56f1a0abd5c10bf16accf8e1a0ae"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/character-translation-request.js",
-      "sourceSha256": "74afefe4fff9e192a54a69606bedabce725ad715674e1232f3a7fcfae4b5fa57"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/character-translation.js",
-      "sourceSha256": "050a0f464b1a4e814fe7253287ec572194b110ff26f13686c7e975f27ba786ca"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/chinese-named-tags.js",
-      "sourceSha256": "20758edb22599bf018ad02dccab227aa8469e6cc67b12bd1dd1d226364a13c9b"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/comfy-draw.html",
-      "sourceSha256": "bee272d62ebcfa4526e7cadc41fb9769bd4063e4a04ae6bb87e2b51f754edcf3"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/comfy-draw.js",
-      "sourceSha256": "88cc67d16bfb5bce0521610360beb941087e93210e841512207f9df85983799b"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/comfy-prompts.js",
-      "sourceSha256": "49cba6b8a0e875bfb7fedb02171fb0b9cf5d194ac7fedf0e4983e8f0b0249cf6"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/COMFY_TAG编写指南.md",
-      "sourceSha256": "03f034ae68006662c2d321cd4e05fd77410b931bfa09f599c6a2bf2c58fd0fca"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/compiler.js",
-      "sourceSha256": "987419e181adb5fdcd3b5f602cf22cd5b15eefb512a2223d600c2a044c43bbe2"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/floating-panel.js",
-      "sourceSha256": "a5377e7b500669fa881378ef8841c89913eba8673009def5c99a5ff06726de63"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/prompt-import-ui.js",
-      "sourceSha256": "1d3989014549001baee4224024908e701cb6e077e189dae7b2f5e3c77435206e"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/prompt-import.js",
-      "sourceSha256": "bd39a6e4c1791f474f8bd06e23d948053c6c3f762750cda7433104923131a85a"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/role-photo-reference.js",
-      "sourceSha256": "d8414673e9a02d87245dd36bd968a20d0ab47343d0792308d9ab00dd02f7b4bb"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/settings-viewport.js",
-      "sourceSha256": "199286a73e66911508a3cdf55bd9a4c92b08582f67d52d903f26d3a0e082c439"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/character-appearance-cleanup.test.js",
-      "sourceSha256": "810bcd134e3b827efde844fc3530c0aff08d1e6362d094e074f76e66a1172e4f"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/character-auto-import.test.js",
-      "sourceSha256": "38e2608329386768b380eb0c51b6c406a2c2f4cfa2cedaf59081dcae91373242"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/character-test-prompt.test.js",
-      "sourceSha256": "6c4cd27e42a50d9cac0e53bf5ee92e4cf32cb7f5d2ced4e224ad2b4b7f06491a"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/character-translation-request.test.js",
-      "sourceSha256": "521a4aadd8edd65f125a9968e7d58997b87249947ec1d62ad0d96051dbf721ae"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/chinese-named-tags.test.js",
-      "sourceSha256": "2dffda9f1b9308202eb3fc42bb5561c8c6657e82b9f2f2a034d1863758152988"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/fixtures/prompt-template-v7.json",
-      "sourceSha256": "2a41d6d2a89884de8c71b8ff3e16b407015d90ef670253aefc4a315b7810ed10"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/fixtures/prompt-template-v8.json",
-      "sourceSha256": "b00a3444ba05d69f47aa30845ab402877e41fe9c180cb9814397213d166803ca"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/fixtures/prompt-template-v9.json",
-      "sourceSha256": "25bf5c65c7a0d6a22faebd9777c6f01b1a2a6721ab3ff34cb7f9383c160ad130"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/image-character-ui.test.js",
-      "sourceSha256": "10cf11d719a120d6739d827870a28e91303eeed9c1222e1f69cbebf518d1c668"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/prompt-import.test.js",
-      "sourceSha256": "2cbd5d19b321faa89da7c6283f3669d63dc2fbaa8f598ca1cf36e4e7b1142078"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/role-card-compact.test.js",
-      "sourceSha256": "35296e57a0dc45bed68b1f5c76d055ffa4b993fdb3a80ed18b9f2968bc5865a4"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/tests/text-story-detail.test.js",
-      "sourceSha256": "708e53cb749188d8d1cf0c33b9314f4e1daf8fe6f131d0b45ef8b1185df883bf"
-    },
-    {
-      "path": "runtime/modules/draw/providers/comfyui/text-story-detail.js",
-      "sourceSha256": "c5674f6affe81d307cadbb58fc97bdb747f0be9519ca4e1ac1ea62d01625f53d"
-    },
-    {
-      "path": "runtime/modules/draw/shared/backend-image-jobs.js",
-      "sourceSha256": "3cfeb5138923ac5b747029300ba3deeb3ce3a939b20b8eb5e1c6de11f4d78749"
-    },
-    {
-      "path": "runtime/modules/draw/shared/card-tag-editor.js",
-      "sourceSha256": "f015d04b2d3e7dfb70e433b706b6a63787ead48db815e4213deb2063745c9ed4"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-enabled-control.js",
-      "sourceSha256": "6109efbf4b9dc0b46b1c37769aada50d25263b443c47e0fef549414d4561ef2e"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-group-presets-draft-binding.js",
-      "sourceSha256": "ef9182681789e0a4a38a47a7aa5f3e39798a86278eed00841078cc02cd434b28"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-group-presets-runtime.js",
-      "sourceSha256": "ffe1b169bbb889b1be4ef5228e7402010642be49ff2a58a9d34f72e8caa48b16"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-group-presets-ui.css",
-      "sourceSha256": "f0d8aa303fa784ca95df79d42f9b95df055a8cbdcf3a46298f3c7457e336faf7"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-group-presets-ui.js",
-      "sourceSha256": "a770b54c78daee4f71304a13ea9f46cb368fa6d03d91838b72375cb02476041c"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-group-presets.js",
-      "sourceSha256": "a7fb93da9b2743cf68c41eff24857859dbbcc31e0d58be0c74b62c8e0aed6d3b"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-library-dialog.css",
-      "sourceSha256": "2390e1e3c5cfdf1ed841e7771d4ab57081e28b6a84eb21510e4a3669360f5f76"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-library-dialog.js",
-      "sourceSha256": "c540da852d866663d64667443e6ee0adf746cfcbb01f7eb6ad5ceeb12609b1a6"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-library-ui.css",
-      "sourceSha256": "0fd1a44506f9455e66aa7a936c9506706697757cdcecee8a93424798c2453306"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-library-ui.js",
-      "sourceSha256": "8fe1aadaef88c2b5a0090e1163fa08c11a7ff62ff8684eb3c8e55f5db158e878"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-library.js",
-      "sourceSha256": "f6860523927414309c58612bbca3b770c7f9ed59bcf32e7955a4c924f5bdf0e2"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-list-scroll.js",
-      "sourceSha256": "9b4d90abcee7dac8ead7856015a63f293d8173b43b62bfe938b25f056f776d31"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-prompts.js",
-      "sourceSha256": "87b11cbb49e52b9531ebc74060b1c7d0bfd005abd6fbdc207670e689e27a3bd1"
-    },
-    {
-      "path": "runtime/modules/draw/shared/character-selection.js",
-      "sourceSha256": "38862c63ce8878c3c6bf1af6e6f6d55e9b6b0a5a23032a9acf0b0a21dcf2c613"
-    },
-    {
-      "path": "runtime/modules/draw/shared/chat-image-placement.js",
-      "sourceSha256": "bf48fb5bd11f713b82e3a06a08cc92aeaefb8bcb6618f247a27cc88a19ae60fd"
-    },
-    {
-      "path": "runtime/modules/draw/shared/chat-image-session.js",
-      "sourceSha256": "710b58ebe9ac8ca85f16ab347252b0381b4fb070b947d324b993147358110999"
-    },
-    {
-      "path": "runtime/modules/draw/shared/chat-image-tag-migration.js",
-      "sourceSha256": "56366eea84c485cdece4926e89e36b10ce6eaa3ecffa6f388634db43a6f0930f"
-    },
-    {
-      "path": "runtime/modules/draw/shared/chat-message-image-markup.js",
-      "sourceSha256": "57630b44c2ef0baad86227b1fc1358c2e2c0f35a54357fae3609d436c159ceb5"
-    },
-    {
-      "path": "runtime/modules/draw/shared/chat-message-images.js",
-      "sourceSha256": "63abf7fd43d15eff16353e374ccf950cc448856e092fd99e2153bcdd126cf10c"
-    },
-    {
-      "path": "runtime/modules/draw/shared/confirmable-chat-save.js",
-      "sourceSha256": "5d64d6e96334ee08b995a608af99106bb9f2a46c130f6c97a75a9926aad1204b"
-    },
-    {
-      "path": "runtime/modules/draw/shared/danbooru-local-db.js",
-      "sourceSha256": "060a5fb7c180cadadb878919e604e6292c04ad6242865cb2bef70a5506f3257c"
-    },
-    {
-      "path": "runtime/modules/draw/shared/data/danbooru-chars.dat",
-      "sourceSha256": "9ac7055e64a56ccff2cfa97f46f71563ae82974c2a5008714a0865e90ceff87e"
-    },
-    {
-      "path": "runtime/modules/draw/shared/direct-draw-preview.js",
-      "sourceSha256": "c1f80278727e5d04a689d6cacd3168d8b3287a729e787f09352b47b92b1d7475"
-    },
-    {
-      "path": "runtime/modules/draw/shared/direct-draw.js",
-      "sourceSha256": "ab7c9da1e8228c010e3f15d4aad14bb35ff2acb90cc76d4b1e38f3c116e0b51d"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-agent-runtime.js",
-      "sourceSha256": "b2642686d0cfb45f5f7ad757319a0d6a8eae5d4179a107de5eaa3f8beaf13dcc"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-agent.js",
-      "sourceSha256": "a7b95d02c924dec0a60e54b86a24959b8dad55353c1c35f04155adafbd1656cc"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-cancellation-journal.js",
-      "sourceSha256": "56d8d836a7afec634837cc1de272fa1af37410cc50e14d1b49f6b16e03673600"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-capsule-copy.js",
-      "sourceSha256": "84576e4122eb171845390124d672b9f1e15b6486669303c8cbf346b86e8a3c91"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-common.js",
-      "sourceSha256": "4e55899beff1854781af32ce142fd2488b7cdf124f6e6a0da8def7a7beef7883"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-activity.js",
-      "sourceSha256": "d4e609474f47b40a09830851c8eae20bb045dcec3a2f40a8a795f3a3572fb54d"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-adoption.js",
-      "sourceSha256": "82b3d64cf4f840e52a49abf2a0e61ba5425014751f331fbe4a7ad8f2ea4ac027"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-client.js",
-      "sourceSha256": "ad137b74d7eeff6da2dfbb54d89e108406ae5d8ffeae4967ac48b45c2ce0c7cc"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-controls.js",
-      "sourceSha256": "87cc4ea244bb27b97cbaf4b04da241ce4ca38cbc94f3b8825e48693d085b63e8"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-coordinator.js",
-      "sourceSha256": "c282e39a702a35d7afa626470aea9bfd86992b443be6bf5f3d8f41420df9e560"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-debug.js",
-      "sourceSha256": "290ac497457c6e5bf16ffc453f873942bab9b1d07c675c130653abd1b252d4ee"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-identifiers.js",
-      "sourceSha256": "ce1a4bdce16ef6a0979c9ea68dac48991309e39e08b92985e2087b892cd0dd6c"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-markers.js",
-      "sourceSha256": "cd49a06ba004de9128032b99b8776efe8266bb339c12d1971fcb847927312915"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-production.js",
-      "sourceSha256": "11be825a1f9d1f90f3da7123ee1e4d9905aa2417c42b97c7a9966503c88f8340"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-recovery-runtime.js",
-      "sourceSha256": "7ba2d4659ecfa702088b2995f147a94ad58d4aead86b206d90be270cd5f94e07"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-recovery.js",
-      "sourceSha256": "6829cdc01428cbdffe376c954491408797fd196dcce71a919e7c1808f833db44"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-run-ui-state.js",
-      "sourceSha256": "07cbac22d7fc0af1551ceeb822e9a4949589e28d47dfa2c1661c62eb232a336a"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-settings.js",
-      "sourceSha256": "13e38c4aa72e7771135016316e64c8edcbd0b073368b5149177d9eb79e6a33d2"
-    },
-    {
-      "path": "runtime/modules/draw/shared/draw-work-cancellation.js",
-      "sourceSha256": "33919089aa4ca396050386db7a3f13073a3515489dbec48439dd9d0d408281b5"
-    },
-    {
-      "path": "runtime/modules/draw/shared/floor-image-job.js",
-      "sourceSha256": "0150e0d4f70e3f44553446f9fb658244d928deb6e1ff15e9c2d55adcc19c57ce"
-    },
-    {
-      "path": "runtime/modules/draw/shared/gallery-cache.js",
-      "sourceSha256": "34a6618f8cbf4e0ad5834197eb399db0255b3c99fad52485627ce83f2eaefd3a"
-    },
-    {
-      "path": "runtime/modules/draw/shared/generated-image-runtime.js",
-      "sourceSha256": "cc23da52c80b42b641bcc86f31f4758a4ce2c8e2267a1ec563445f3720e379eb"
-    },
-    {
-      "path": "runtime/modules/draw/shared/generation-fingerprint.js",
-      "sourceSha256": "636b66c0f9d5e75dee1f71e1cde16986d4ded970761ff2e9eb5e146c93805a05"
-    },
-    {
-      "path": "runtime/modules/draw/shared/host-character-adapter.js",
-      "sourceSha256": "9d1a484117a3e09f7e66927c370625298cb48bf95c1893c81d3c999148025dff"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-card-actions.js",
-      "sourceSha256": "6edbd9f964248bfa34c21555ef1be9bf7b03eb066c003c2f64154cf10c3ced94"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-card-redraw-provider.js",
-      "sourceSha256": "61736e71b03849422771e57237b7a732b4f85fbc5cced2651663a0e3d0c36fc3"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-card-target.js",
-      "sourceSha256": "3114b5d775650649032b11fa038c7ce73404ff44f7eed0e7952a81b628bb6e37"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-card-view.js",
-      "sourceSha256": "9e432e792865b3b6164a4bca9d7cb8ec00193469a72865fed8f9b9ec3dc2099b"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-diagnostics.js",
-      "sourceSha256": "c6d616a0a54fd58c0d143ffb0587af8b5f51ef9d7a87b5c45986a8ad2fe1c808"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-job-delivery-target.js",
-      "sourceSha256": "bb334776d0c276de306c065bdc40229fcb8da1707e7570a8ba00a8d9bdbd7f35"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-job-reattach.js",
-      "sourceSha256": "83d3757c8af8342033d58349ea6448f315843b999de0615f73500963b021cd9c"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-job-recovery-executor.js",
-      "sourceSha256": "fb78bab0804dd6caec53d50c10f9f55bee4035981348dfa5d5ef9074d3e87951"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-job-recovery-runtime.js",
-      "sourceSha256": "32d4820afc28e993921330e72df76a5d49701abb288884bb66191ab7d4c519be"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-marker-syntax.js",
-      "sourceSha256": "5e4665dc770a2488b49518608e249614e4242db01bc3289ff9bd8c65c38009cc"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-record.js",
-      "sourceSha256": "d8802f4acc32e8235af5f9f48b1fec9a82924a89554995e3386cc55194b7d79b"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-request-outcome.js",
-      "sourceSha256": "7fe6e6553ec17aaad87ca1d4fd469c272ebc942fcf8bbd349c986a1f9296f7c3"
-    },
-    {
-      "path": "runtime/modules/draw/shared/image-save-ui.js",
-      "sourceSha256": "76011da59196d9ae92a1cbc8ab6a6f5fa1c0284a67f243edd708d497212c47f9"
-    },
-    {
-      "path": "runtime/modules/draw/shared/page-farewell.js",
-      "sourceSha256": "6828073f28f80f2f1f3bd09095179336c89e6b5df17f45bc5fef00fd8b1947d9"
-    },
-    {
-      "path": "runtime/modules/draw/shared/pending-image-jobs.js",
-      "sourceSha256": "2a28727f698dc080b4c4decaf0804eb249e7fa8fb3f265006ae17e119b9d9c46"
-    },
-    {
-      "path": "runtime/modules/draw/shared/planner-retry.js",
-      "sourceSha256": "b4c6b1cdc0c3094c995ba14129d5d266964aa2952d984fd4ceddc1160315e121"
-    },
-    {
-      "path": "runtime/modules/draw/shared/prepared-chat-images.js",
-      "sourceSha256": "d40ea83a7f8d1684a6ff28ab648c80105162903ca105d8acc98f39f7b2c4e459"
-    },
-    {
-      "path": "runtime/modules/draw/shared/prepared-image-delivery.js",
-      "sourceSha256": "ba7172df5105c9399548bba55c4fcede99176acbf53ebf72d1900db03dd45f12"
-    },
-    {
-      "path": "runtime/modules/draw/shared/prepared-image-input.js",
-      "sourceSha256": "dc06ea1dc266ef8cbc277cca0d9c66f0d85430f025bd4a98675729492d7f78c4"
-    },
-    {
-      "path": "runtime/modules/draw/shared/prepared-slot-executor.js",
-      "sourceSha256": "be1fbafca1e393deaaed9ca36df609517a85be366b0d65f3b2a834d563c54ca3"
-    },
-    {
-      "path": "runtime/modules/draw/shared/present-characters.js",
-      "sourceSha256": "a4062f074d4a844d4080d8ad50e4414ec271bf9db265af1993705fe8fcd08bdb"
-    },
-    {
-      "path": "runtime/modules/draw/shared/prompt-template-migration.js",
-      "sourceSha256": "50a51ef1b23736f50db014446505435c31867b508722f2518d35911606933313"
-    },
-    {
-      "path": "runtime/modules/draw/shared/prompts/opening-pov.md",
-      "sourceSha256": "d71ba6e2d7e8abe2261111a50111c585bacf7a9ae5a2c06bba5e52fd99427f72"
-    },
-    {
-      "path": "runtime/modules/draw/shared/prompts/opening.md",
-      "sourceSha256": "faaef4e0082de2c3cf73b0073502e804d3d4f537c519015b5a73a42d968a16c9"
-    },
-    {
-      "path": "runtime/modules/draw/shared/prompts/scene-rules.md",
-      "sourceSha256": "b14a08e7af413c6fb6438da2e12814bed3a5ece9a11e334d012c151c9f852ee8"
-    },
-    {
-      "path": "runtime/modules/draw/shared/recoverable-image-jobs.js",
-      "sourceSha256": "aa631c06ba6bd682e48e41a551cd50e4d2bda63d349c01d46fbf6126d13caaeb"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-placement.js",
-      "sourceSha256": "ac05f7bc5a6be6b4630a5a2a89604e1b501a423592ee3917a9eade6d58b07e2e"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-plan-arguments.js",
-      "sourceSha256": "b32cf82758412c17e527af0ab4f16770113eecff47fc4a9e107e06622bb4fb27"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-plan-contract.js",
-      "sourceSha256": "2f30a80a04d363052ab1db98f4f5f9fbb287fd86804d5b62df6e922a323e47ee"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-plan-descriptions.js",
-      "sourceSha256": "4614c37eb438c3f866d1cdd559da73e2579abb7b767aca870869a5f54b6fe429"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-plan-tool.js",
-      "sourceSha256": "811865a9909b89995de7644e2d9b7c991ac4418360333743324bd7e209dc353d"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-planner-debug.js",
-      "sourceSha256": "54080c1c61fd7809f60a1b4718374c7bf2db6d0aee3ed02742aa27cb33e5816e"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-planner-error-ui.js",
-      "sourceSha256": "03dd8f48531dc47c0c1bf817c65a948cbf6e95010f7da7878a76262574923bae"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-planner-executor.js",
-      "sourceSha256": "f0c7b93d9b1ebee94d97a9e6b01fa5f6db32e9e9f0d36dbf34b4e0bf8e9b3dd5"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-planner-opening-migration.js",
-      "sourceSha256": "b7febdd8e1af9e38467c59d61324cabe9fefc152b5f856b03e8eaae57d910711"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-planner-presets.js",
-      "sourceSha256": "c99fe172f341662679efdbc3806f4033ed75436d306de4be4c8575c153774866"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-planner-profile.js",
-      "sourceSha256": "9b8774018f5c5f1cfd55e197e3b43176726c5aa884c2ff4bd076965d115dd54d"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-planner-templates.js",
-      "sourceSha256": "41c4ff6a5a63985df0cca12d1a9ee817e1c839a3b345f30832f7e3fb8781f87d"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-prompt-expansion.js",
-      "sourceSha256": "50ed40abab74ddda8b52fb729fccf08c5e65aff537c695e18b7871b780767f15"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-slot-dom.js",
-      "sourceSha256": "2729681f3ebd538e49b5f5916bce80a97c1318f4d3e30bfbd79466be9d690c5a"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-slot-protection.js",
-      "sourceSha256": "42718c45e3849e9df6c567e1b2ec1ac790d431047c10938d92882faf73b85846"
-    },
-    {
-      "path": "runtime/modules/draw/shared/scene-source.js",
-      "sourceSha256": "c6638faad73a61624b1db6ee3a1f5abce6fb598ee521ad9c3394e2bfdda6331b"
-    },
-    {
-      "path": "runtime/modules/draw/shared/serial-image-request-queue.js",
-      "sourceSha256": "5d8e3498fdd23c6f79055bb80227ece6162da43f2b3803bc096b895e05e7370e"
-    },
-    {
-      "path": "runtime/modules/draw/shared/server-image-autosave.js",
-      "sourceSha256": "bc8588daebe8f9ccfb00385ee0f0e85c6611db97c21dc8f7c17bf835bfe211e9"
-    },
-    {
-      "path": "runtime/modules/draw/shared/slot-activity.js",
-      "sourceSha256": "d85f13574c9df1f09e70887cfe5a9fd6820826ceca45bd2d7430a8fcd30228c9"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/audit-followup.test.js",
-      "sourceSha256": "33f45c3fbc8abe26b1cb16cc6db52ddd9e3ae1f0133d2e42dff7b76b98e81839"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/audit-regressions.test.js",
-      "sourceSha256": "08aaf02baeac91800e78afd2b4c9897a34b6f1a8ff1bda812a5a20d3aed87c99"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/backend-image-jobs.test.js",
-      "sourceSha256": "10af4d4d49381f1fb17daaa726b680f608629743d10d97fa79d5eb84b91e0d36"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/character-enabled-control.test.js",
-      "sourceSha256": "03d9a65d131f93aeffbe1cf0b939688738ac1b330c721f1ca5bc36bc07525c18"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/character-group-presets-runtime.test.js",
-      "sourceSha256": "8fff4ecdfb14c6557ad227b1446dba9d15f7f5c509d7bfdf9458bc2453edc5df"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/character-group-presets-ui.test.js",
-      "sourceSha256": "e442549f66ef2d7a24380c6c4285a28446a14b5d18c5a89c9587bc4219feb4c0"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/character-group-presets.test.js",
-      "sourceSha256": "25bd61120d71cb990548609aff65539693c5e06649d8e1f10ef50379016b8b07"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/character-library-dialog.test.js",
-      "sourceSha256": "ed19a86880855da21ee7411ecbfddaa556e773c810a9c2b90c244df30ee71556"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/character-library-ui.test.js",
-      "sourceSha256": "2b30fc3a4ab0fb67f16b77a6b29e9eb3eeba30e2558ab80e6b34e801e8eb568a"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/character-library.test.js",
-      "sourceSha256": "a83c533a778466a9ec89fb1a8881af5222f710aa55cf59976acbaa0037b0850f"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/character-list-scroll.test.js",
-      "sourceSha256": "63bba9a501200ad2347dfd07b9a3f482d8ea01c20b5be4734c35d1a1e6d695c4"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/character-selection.test.js",
-      "sourceSha256": "72e8d32501e954502d0153dc96e08b037dbb724ec174b8cc4c0e0e6c2e70f0d7"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/chat-image-slots.test.js",
-      "sourceSha256": "9c82d56aaa4493c8d0219c49af7c5db32712bcb556c1b8fbdc914379e0d9bd6f"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/chat-message-image-markup.test.js",
-      "sourceSha256": "4104c06cf094e7227226b44b0b9135cd1bc1c3a466494b10aa04c50c32a5720f"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/comfy-prompt-presets.test.js",
-      "sourceSha256": "a4a642fe1be604924bb0bce33e4993722b7d43f4df432b9ef2c91c55a2034cb2"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/confirmable-chat-save.test.js",
-      "sourceSha256": "c7099b570f8d0d196c4b4c234dd5b58c5b6fbd54b1c2be71409c4ecdb5955389"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/direct-draw.test.js",
-      "sourceSha256": "c37f9a3fda99284af2b31252f718561e2a9cc8221e7e06a4605ebf9391b3b415"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/draw-cancellation-ui.test.js",
-      "sourceSha256": "2e0e4c80456917ad38a0658cefee48e487940ed8ce2d2c07221d5d017f5db9a7"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/draw-preview-rendering.test.js",
-      "sourceSha256": "59bec82abf45c20a278099def4929ce109b816cfd3ba4ef7f0a98fe2e5c0b0e3"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/draw-run-adoption.test.js",
-      "sourceSha256": "4f33fe36cd22a8299ada5c898cd31612c7ba471b68a3a31d3c3cb316f2395fd6"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/draw-run-client.test.js",
-      "sourceSha256": "3d06213d60bae82a39dff8e3d0d1ebf1cd00a322b97b9d8bed9907b57152b65b"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/draw-run-coordinator.test.js",
-      "sourceSha256": "0c9b891ecf3f14d4b63e2e761f733ab4965aec5024a760e0ae0558410f0bd8b2"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/draw-run-debug.test.js",
-      "sourceSha256": "b838f8a980124ab40d2b232896bab4821051091e31ea02e802914f3c508da508"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/draw-run-markers.test.js",
-      "sourceSha256": "d3359d477d60c8b36003e6dd6aa69d65b9c1dddffa390b926bdf503cbf113709"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/draw-run-recovery-runtime.test.js",
-      "sourceSha256": "e493f4ededbe0de3a47d1f547fbacb0dde1ee34f15a3034d86ec11dd026f80b9"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/draw-run-recovery.test.js",
-      "sourceSha256": "f005dd78e87a6f3ba97b5b75ae008c24596e7f722ad22ad0d1bef48161a6ec20"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/draw-settings.test.js",
-      "sourceSha256": "b130d46d8e22ba63ea0fb9efbe3845138603a242a69c929bc35782732e1d4556"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/draw-work-cancellation.test.js",
-      "sourceSha256": "7bec4b97558e7815a007d6a39cf7e0b2e49765ca94fd9a6c8a27beb4b5de55d6"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/fixtures/provider-runtime-fixture.mjs",
-      "sourceSha256": "a973e959a7eb49a882851835602efaa5425b485002af0c016c22584fca897810"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/fixtures/scene-planner-opening-v1.json",
-      "sourceSha256": "128bfcbd8f285a42d17e5e7cbf6d76759d96c3c1802c80af22d56779df9902b1"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/image-card-redraw-provider.test.js",
-      "sourceSha256": "aedc56db9b0b15e36906ab51cb81190bd9a7d6fc029093bd78a617cb9a634f63"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/image-job-delivery-target.test.js",
-      "sourceSha256": "319c7ccae3c8acb46d55da722d06edf357947a46b813b2519657e1d2e558bd3f"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/image-job-reattach.test.js",
-      "sourceSha256": "c3e96084f3817a283d113a29f039f7a6841868f7325945141e03487f8f0c81c2"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/image-job-recovery-executor.test.js",
-      "sourceSha256": "07a04827ca6e7f50579bafa2e00b1f7daf34607511efce914a3beaa71a38c6fb"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/image-job-recovery-runtime.test.js",
-      "sourceSha256": "81acfe333c15e5199aa23d56ca37bd4682d13e5d425fbd27f23629b490585579"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/page-farewell-pagehide.test.js",
-      "sourceSha256": "a987807e288bdf66c00cd5a71848e09783a3d5843e62defb79c77d9a7cea754e"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/page-farewell.test.js",
-      "sourceSha256": "1289bb28619de27de997d99a3445a1ca1629bf4e947c3753597a29348e316175"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/pending-image-jobs.test.js",
-      "sourceSha256": "414f156f9a0b4f8f1a790efb76fc39b9004e4747d1abf6aa29063b99ae0bf9e3"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/prepared-slot-executor.test.js",
-      "sourceSha256": "4badbdb86c8bfc2823a49828e1c2fc186ef5a67f64fd01bc69e42f8062a0d249"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/present-character-boundaries.test.js",
-      "sourceSha256": "d79276ec650fff34862eca65b4c8e326282b8d027deff1a668626d5624d2e17b"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/prompt-template-migration.test.js",
-      "sourceSha256": "7e34016c59eaea2b6147022e893d7743b27925fd17cf1518900953363551e292"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/provider-compilers.test.js",
-      "sourceSha256": "4a6a012bc94234f3c5f1a1f734c83fbf91f9192d8f93bbccee1379a5d49ea4da"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/recoverable-image-jobs.test.js",
-      "sourceSha256": "c2b7e250849e18b61ded455b21aa651d2add169d67e57f2e9902264c27a217e0"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/removed-settings-pages.test.js",
-      "sourceSha256": "5881624bdd1ca94e3d07e9c12a766fe148629b04dbc2dc9df8a6d2607b381075"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/scene-placement.test.js",
-      "sourceSha256": "b34168b44174b789b763830a0eab3f236fe1d386633e29ee0bb5e5d0bf9e1895"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/scene-plan-arguments.test.js",
-      "sourceSha256": "4691d8c1e91eb84a21d3aa61f9d39c93912931c446b05c8c069f6cea03e15f8c"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/scene-plan-contract.test.js",
-      "sourceSha256": "25109cd3f196f9ba65cdfe94cb9397a5a37626bc4d02fd02144e717a772601af"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/scene-plan-refusal.test.js",
-      "sourceSha256": "71264ed456d05c05d90601d5b99d43627c271d030294939ec2d382adc2192afc"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/scene-planner-error-ui.test.js",
-      "sourceSha256": "0984f54d1262df69c6a1f0b9de3a5eea57ef79687d3aca714f16e071c0326237"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/scene-prompt-expansion.test.js",
-      "sourceSha256": "0952c1940910a3c7cc8688f0f6a4960595e1c2c5be43e56995b235978d9ccdc1"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/scene-slot-dom.test.js",
-      "sourceSha256": "58cee2f2744868377c67c099bad4de3982d65dd720dbc0a3b086dfbb49c17ad6"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/scene-slot-protection.test.js",
-      "sourceSha256": "e52fd90e546544655024c3dcc7075803f374b3703a5ff5e2c5e536368f660085"
-    },
-    {
-      "path": "runtime/modules/draw/shared/tests/wardrobe-continuity.test.js",
-      "sourceSha256": "8a22acf479ea8c311946c7a70389b02bd0081dbd3577b5845e597f1b0971714c"
-    },
-    {
-      "path": "runtime/modules/draw/shared/wardrobe-continuity.js",
-      "sourceSha256": "f713e413a3ea3adddc2da0fdc62f4f35b5d81fe65f8fcab140a88b0f65b72071"
-    },
-    {
-      "path": "runtime/modules/draw/shared/worldbook-processor.js",
-      "sourceSha256": "e275e52e5af3a55ee7e93e2520fa799fadfc1359b21a06b96a1c5b0a837d9467"
-    },
-    {
-      "path": "runtime/modules/variables/var-commands.js",
-      "sourceSha256": "a2eaa5e335fbf1dfcd84321eac164695cb8756ae5aa2e3d68112cf62eccdd676"
+      "sourceSha256": "b69f894267d4eb21e527f7dede3f0811eeda79b0843a5cc956b06fd1234acab2",
+      "repositorySha256": "b69f894267d4eb21e527f7dede3f0811eeda79b0843a5cc956b06fd1234acab2"
     },
     {
       "path": "runtime/NOTICE",
-      "sourceSha256": "12e02f28483bc52af2766f9998abc3511af9414d5dce9406b9d5524723b1ffd4"
-    },
-    {
-      "path": "runtime/package.json",
-      "sourceSha256": "ccdf8de44295f59be00f6b8cf1359959938a16a4ccf8c55940d8af1894748c5f"
-    },
-    {
-      "path": "runtime/shared/common/abort-utils.js",
-      "sourceSha256": "64cd75e93ac24e7a53422b21852789488191e21ecd3988decd9bccc15b6e0f40"
-    },
-    {
-      "path": "runtime/shared/common/generate-interceptor.js",
-      "sourceSha256": "2bf2391423fc8439969c689c6d54748cf5ec9f457805e29b1700af9d4167582a"
-    },
-    {
-      "path": "runtime/shared/host-llm/model-family.js",
-      "sourceSha256": "f5d4bb2062b0131d525d49b2bb9e78752e2a12041507a75832268e9d807e1a3d"
-    },
-    {
-      "path": "runtime/shared/server-plugin/copy.js",
-      "sourceSha256": "96ddfcbbbe5ebeba70b92b592920214fe3cc4d9ad3f0777d8c0dab5350d6fb5d"
-    },
-    {
-      "path": "runtime/shared/server-plugin/identity.js",
-      "sourceSha256": "977a3de77851194e388c6004e12b642d617655851600ae4a762e6964c6a954d3"
-    },
-    {
-      "path": "runtime/shared/server-plugin/installation-guide.css",
-      "sourceSha256": "c5f030af36d4b5353cbaee044ce68255e9951ab310c433c0ac2f8681cbc60f7f"
-    },
-    {
-      "path": "runtime/shared/server-plugin/installation-guide.js",
-      "sourceSha256": "cb69c23a89eb59a13f7f9bf5d46a3e2935d69919a45c78b3ad7ddf9ce5a2a2e9"
-    },
-    {
-      "path": "runtime/shared/server-plugin/standalone-installation.js",
-      "sourceSha256": "ef4a2bb0d4ac9b9196de15e5eb4868656753d76bdcdb8e8d866b37c5e86af4a9"
+      "sourceSha256": "12e02f28483bc52af2766f9998abc3511af9414d5dce9406b9d5524723b1ffd4",
+      "repositorySha256": "12e02f28483bc52af2766f9998abc3511af9414d5dce9406b9d5524723b1ffd4"
     },
     {
       "path": "runtime/UPSTREAM-LICENSE.md",
-      "sourceSha256": "6cb4f290be1a97f0bce4bce57fb1791b1c299552a0863f3078553146bfa025aa"
+      "sourceSha256": "6cb4f290be1a97f0bce4bce57fb1791b1c299552a0863f3078553146bfa025aa",
+      "repositorySha256": "6cb4f290be1a97f0bce4bce57fb1791b1c299552a0863f3078553146bfa025aa"
+    },
+    {
+      "path": "runtime/core/constants.js",
+      "sourceSha256": "050d318e2bfb58c5a9e8fb2212300bb96eca31db3ecd1bfcc13dcd09b5100521",
+      "repositorySha256": "050d318e2bfb58c5a9e8fb2212300bb96eca31db3ecd1bfcc13dcd09b5100521"
+    },
+    {
+      "path": "runtime/core/debug-core.js",
+      "sourceSha256": "d3220a18b2f792c4bc971e552b59d4f12725c68379ccd562967cf85e7c8414ee",
+      "repositorySha256": "d3220a18b2f792c4bc971e552b59d4f12725c68379ccd562967cf85e7c8414ee"
+    },
+    {
+      "path": "runtime/core/error-details.js",
+      "sourceSha256": "85028076cd7d5d059c89ff9e5c1c71b70cd950223c9e2ca45453a4f5e975858e",
+      "repositorySha256": "85028076cd7d5d059c89ff9e5c1c71b70cd950223c9e2ca45453a4f5e975858e"
+    },
+    {
+      "path": "runtime/core/event-manager.js",
+      "sourceSha256": "7b869ed45f297718f797045aeccdc8344e3be5e3e76d5c0a1190d1484985b565",
+      "repositorySha256": "7b869ed45f297718f797045aeccdc8344e3be5e3e76d5c0a1190d1484985b565"
+    },
+    {
+      "path": "runtime/core/server-storage.js",
+      "sourceSha256": "534602357d86bdc36cb7b8c04734fd6cef7ac0cc454dbc4b4a27d4f75aa6af1c",
+      "repositorySha256": "7bda41f96e1e8971cb19b2f7455e4c14c063142a4cccf7df8f964e67e9a7fa0e"
+    },
+    {
+      "path": "runtime/core/storage-copy.js",
+      "sourceSha256": "17c86470dbd6497884fdd3ca3a304c573d51b187cf5477e72549fd88a7824852",
+      "repositorySha256": "17c86470dbd6497884fdd3ca3a304c573d51b187cf5477e72549fd88a7824852"
+    },
+    {
+      "path": "runtime/core/storage-file.js",
+      "sourceSha256": "f685e3f8a89f65bc45334a7bcfcc7604d74446792b6b02c24f05606a66e9948c",
+      "repositorySha256": "19003cbcbf291220240e6fb8a01b3291970895bbd3d185614fbb4ac797f15313"
+    },
+    {
+      "path": "runtime/core/variable-path.js",
+      "sourceSha256": "338898069153282d1e717abf96f6ecbbf07b70814d91a7be7b9567597cf71f4f",
+      "repositorySha256": "338898069153282d1e717abf96f6ecbbf07b70814d91a7be7b9567597cf71f4f"
+    },
+    {
+      "path": "runtime/integrations/tauritavern/features/draw/chat-branches.js",
+      "sourceSha256": "b02754f37246050b6f9fa4b74b0e86f1ce9c25a932f1b6eca12695b14713f5f1",
+      "repositorySha256": "b02754f37246050b6f9fa4b74b0e86f1ce9c25a932f1b6eca12695b14713f5f1"
+    },
+    {
+      "path": "runtime/integrations/tauritavern/tests/fixtures/cold-swipes-2.3.json",
+      "sourceSha256": "e1492668e564413bf4dc0f2cba372faf01ac3e8d2263396f90a4316c0007bf18",
+      "repositorySha256": "e1492668e564413bf4dc0f2cba372faf01ac3e8d2263396f90a4316c0007bf18"
+    },
+    {
+      "path": "runtime/libs/fflate.LICENSE.txt",
+      "sourceSha256": "c4a2b81d52232155bf78d4ea54a514115d8b9dfb9c0de752af68662a5672efe9",
+      "repositorySha256": "c4a2b81d52232155bf78d4ea54a514115d8b9dfb9c0de752af68662a5672efe9"
+    },
+    {
+      "path": "runtime/libs/fflate.mjs",
+      "sourceSha256": "12ba1b34823232b3aab126545839d0d19e8f5a9c66ddfdb14b0dbd81a7af7ad4",
+      "repositorySha256": "12ba1b34823232b3aab126545839d0d19e8f5a9c66ddfdb14b0dbd81a7af7ad4"
+    },
+    {
+      "path": "runtime/libs/js-yaml.LICENSE.txt",
+      "sourceSha256": "ee4f82f5f6cbbdd3b9eecb24e646e541b0982037b3ee5e741a9ca055d6c84c1c",
+      "repositorySha256": "ee4f82f5f6cbbdd3b9eecb24e646e541b0982037b3ee5e741a9ca055d6c84c1c"
+    },
+    {
+      "path": "runtime/libs/js-yaml.mjs",
+      "sourceSha256": "d22cc5d912d909724b80d065e08cb94fc565ff618ed7fe01861093a65933615a",
+      "repositorySha256": "d22cc5d912d909724b80d065e08cb94fc565ff618ed7fe01861093a65933615a"
+    },
+    {
+      "path": "runtime/modules/agent-core/adapters/openai-compatible-replay-policy.js",
+      "sourceSha256": "ee2e6c447e675a200ecec8b3294794eac259f9214b56492df5f59be39534dfa1",
+      "repositorySha256": "ee2e6c447e675a200ecec8b3294794eac259f9214b56492df5f59be39534dfa1"
+    },
+    {
+      "path": "runtime/modules/agent-core/adapters/openai-compatible.js",
+      "sourceSha256": "92058f89153088ed2ee114cbb381d76d0ecf085ba1dea2ec37349dc92fa0c15e",
+      "repositorySha256": "92058f89153088ed2ee114cbb381d76d0ecf085ba1dea2ec37349dc92fa0c15e"
+    },
+    {
+      "path": "runtime/modules/agent-core/adapters/request-inspection.js",
+      "sourceSha256": "8f79c8984611f7fecb6f5376c71f9662b5664c78547d6ce03ce8756f4269f1a1",
+      "repositorySha256": "8f79c8984611f7fecb6f5376c71f9662b5664c78547d6ce03ce8756f4269f1a1"
+    },
+    {
+      "path": "runtime/modules/agent-core/adapters/text-tool-protocol.js",
+      "sourceSha256": "5752d99c141c6b3da727ac579a4b33a8b51814baead7e71022263a49e934120d",
+      "repositorySha256": "5752d99c141c6b3da727ac579a4b33a8b51814baead7e71022263a49e934120d"
+    },
+    {
+      "path": "runtime/modules/agent-core/config.js",
+      "sourceSha256": "5ceaf0068298353d2614b331014bcf32cf1c35d3145c4f73ebe4014813ebc107",
+      "repositorySha256": "5ceaf0068298353d2614b331014bcf32cf1c35d3145c4f73ebe4014813ebc107"
+    },
+    {
+      "path": "runtime/modules/agent-core/model-list-auth.js",
+      "sourceSha256": "53a66206b9d7d3d6da4df67ad2048774bac0ed1fd6c6d16a8c385c6f40c74613",
+      "repositorySha256": "53a66206b9d7d3d6da4df67ad2048774bac0ed1fd6c6d16a8c385c6f40c74613"
+    },
+    {
+      "path": "runtime/modules/agent-core/provider-auth.js",
+      "sourceSha256": "819480be4de4980834b5296053f1a7a62017d770f98cd13885af8976bac82c25",
+      "repositorySha256": "819480be4de4980834b5296053f1a7a62017d770f98cd13885af8976bac82c25"
+    },
+    {
+      "path": "runtime/modules/agent-core/provider-resolution.js",
+      "sourceSha256": "fc00032714f76178b5179d35a159e303682e6cd77a41821c87e8fa8f5a784af9",
+      "repositorySha256": "fc00032714f76178b5179d35a159e303682e6cd77a41821c87e8fa8f5a784af9"
+    },
+    {
+      "path": "runtime/modules/agent-core/reasoning-capabilities.js",
+      "sourceSha256": "ddcd563da71a7daf78dccdae43b5866983478371aa61631af2042828e23dfff8",
+      "repositorySha256": "ddcd563da71a7daf78dccdae43b5866983478371aa61631af2042828e23dfff8"
+    },
+    {
+      "path": "runtime/modules/agent-core/reasoning-config.js",
+      "sourceSha256": "27bd001f334e787ffbb29b8e31234ebe2e4db4fe473a04febe8c51b228b2ee02",
+      "repositorySha256": "27bd001f334e787ffbb29b8e31234ebe2e4db4fe473a04febe8c51b228b2ee02"
+    },
+    {
+      "path": "runtime/modules/agent-core/runtime/loose-tool-arguments.js",
+      "sourceSha256": "2416ae0925fbdd8d3a1355eb1705d60b31aa0f632e46b5f6bca98d72abedd3cc",
+      "repositorySha256": "2416ae0925fbdd8d3a1355eb1705d60b31aa0f632e46b5f6bca98d72abedd3cc"
+    },
+    {
+      "path": "runtime/modules/agent-core/runtime/protocol.js",
+      "sourceSha256": "12525c9b46a9e3b472a4eadf7b855729b7b785fb33c1c6f1b394a5805509d10d",
+      "repositorySha256": "12525c9b46a9e3b472a4eadf7b855729b7b785fb33c1c6f1b394a5805509d10d"
+    },
+    {
+      "path": "runtime/modules/agent-core/runtime/response-completion.js",
+      "sourceSha256": "12b0c866b2a647c94d9debe410605067ef1b8010254cf41b832c14e3649f560b",
+      "repositorySha256": "12b0c866b2a647c94d9debe410605067ef1b8010254cf41b832c14e3649f560b"
+    },
+    {
+      "path": "runtime/modules/agent-core/web/settings.js",
+      "sourceSha256": "91414397f1d74a67448d7ae1aa0046ac23c6ebd57db9b3dac9a46f0f52212f9d",
+      "repositorySha256": "91414397f1d74a67448d7ae1aa0046ac23c6ebd57db9b3dac9a46f0f52212f9d"
+    },
+    {
+      "path": "runtime/modules/draw/node-entry.js",
+      "sourceSha256": "647d4f0f1f076b72ff7246f5fd9ddec82f081ef64f537d1c91ae8c3af8289776",
+      "repositorySha256": "647d4f0f1f076b72ff7246f5fd9ddec82f081ef64f537d1c91ae8c3af8289776"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/COMFY_TAG编写指南.md",
+      "sourceSha256": "03f034ae68006662c2d321cd4e05fd77410b931bfa09f599c6a2bf2c58fd0fca",
+      "repositorySha256": "03f034ae68006662c2d321cd4e05fd77410b931bfa09f599c6a2bf2c58fd0fca"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/character-appearance-cleanup.js",
+      "sourceSha256": "ce3f3c8ca6e040b6de2668ce8768854d704afe60defc185aafe95b57a7e53ef4",
+      "repositorySha256": "ce3f3c8ca6e040b6de2668ce8768854d704afe60defc185aafe95b57a7e53ef4"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/character-import.js",
+      "sourceSha256": "d585b693585eadc936eebb04511c1c55ca68e0e84c9e33084a14d6ccb7c3581d",
+      "repositorySha256": "cc95a5c05d0b04c0c3c13bbc755f30ec649cec059c474fc86cd1e9b48b7fe883"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/character-save-errors.js",
+      "sourceSha256": "2a7dfd994df66b7888d64792cb6f758e8c51c8cd4ce1325b638ec8d5337442da",
+      "repositorySha256": "a8b400415fdcde2d9bec345c442b1f16eeb3792967870a993668885d923207a1"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/character-test-prompt.js",
+      "sourceSha256": "0ac02212c3e516c099a169ce243bfa8c02a5f5d54d369c7263dbd66005c80996",
+      "repositorySha256": "8b521cb87ab84cb3b3644bf2e00eaae5ac2dd3975792e95e52ef1590e9cf78df"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/chinese-named-tags.js",
+      "sourceSha256": "5416f9e0da759d20129f3706625aba6d6845094be72e438a2cc26f6afe68a1a7",
+      "repositorySha256": "4545ce3c15c6f5018bb4833a9298910d115d26d444b86e5905860222a916154b"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/comfy-draw.html",
+      "sourceSha256": "d38598ef6be34213fe6cbed1d841206c699bb1a730180a1191c767812e7ea902",
+      "repositorySha256": "93f6099eb53aedefca178a2f4cbd1f1a0efbd3971a1bd0b0cf54c148bc86a4bc"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/comfy-draw.js",
+      "sourceSha256": "d3f4ae08a5787bf84c34511a9d5f3789e59b98001058f9b47fe6d35122f6e8eb",
+      "repositorySha256": "612bd1b482aa93dedd1752001f69abb3874fd3b27c857315d976aabf49bae41d"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/comfy-prompts.js",
+      "sourceSha256": "49cba6b8a0e875bfb7fedb02171fb0b9cf5d194ac7fedf0e4983e8f0b0249cf6",
+      "repositorySha256": "49cba6b8a0e875bfb7fedb02171fb0b9cf5d194ac7fedf0e4983e8f0b0249cf6"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/compiler.js",
+      "sourceSha256": "755c727b40b5dcac184fcf9202f496e09ed7fb8464a7a4622d508a16f4adf3e2",
+      "repositorySha256": "755c727b40b5dcac184fcf9202f496e09ed7fb8464a7a4622d508a16f4adf3e2"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/floating-panel.js",
+      "sourceSha256": "f6c54d2ed2c8e1044423a1885778b31e3c08be1af531f0d8d78d6ebf942337c1",
+      "repositorySha256": "f6c54d2ed2c8e1044423a1885778b31e3c08be1af531f0d8d78d6ebf942337c1"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/prompt-import-ui.js",
+      "sourceSha256": "72d2b6453ca44581b1da5bfc590c6f789db857114eab71f8cf23ac0d4c5a96ad",
+      "repositorySha256": "9d31544a4f400c075af383fd58cb6cb9efb196aea5c36f4cfbaef49cf675dd10"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/prompt-import.js",
+      "sourceSha256": "fb0d1bb7823c575ff736d936407c61a808c742b216aa10c34771e2ceb7a46278",
+      "repositorySha256": "fb0d1bb7823c575ff736d936407c61a808c742b216aa10c34771e2ceb7a46278"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/role-photo-reference.js",
+      "sourceSha256": "d8414673e9a02d87245dd36bd968a20d0ab47343d0792308d9ab00dd02f7b4bb",
+      "repositorySha256": "d8414673e9a02d87245dd36bd968a20d0ab47343d0792308d9ab00dd02f7b4bb"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/settings-viewport.js",
+      "sourceSha256": "199286a73e66911508a3cdf55bd9a4c92b08582f67d52d903f26d3a0e082c439",
+      "repositorySha256": "199286a73e66911508a3cdf55bd9a4c92b08582f67d52d903f26d3a0e082c439"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/auto-queue-direct-cancel.test.js",
+      "sourceSha256": "59c94c7af56de079abf574eeb6b83a33895cf527094d2ec807368fc6d5571d31",
+      "repositorySha256": "59c94c7af56de079abf574eeb6b83a33895cf527094d2ec807368fc6d5571d31"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/character-appearance-cleanup.test.js",
+      "sourceSha256": "810bcd134e3b827efde844fc3530c0aff08d1e6362d094e074f76e66a1172e4f",
+      "repositorySha256": "810bcd134e3b827efde844fc3530c0aff08d1e6362d094e074f76e66a1172e4f"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/character-auto-import.test.js",
+      "sourceSha256": "eb1702284b85a036c57cc6f61a8dedb52884e5f57e0038af1747c04939bf6e77",
+      "repositorySha256": "3588fab1f79f6da29d2084170ed7e89073ad9e198bb93bde4ffe17b2c88ad31b"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/character-save-errors.test.js",
+      "sourceSha256": "fc05ce652b4eeb7d3b6dd24c9ab6dc69b742844338ad13a10d9f1ec8ebf6d7d7",
+      "repositorySha256": "bd6969befa5ddaecee0be525647cdc4d82ff3205e845c7463e7d6274ca5c01d2"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/character-test-prompt.test.js",
+      "sourceSha256": "2402e6d8cfbec06b327ff1f3754afefdfdb504c6d7951a646a804a5b7ee67b8c",
+      "repositorySha256": "8ceff327ebb9028125cd3af146cdfaef2325e91f544b23d7965e3197405dfe3d"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/chinese-named-tags.test.js",
+      "sourceSha256": "e448255c187e945535c8dcbfbd87ae7160307a6b82ee8489933b00f04f93660c",
+      "repositorySha256": "8afeb731a66779f4bd59be750182f6abf78de6f2fa8331781655443c5c8dda40"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/chinese-role-flow.test.js",
+      "sourceSha256": "79190ba232722e79980e770013019fc6fac39e544fb360bb6a41e0c2018cd77a",
+      "repositorySha256": "1ce9ea0a16f3e4fe047525227f580418884f2f665331346ac2cf2cc0059e552a"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/fixtures/prompt-template-v7.json",
+      "sourceSha256": "2a41d6d2a89884de8c71b8ff3e16b407015d90ef670253aefc4a315b7810ed10",
+      "repositorySha256": "2a41d6d2a89884de8c71b8ff3e16b407015d90ef670253aefc4a315b7810ed10"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/fixtures/prompt-template-v8.json",
+      "sourceSha256": "b00a3444ba05d69f47aa30845ab402877e41fe9c180cb9814397213d166803ca",
+      "repositorySha256": "b00a3444ba05d69f47aa30845ab402877e41fe9c180cb9814397213d166803ca"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/fixtures/prompt-template-v9.json",
+      "sourceSha256": "25bf5c65c7a0d6a22faebd9777c6f01b1a2a6721ab3ff34cb7f9383c160ad130",
+      "repositorySha256": "25bf5c65c7a0d6a22faebd9777c6f01b1a2a6721ab3ff34cb7f9383c160ad130"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/image-character-ui.test.js",
+      "sourceSha256": "61fc371db4e2d78e53912b2325e25c52f0d699c3c52dffc42018d080a7373e8b",
+      "repositorySha256": "b20f256dd2a891c68f94872a39f493af73ce555a3c63b7d3e29fd336e995a944"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/prompt-import.test.js",
+      "sourceSha256": "2389fb899f1cc5a60cfb3e614df3efca4e470cc15bfdf240b35dbcf1c714a514",
+      "repositorySha256": "13ba8f99cf1ba24e4697f069dabe3d1f715cdd24da11af54ca27d2d86c0def19"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/role-card-compact.test.js",
+      "sourceSha256": "7c93d9ed7b5a500a9281e1303270abf9f157f8ae5d0327b6a03f1ca678c0fc48",
+      "repositorySha256": "d48bab9eece59317ef23c32e959fe08cba89925e911cf73ae6046a1364861061"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/role-save-drafts.test.js",
+      "sourceSha256": "7aed2c964f539a920b7f1d04378f8a9bae910fda9d9067a3df8c8b428d7c8c3b",
+      "repositorySha256": "7aed2c964f539a920b7f1d04378f8a9bae910fda9d9067a3df8c8b428d7c8c3b"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/tests/text-story-detail.test.js",
+      "sourceSha256": "3a45549ee155bba3a57d3c57369b77cf99c151c02ae72579b64ec8835f248c78",
+      "repositorySha256": "dce6cbf14ce9538052647153875ed5a8b0381c81a4068184c6ea70dd7435d144"
+    },
+    {
+      "path": "runtime/modules/draw/providers/comfyui/text-story-detail.js",
+      "sourceSha256": "502764e90376a76b68421ecd9c4b9cabb540f71c93f3d0619eb4b928c0decdf8",
+      "repositorySha256": "b1acf2e53226e6c45520eee16126a9583af544c797e5ef7e2dab9d63c057cd0e"
+    },
+    {
+      "path": "runtime/modules/draw/shared/backend-image-jobs.js",
+      "sourceSha256": "3cfeb5138923ac5b747029300ba3deeb3ce3a939b20b8eb5e1c6de11f4d78749",
+      "repositorySha256": "3cfeb5138923ac5b747029300ba3deeb3ce3a939b20b8eb5e1c6de11f4d78749"
+    },
+    {
+      "path": "runtime/modules/draw/shared/card-tag-editor.js",
+      "sourceSha256": "f015d04b2d3e7dfb70e433b706b6a63787ead48db815e4213deb2063745c9ed4",
+      "repositorySha256": "f015d04b2d3e7dfb70e433b706b6a63787ead48db815e4213deb2063745c9ed4"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-appearance-ledger.js",
+      "sourceSha256": "1e593058712e84221f35518f7e4aad35b4efffc7755c5dfcca6ad553163e8abd",
+      "repositorySha256": "d3a8c08e38e58b6db0aebbb19e57c82ea95772c090a1aa448801593d944dee70"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-enabled-control.js",
+      "sourceSha256": "6109efbf4b9dc0b46b1c37769aada50d25263b443c47e0fef549414d4561ef2e",
+      "repositorySha256": "6109efbf4b9dc0b46b1c37769aada50d25263b443c47e0fef549414d4561ef2e"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-group-presets-draft-binding.js",
+      "sourceSha256": "ef9182681789e0a4a38a47a7aa5f3e39798a86278eed00841078cc02cd434b28",
+      "repositorySha256": "ef9182681789e0a4a38a47a7aa5f3e39798a86278eed00841078cc02cd434b28"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-group-presets-runtime.js",
+      "sourceSha256": "ffe1b169bbb889b1be4ef5228e7402010642be49ff2a58a9d34f72e8caa48b16",
+      "repositorySha256": "ffe1b169bbb889b1be4ef5228e7402010642be49ff2a58a9d34f72e8caa48b16"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-group-presets-ui.css",
+      "sourceSha256": "f0d8aa303fa784ca95df79d42f9b95df055a8cbdcf3a46298f3c7457e336faf7",
+      "repositorySha256": "f0d8aa303fa784ca95df79d42f9b95df055a8cbdcf3a46298f3c7457e336faf7"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-group-presets-ui.js",
+      "sourceSha256": "a770b54c78daee4f71304a13ea9f46cb368fa6d03d91838b72375cb02476041c",
+      "repositorySha256": "a770b54c78daee4f71304a13ea9f46cb368fa6d03d91838b72375cb02476041c"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-group-presets.js",
+      "sourceSha256": "a7fb93da9b2743cf68c41eff24857859dbbcc31e0d58be0c74b62c8e0aed6d3b",
+      "repositorySha256": "a7fb93da9b2743cf68c41eff24857859dbbcc31e0d58be0c74b62c8e0aed6d3b"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-library-dialog.css",
+      "sourceSha256": "2390e1e3c5cfdf1ed841e7771d4ab57081e28b6a84eb21510e4a3669360f5f76",
+      "repositorySha256": "2390e1e3c5cfdf1ed841e7771d4ab57081e28b6a84eb21510e4a3669360f5f76"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-library-dialog.js",
+      "sourceSha256": "c540da852d866663d64667443e6ee0adf746cfcbb01f7eb6ad5ceeb12609b1a6",
+      "repositorySha256": "c540da852d866663d64667443e6ee0adf746cfcbb01f7eb6ad5ceeb12609b1a6"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-library-ui.css",
+      "sourceSha256": "0fd1a44506f9455e66aa7a936c9506706697757cdcecee8a93424798c2453306",
+      "repositorySha256": "0fd1a44506f9455e66aa7a936c9506706697757cdcecee8a93424798c2453306"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-library-ui.js",
+      "sourceSha256": "8fe1aadaef88c2b5a0090e1163fa08c11a7ff62ff8684eb3c8e55f5db158e878",
+      "repositorySha256": "8fe1aadaef88c2b5a0090e1163fa08c11a7ff62ff8684eb3c8e55f5db158e878"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-library.js",
+      "sourceSha256": "82107897465ab4e5ba27a62e346cb2f43586f5711e542353c70783ea7f693a16",
+      "repositorySha256": "bb8ec558f1be089c4cfe63bb2396a48d351c81fd3eb943da9b78130113a096ab"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-list-scroll.js",
+      "sourceSha256": "9b4d90abcee7dac8ead7856015a63f293d8173b43b62bfe938b25f056f776d31",
+      "repositorySha256": "9b4d90abcee7dac8ead7856015a63f293d8173b43b62bfe938b25f056f776d31"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-prompts.js",
+      "sourceSha256": "d59c4f6e20b20b0610087a5f6205a5260d25ba32861ab717a5f07b90b8c372a2",
+      "repositorySha256": "1d4341c5e13ee20bc76266cd70e10bb7a9fe1188bf59458b05426dc1c85d4e40"
+    },
+    {
+      "path": "runtime/modules/draw/shared/character-selection.js",
+      "sourceSha256": "38862c63ce8878c3c6bf1af6e6f6d55e9b6b0a5a23032a9acf0b0a21dcf2c613",
+      "repositorySha256": "38862c63ce8878c3c6bf1af6e6f6d55e9b6b0a5a23032a9acf0b0a21dcf2c613"
+    },
+    {
+      "path": "runtime/modules/draw/shared/chat-image-placement.js",
+      "sourceSha256": "9e524f9b964b6f8e0f8f093a10b560a478f66a9e711ef6067790b3bfd62004dd",
+      "repositorySha256": "6991d194eb59c4c6b582f2e3925c1f7932d5b81884df0b2a6617fa56f91e811c"
+    },
+    {
+      "path": "runtime/modules/draw/shared/chat-image-session.js",
+      "sourceSha256": "710b58ebe9ac8ca85f16ab347252b0381b4fb070b947d324b993147358110999",
+      "repositorySha256": "710b58ebe9ac8ca85f16ab347252b0381b4fb070b947d324b993147358110999"
+    },
+    {
+      "path": "runtime/modules/draw/shared/chat-image-tag-migration.js",
+      "sourceSha256": "56366eea84c485cdece4926e89e36b10ce6eaa3ecffa6f388634db43a6f0930f",
+      "repositorySha256": "56366eea84c485cdece4926e89e36b10ce6eaa3ecffa6f388634db43a6f0930f"
+    },
+    {
+      "path": "runtime/modules/draw/shared/chat-message-image-markup.js",
+      "sourceSha256": "57630b44c2ef0baad86227b1fc1358c2e2c0f35a54357fae3609d436c159ceb5",
+      "repositorySha256": "57630b44c2ef0baad86227b1fc1358c2e2c0f35a54357fae3609d436c159ceb5"
+    },
+    {
+      "path": "runtime/modules/draw/shared/chat-message-images.js",
+      "sourceSha256": "63abf7fd43d15eff16353e374ccf950cc448856e092fd99e2153bcdd126cf10c",
+      "repositorySha256": "63abf7fd43d15eff16353e374ccf950cc448856e092fd99e2153bcdd126cf10c"
+    },
+    {
+      "path": "runtime/modules/draw/shared/confirmable-chat-save.js",
+      "sourceSha256": "5d64d6e96334ee08b995a608af99106bb9f2a46c130f6c97a75a9926aad1204b",
+      "repositorySha256": "5d64d6e96334ee08b995a608af99106bb9f2a46c130f6c97a75a9926aad1204b"
+    },
+    {
+      "path": "runtime/modules/draw/shared/direct-draw-preview.js",
+      "sourceSha256": "c1f80278727e5d04a689d6cacd3168d8b3287a729e787f09352b47b92b1d7475",
+      "repositorySha256": "c1f80278727e5d04a689d6cacd3168d8b3287a729e787f09352b47b92b1d7475"
+    },
+    {
+      "path": "runtime/modules/draw/shared/direct-draw.js",
+      "sourceSha256": "0f0c3fab532e441ccaea5968d7b216716f602b6a132434c1e694a607190fa281",
+      "repositorySha256": "d2ed93a884401821e8db04b06c369ff8ae9d3e582c1744d1e6a9b77279294c53"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-agent-runtime.js",
+      "sourceSha256": "b2642686d0cfb45f5f7ad757319a0d6a8eae5d4179a107de5eaa3f8beaf13dcc",
+      "repositorySha256": "b2642686d0cfb45f5f7ad757319a0d6a8eae5d4179a107de5eaa3f8beaf13dcc"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-cancellation-journal.js",
+      "sourceSha256": "0acd21e50c3331c36e1b11dcf3f98bb79313a65fd72a499fc71ae3924a18f2a5",
+      "repositorySha256": "b20cd7eb38d0aa0dd55f711d25eb73957a5271b5051cb2f064f0ec05e19d6037"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-capsule-copy.js",
+      "sourceSha256": "84576e4122eb171845390124d672b9f1e15b6486669303c8cbf346b86e8a3c91",
+      "repositorySha256": "84576e4122eb171845390124d672b9f1e15b6486669303c8cbf346b86e8a3c91"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-common.js",
+      "sourceSha256": "28e581a760d56d62165b89660ebcda57962887ffd076efc790d1f69aec85b843",
+      "repositorySha256": "28e581a760d56d62165b89660ebcda57962887ffd076efc790d1f69aec85b843"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-activity.js",
+      "sourceSha256": "d4e609474f47b40a09830851c8eae20bb045dcec3a2f40a8a795f3a3572fb54d",
+      "repositorySha256": "d4e609474f47b40a09830851c8eae20bb045dcec3a2f40a8a795f3a3572fb54d"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-adoption.js",
+      "sourceSha256": "82b3d64cf4f840e52a49abf2a0e61ba5425014751f331fbe4a7ad8f2ea4ac027",
+      "repositorySha256": "82b3d64cf4f840e52a49abf2a0e61ba5425014751f331fbe4a7ad8f2ea4ac027"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-client.js",
+      "sourceSha256": "ad137b74d7eeff6da2dfbb54d89e108406ae5d8ffeae4967ac48b45c2ce0c7cc",
+      "repositorySha256": "ad137b74d7eeff6da2dfbb54d89e108406ae5d8ffeae4967ac48b45c2ce0c7cc"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-controls.js",
+      "sourceSha256": "87cc4ea244bb27b97cbaf4b04da241ce4ca38cbc94f3b8825e48693d085b63e8",
+      "repositorySha256": "87cc4ea244bb27b97cbaf4b04da241ce4ca38cbc94f3b8825e48693d085b63e8"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-coordinator.js",
+      "sourceSha256": "c282e39a702a35d7afa626470aea9bfd86992b443be6bf5f3d8f41420df9e560",
+      "repositorySha256": "c282e39a702a35d7afa626470aea9bfd86992b443be6bf5f3d8f41420df9e560"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-debug.js",
+      "sourceSha256": "290ac497457c6e5bf16ffc453f873942bab9b1d07c675c130653abd1b252d4ee",
+      "repositorySha256": "290ac497457c6e5bf16ffc453f873942bab9b1d07c675c130653abd1b252d4ee"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-identifiers.js",
+      "sourceSha256": "ce1a4bdce16ef6a0979c9ea68dac48991309e39e08b92985e2087b892cd0dd6c",
+      "repositorySha256": "ce1a4bdce16ef6a0979c9ea68dac48991309e39e08b92985e2087b892cd0dd6c"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-markers.js",
+      "sourceSha256": "cd49a06ba004de9128032b99b8776efe8266bb339c12d1971fcb847927312915",
+      "repositorySha256": "cd49a06ba004de9128032b99b8776efe8266bb339c12d1971fcb847927312915"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-production.js",
+      "sourceSha256": "11be825a1f9d1f90f3da7123ee1e4d9905aa2417c42b97c7a9966503c88f8340",
+      "repositorySha256": "11be825a1f9d1f90f3da7123ee1e4d9905aa2417c42b97c7a9966503c88f8340"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-recovery-runtime.js",
+      "sourceSha256": "7ba2d4659ecfa702088b2995f147a94ad58d4aead86b206d90be270cd5f94e07",
+      "repositorySha256": "7ba2d4659ecfa702088b2995f147a94ad58d4aead86b206d90be270cd5f94e07"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-recovery.js",
+      "sourceSha256": "6829cdc01428cbdffe376c954491408797fd196dcce71a919e7c1808f833db44",
+      "repositorySha256": "6829cdc01428cbdffe376c954491408797fd196dcce71a919e7c1808f833db44"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-run-ui-state.js",
+      "sourceSha256": "13869380816ec267d1e0d348f7bb4e6b1c394f138e3060db944ec1b225282dd0",
+      "repositorySha256": "13869380816ec267d1e0d348f7bb4e6b1c394f138e3060db944ec1b225282dd0"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-settings.js",
+      "sourceSha256": "546c3b29d9208c331ad6f6a2663e306c86f8f0aee109cba574a1221b8e90a599",
+      "repositorySha256": "174c9a82ce0c0cadae97cbd3ee0ec103d5913466dde658eeeb606cf3abbde1dc"
+    },
+    {
+      "path": "runtime/modules/draw/shared/draw-work-cancellation.js",
+      "sourceSha256": "33919089aa4ca396050386db7a3f13073a3515489dbec48439dd9d0d408281b5",
+      "repositorySha256": "33919089aa4ca396050386db7a3f13073a3515489dbec48439dd9d0d408281b5"
+    },
+    {
+      "path": "runtime/modules/draw/shared/floor-image-job.js",
+      "sourceSha256": "0150e0d4f70e3f44553446f9fb658244d928deb6e1ff15e9c2d55adcc19c57ce",
+      "repositorySha256": "0150e0d4f70e3f44553446f9fb658244d928deb6e1ff15e9c2d55adcc19c57ce"
+    },
+    {
+      "path": "runtime/modules/draw/shared/gallery-cache.js",
+      "sourceSha256": "3893ad9d440276d0363d268545ea04932c0cef8333613bde4380b4cc1453ba5c",
+      "repositorySha256": "3893ad9d440276d0363d268545ea04932c0cef8333613bde4380b4cc1453ba5c"
+    },
+    {
+      "path": "runtime/modules/draw/shared/generated-image-runtime.js",
+      "sourceSha256": "cc23da52c80b42b641bcc86f31f4758a4ce2c8e2267a1ec563445f3720e379eb",
+      "repositorySha256": "cc23da52c80b42b641bcc86f31f4758a4ce2c8e2267a1ec563445f3720e379eb"
+    },
+    {
+      "path": "runtime/modules/draw/shared/generation-fingerprint.js",
+      "sourceSha256": "636b66c0f9d5e75dee1f71e1cde16986d4ded970761ff2e9eb5e146c93805a05",
+      "repositorySha256": "636b66c0f9d5e75dee1f71e1cde16986d4ded970761ff2e9eb5e146c93805a05"
+    },
+    {
+      "path": "runtime/modules/draw/shared/host-character-adapter.js",
+      "sourceSha256": "9d1a484117a3e09f7e66927c370625298cb48bf95c1893c81d3c999148025dff",
+      "repositorySha256": "9d1a484117a3e09f7e66927c370625298cb48bf95c1893c81d3c999148025dff"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-card-actions.js",
+      "sourceSha256": "81ef6d6918eaa423ac759b33ebbbdcdbb370a3c2ea76219681edba9b5c36abcd",
+      "repositorySha256": "996921c183690faa9136f6b182d9a87c785f39132daababe7dba91aa2d5d6d61"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-card-redraw-provider.js",
+      "sourceSha256": "61736e71b03849422771e57237b7a732b4f85fbc5cced2651663a0e3d0c36fc3",
+      "repositorySha256": "61736e71b03849422771e57237b7a732b4f85fbc5cced2651663a0e3d0c36fc3"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-card-target.js",
+      "sourceSha256": "0682ba9799e81e374845df047b7b4980f5525f07ccf258eaa59d6e089f6d4c1e",
+      "repositorySha256": "84ab39066697ab25cd281368cbac60f4158ed54f3c0b94c563a59a6fe7143da6"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-card-view.js",
+      "sourceSha256": "9e432e792865b3b6164a4bca9d7cb8ec00193469a72865fed8f9b9ec3dc2099b",
+      "repositorySha256": "9e432e792865b3b6164a4bca9d7cb8ec00193469a72865fed8f9b9ec3dc2099b"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-diagnostics.js",
+      "sourceSha256": "c6d616a0a54fd58c0d143ffb0587af8b5f51ef9d7a87b5c45986a8ad2fe1c808",
+      "repositorySha256": "c6d616a0a54fd58c0d143ffb0587af8b5f51ef9d7a87b5c45986a8ad2fe1c808"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-directive-identity.js",
+      "sourceSha256": "d095f998946c0eaaeb58bb822e25d9ad1f4c489b4252774315ede9bb420f3774",
+      "repositorySha256": "d095f998946c0eaaeb58bb822e25d9ad1f4c489b4252774315ede9bb420f3774"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-job-delivery-target.js",
+      "sourceSha256": "bb334776d0c276de306c065bdc40229fcb8da1707e7570a8ba00a8d9bdbd7f35",
+      "repositorySha256": "bb334776d0c276de306c065bdc40229fcb8da1707e7570a8ba00a8d9bdbd7f35"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-job-reattach.js",
+      "sourceSha256": "83d3757c8af8342033d58349ea6448f315843b999de0615f73500963b021cd9c",
+      "repositorySha256": "83d3757c8af8342033d58349ea6448f315843b999de0615f73500963b021cd9c"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-job-recovery-executor.js",
+      "sourceSha256": "fb78bab0804dd6caec53d50c10f9f55bee4035981348dfa5d5ef9074d3e87951",
+      "repositorySha256": "fb78bab0804dd6caec53d50c10f9f55bee4035981348dfa5d5ef9074d3e87951"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-job-recovery-runtime.js",
+      "sourceSha256": "4f0dea6f035640b330ffaa2d02d78786951f71a5e530f57eaf9663c0cf3f60a7",
+      "repositorySha256": "9a807cfd8c987df4010593a6ad64480bcdcf8d7fb72afe6a5fd861e2fc16f38b"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-marker-syntax.js",
+      "sourceSha256": "831e55711daae4b40f599e5dcea6e6755e21f88d0fddd7939f20e6546ee1450b",
+      "repositorySha256": "831e55711daae4b40f599e5dcea6e6755e21f88d0fddd7939f20e6546ee1450b"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-record.js",
+      "sourceSha256": "d8802f4acc32e8235af5f9f48b1fec9a82924a89554995e3386cc55194b7d79b",
+      "repositorySha256": "d8802f4acc32e8235af5f9f48b1fec9a82924a89554995e3386cc55194b7d79b"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-request-outcome.js",
+      "sourceSha256": "7fe6e6553ec17aaad87ca1d4fd469c272ebc942fcf8bbd349c986a1f9296f7c3",
+      "repositorySha256": "7fe6e6553ec17aaad87ca1d4fd469c272ebc942fcf8bbd349c986a1f9296f7c3"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-save-ui.js",
+      "sourceSha256": "76011da59196d9ae92a1cbc8ab6a6f5fa1c0284a67f243edd708d497212c47f9",
+      "repositorySha256": "76011da59196d9ae92a1cbc8ab6a6f5fa1c0284a67f243edd708d497212c47f9"
+    },
+    {
+      "path": "runtime/modules/draw/shared/image-slot-validity.js",
+      "sourceSha256": "17a76c0b687c79c18dd91cb23306262ce01b685d4737e0d0bb779aa9865dcaf9",
+      "repositorySha256": "17a76c0b687c79c18dd91cb23306262ce01b685d4737e0d0bb779aa9865dcaf9"
+    },
+    {
+      "path": "runtime/modules/draw/shared/male-image-exclusion.js",
+      "sourceSha256": "e9532f64deadc5fa39636484d6afa8ce7d54723b3a7ef6d5c0a4e0557128dc24",
+      "repositorySha256": "e9532f64deadc5fa39636484d6afa8ce7d54723b3a7ef6d5c0a4e0557128dc24"
+    },
+    {
+      "path": "runtime/modules/draw/shared/page-farewell.js",
+      "sourceSha256": "6828073f28f80f2f1f3bd09095179336c89e6b5df17f45bc5fef00fd8b1947d9",
+      "repositorySha256": "6828073f28f80f2f1f3bd09095179336c89e6b5df17f45bc5fef00fd8b1947d9"
+    },
+    {
+      "path": "runtime/modules/draw/shared/pending-image-jobs.js",
+      "sourceSha256": "67464ac04ee419b2ed68afae138374361d621fe86bf707214d7305c3608d37a1",
+      "repositorySha256": "86788d60b8030485eee73e36c7b81e49f51a9e4c9135928306bdc69a14988513"
+    },
+    {
+      "path": "runtime/modules/draw/shared/planner-retry.js",
+      "sourceSha256": "b4c6b1cdc0c3094c995ba14129d5d266964aa2952d984fd4ceddc1160315e121",
+      "repositorySha256": "b4c6b1cdc0c3094c995ba14129d5d266964aa2952d984fd4ceddc1160315e121"
+    },
+    {
+      "path": "runtime/modules/draw/shared/prepared-chat-images.js",
+      "sourceSha256": "e386656d74909b1c1d1de863825f4f3d7409fbf524312ed6510b2f521ace21d2",
+      "repositorySha256": "7dfec600a2cb67e9647c714ff4647dad154307a81eef7614735ff92ecb8cf084"
+    },
+    {
+      "path": "runtime/modules/draw/shared/prepared-image-delivery.js",
+      "sourceSha256": "ba7172df5105c9399548bba55c4fcede99176acbf53ebf72d1900db03dd45f12",
+      "repositorySha256": "ba7172df5105c9399548bba55c4fcede99176acbf53ebf72d1900db03dd45f12"
+    },
+    {
+      "path": "runtime/modules/draw/shared/prepared-image-input.js",
+      "sourceSha256": "dc06ea1dc266ef8cbc277cca0d9c66f0d85430f025bd4a98675729492d7f78c4",
+      "repositorySha256": "dc06ea1dc266ef8cbc277cca0d9c66f0d85430f025bd4a98675729492d7f78c4"
+    },
+    {
+      "path": "runtime/modules/draw/shared/prepared-slot-executor.js",
+      "sourceSha256": "388d08d94a5fead520bfcf76dc4de9f6415c92fa868f89f0e0d4bf5b3d4f5dc3",
+      "repositorySha256": "a4f6adb26edcbc9e869dbb171ec5e3d8263de441fcb0cf49a57d90203f079424"
+    },
+    {
+      "path": "runtime/modules/draw/shared/present-characters.js",
+      "sourceSha256": "a4062f074d4a844d4080d8ad50e4414ec271bf9db265af1993705fe8fcd08bdb",
+      "repositorySha256": "a4062f074d4a844d4080d8ad50e4414ec271bf9db265af1993705fe8fcd08bdb"
+    },
+    {
+      "path": "runtime/modules/draw/shared/prompt-template-migration.js",
+      "sourceSha256": "50a51ef1b23736f50db014446505435c31867b508722f2518d35911606933313",
+      "repositorySha256": "50a51ef1b23736f50db014446505435c31867b508722f2518d35911606933313"
+    },
+    {
+      "path": "runtime/modules/draw/shared/prompts/opening-pov.md",
+      "sourceSha256": "d71ba6e2d7e8abe2261111a50111c585bacf7a9ae5a2c06bba5e52fd99427f72",
+      "repositorySha256": "d71ba6e2d7e8abe2261111a50111c585bacf7a9ae5a2c06bba5e52fd99427f72"
+    },
+    {
+      "path": "runtime/modules/draw/shared/prompts/opening.md",
+      "sourceSha256": "faaef4e0082de2c3cf73b0073502e804d3d4f537c519015b5a73a42d968a16c9",
+      "repositorySha256": "faaef4e0082de2c3cf73b0073502e804d3d4f537c519015b5a73a42d968a16c9"
+    },
+    {
+      "path": "runtime/modules/draw/shared/prompts/scene-rules.md",
+      "sourceSha256": "b14a08e7af413c6fb6438da2e12814bed3a5ece9a11e334d012c151c9f852ee8",
+      "repositorySha256": "b14a08e7af413c6fb6438da2e12814bed3a5ece9a11e334d012c151c9f852ee8"
+    },
+    {
+      "path": "runtime/modules/draw/shared/recoverable-image-jobs.js",
+      "sourceSha256": "d103c9e99b182400e1c4cf8f5859bc696b686b9902f937ed3ffc160e22e59f55",
+      "repositorySha256": "499cfd1d63f84580c18db201c268fa645d11fa7641dbeb1f5164e5e3672035b2"
+    },
+    {
+      "path": "runtime/modules/draw/shared/saved-preview-selection.js",
+      "sourceSha256": "cda40e3cea758535589ac54433653ca07cfeceaa02229054daee0041c954704c",
+      "repositorySha256": "cda40e3cea758535589ac54433653ca07cfeceaa02229054daee0041c954704c"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-placement.js",
+      "sourceSha256": "ac05f7bc5a6be6b4630a5a2a89604e1b501a423592ee3917a9eade6d58b07e2e",
+      "repositorySha256": "ac05f7bc5a6be6b4630a5a2a89604e1b501a423592ee3917a9eade6d58b07e2e"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-plan-arguments.js",
+      "sourceSha256": "b32cf82758412c17e527af0ab4f16770113eecff47fc4a9e107e06622bb4fb27",
+      "repositorySha256": "b32cf82758412c17e527af0ab4f16770113eecff47fc4a9e107e06622bb4fb27"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-plan-contract.js",
+      "sourceSha256": "2f30a80a04d363052ab1db98f4f5f9fbb287fd86804d5b62df6e922a323e47ee",
+      "repositorySha256": "2f30a80a04d363052ab1db98f4f5f9fbb287fd86804d5b62df6e922a323e47ee"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-plan-descriptions.js",
+      "sourceSha256": "4614c37eb438c3f866d1cdd559da73e2579abb7b767aca870869a5f54b6fe429",
+      "repositorySha256": "4614c37eb438c3f866d1cdd559da73e2579abb7b767aca870869a5f54b6fe429"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-plan-tool.js",
+      "sourceSha256": "811865a9909b89995de7644e2d9b7c991ac4418360333743324bd7e209dc353d",
+      "repositorySha256": "811865a9909b89995de7644e2d9b7c991ac4418360333743324bd7e209dc353d"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-planner-debug.js",
+      "sourceSha256": "54080c1c61fd7809f60a1b4718374c7bf2db6d0aee3ed02742aa27cb33e5816e",
+      "repositorySha256": "54080c1c61fd7809f60a1b4718374c7bf2db6d0aee3ed02742aa27cb33e5816e"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-planner-error-ui.js",
+      "sourceSha256": "03dd8f48531dc47c0c1bf817c65a948cbf6e95010f7da7878a76262574923bae",
+      "repositorySha256": "03dd8f48531dc47c0c1bf817c65a948cbf6e95010f7da7878a76262574923bae"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-planner-executor.js",
+      "sourceSha256": "f0c7b93d9b1ebee94d97a9e6b01fa5f6db32e9e9f0d36dbf34b4e0bf8e9b3dd5",
+      "repositorySha256": "f0c7b93d9b1ebee94d97a9e6b01fa5f6db32e9e9f0d36dbf34b4e0bf8e9b3dd5"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-planner-opening-migration.js",
+      "sourceSha256": "b7febdd8e1af9e38467c59d61324cabe9fefc152b5f856b03e8eaae57d910711",
+      "repositorySha256": "b7febdd8e1af9e38467c59d61324cabe9fefc152b5f856b03e8eaae57d910711"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-planner-presets.js",
+      "sourceSha256": "c99fe172f341662679efdbc3806f4033ed75436d306de4be4c8575c153774866",
+      "repositorySha256": "c99fe172f341662679efdbc3806f4033ed75436d306de4be4c8575c153774866"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-planner-profile.js",
+      "sourceSha256": "9b8774018f5c5f1cfd55e197e3b43176726c5aa884c2ff4bd076965d115dd54d",
+      "repositorySha256": "9b8774018f5c5f1cfd55e197e3b43176726c5aa884c2ff4bd076965d115dd54d"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-planner-templates.js",
+      "sourceSha256": "41c4ff6a5a63985df0cca12d1a9ee817e1c839a3b345f30832f7e3fb8781f87d",
+      "repositorySha256": "41c4ff6a5a63985df0cca12d1a9ee817e1c839a3b345f30832f7e3fb8781f87d"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-prompt-expansion.js",
+      "sourceSha256": "50ed40abab74ddda8b52fb729fccf08c5e65aff537c695e18b7871b780767f15",
+      "repositorySha256": "50ed40abab74ddda8b52fb729fccf08c5e65aff537c695e18b7871b780767f15"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-slot-dom.js",
+      "sourceSha256": "3ab30dd8ac9adb92c845ce2eaecaa04e8d3f2563419c54fbbb1bffabd1467e95",
+      "repositorySha256": "3ab30dd8ac9adb92c845ce2eaecaa04e8d3f2563419c54fbbb1bffabd1467e95"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-slot-protection.js",
+      "sourceSha256": "42718c45e3849e9df6c567e1b2ec1ac790d431047c10938d92882faf73b85846",
+      "repositorySha256": "42718c45e3849e9df6c567e1b2ec1ac790d431047c10938d92882faf73b85846"
+    },
+    {
+      "path": "runtime/modules/draw/shared/scene-source.js",
+      "sourceSha256": "b05f7a76b043fd866c7e5bf63f61ea9394659c99ef6a1f009317d54204df0394",
+      "repositorySha256": "b05f7a76b043fd866c7e5bf63f61ea9394659c99ef6a1f009317d54204df0394"
+    },
+    {
+      "path": "runtime/modules/draw/shared/serial-image-request-queue.js",
+      "sourceSha256": "5d8e3498fdd23c6f79055bb80227ece6162da43f2b3803bc096b895e05e7370e",
+      "repositorySha256": "5d8e3498fdd23c6f79055bb80227ece6162da43f2b3803bc096b895e05e7370e"
+    },
+    {
+      "path": "runtime/modules/draw/shared/server-image-autosave.js",
+      "sourceSha256": "bc8588daebe8f9ccfb00385ee0f0e85c6611db97c21dc8f7c17bf835bfe211e9",
+      "repositorySha256": "bc8588daebe8f9ccfb00385ee0f0e85c6611db97c21dc8f7c17bf835bfe211e9"
+    },
+    {
+      "path": "runtime/modules/draw/shared/slot-activity.js",
+      "sourceSha256": "d85f13574c9df1f09e70887cfe5a9fd6820826ceca45bd2d7430a8fcd30228c9",
+      "repositorySha256": "d85f13574c9df1f09e70887cfe5a9fd6820826ceca45bd2d7430a8fcd30228c9"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/all-fixes-continuity.test.js",
+      "sourceSha256": "a8eb3ec7d3e6871cda970721f83cf842938ddf0e51d2311a909847c677b8ad3b",
+      "repositorySha256": "10acb45ad53ad421a1f3dc269fe6671c681f7fac9f77273ae6a98e2d0a5e9803"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/anchor-tail-cascade.test.js",
+      "sourceSha256": "c507df2a8756ba423637cfd01051d49e69ef00c91dbe42f811b9a0eb952577ad",
+      "repositorySha256": "c507df2a8756ba423637cfd01051d49e69ef00c91dbe42f811b9a0eb952577ad"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/audit-followup.test.js",
+      "sourceSha256": "33f45c3fbc8abe26b1cb16cc6db52ddd9e3ae1f0133d2e42dff7b76b98e81839",
+      "repositorySha256": "d8c618af7622583a14e513083bee004fb9e2fde5fa37f2a63d9810463b6ab53f"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/audit-regressions.test.js",
+      "sourceSha256": "e6d2d2603f4b19eee9e01e7f68f4fe58734f3ba4c4d98c014197d4dd41ccdeae",
+      "repositorySha256": "b86945cfb6bff115c80e596114c93477b0162123fdffd81d3815c61b0c78faf9"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/backend-image-jobs.test.js",
+      "sourceSha256": "10af4d4d49381f1fb17daaa726b680f608629743d10d97fa79d5eb84b91e0d36",
+      "repositorySha256": "10af4d4d49381f1fb17daaa726b680f608629743d10d97fa79d5eb84b91e0d36"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/cancel-capsule-unlock.test.js",
+      "sourceSha256": "76fc9e6957ddb7f0d3dfe00e8030a44a94debe1833c591a6654da372479c4350",
+      "repositorySha256": "76fc9e6957ddb7f0d3dfe00e8030a44a94debe1833c591a6654da372479c4350"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/cancellation-storage-timeout.test.js",
+      "sourceSha256": "d13be03a07ca944295cdf5de6f5c5da2ec9bb1fcac7c55dc201d50e5b2f62247",
+      "repositorySha256": "d13be03a07ca944295cdf5de6f5c5da2ec9bb1fcac7c55dc201d50e5b2f62247"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/capsule-lifecycle.test.js",
+      "sourceSha256": "f6f1adacde82f7d31cfc273a3b4fa9aacdbeaa1e05d920c5cd6fd9d64c64d31d",
+      "repositorySha256": "f6f1adacde82f7d31cfc273a3b4fa9aacdbeaa1e05d920c5cd6fd9d64c64d31d"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/character-appearance-ledger.test.js",
+      "sourceSha256": "72d531129a62aa554039ea9a67e6ac39da8d7da54b6bff376ed286bd4b114aae",
+      "repositorySha256": "bfaa79f15dd1a7079bb08f1b94592427b49aa4d593e7593182ae43a382063798"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/character-enabled-control.test.js",
+      "sourceSha256": "03d9a65d131f93aeffbe1cf0b939688738ac1b330c721f1ca5bc36bc07525c18",
+      "repositorySha256": "03d9a65d131f93aeffbe1cf0b939688738ac1b330c721f1ca5bc36bc07525c18"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/character-group-presets-runtime.test.js",
+      "sourceSha256": "8fff4ecdfb14c6557ad227b1446dba9d15f7f5c509d7bfdf9458bc2453edc5df",
+      "repositorySha256": "8fff4ecdfb14c6557ad227b1446dba9d15f7f5c509d7bfdf9458bc2453edc5df"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/character-group-presets-ui.test.js",
+      "sourceSha256": "e442549f66ef2d7a24380c6c4285a28446a14b5d18c5a89c9587bc4219feb4c0",
+      "repositorySha256": "e442549f66ef2d7a24380c6c4285a28446a14b5d18c5a89c9587bc4219feb4c0"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/character-group-presets.test.js",
+      "sourceSha256": "25bd61120d71cb990548609aff65539693c5e06649d8e1f10ef50379016b8b07",
+      "repositorySha256": "25bd61120d71cb990548609aff65539693c5e06649d8e1f10ef50379016b8b07"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/character-library-dialog.test.js",
+      "sourceSha256": "ed19a86880855da21ee7411ecbfddaa556e773c810a9c2b90c244df30ee71556",
+      "repositorySha256": "ed19a86880855da21ee7411ecbfddaa556e773c810a9c2b90c244df30ee71556"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/character-library-ui.test.js",
+      "sourceSha256": "2b30fc3a4ab0fb67f16b77a6b29e9eb3eeba30e2558ab80e6b34e801e8eb568a",
+      "repositorySha256": "2b30fc3a4ab0fb67f16b77a6b29e9eb3eeba30e2558ab80e6b34e801e8eb568a"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/character-library.test.js",
+      "sourceSha256": "a83c533a778466a9ec89fb1a8881af5222f710aa55cf59976acbaa0037b0850f",
+      "repositorySha256": "a83c533a778466a9ec89fb1a8881af5222f710aa55cf59976acbaa0037b0850f"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/character-list-scroll.test.js",
+      "sourceSha256": "63bba9a501200ad2347dfd07b9a3f482d8ea01c20b5be4734c35d1a1e6d695c4",
+      "repositorySha256": "63bba9a501200ad2347dfd07b9a3f482d8ea01c20b5be4734c35d1a1e6d695c4"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/character-selection.test.js",
+      "sourceSha256": "72e8d32501e954502d0153dc96e08b037dbb724ec174b8cc4c0e0e6c2e70f0d7",
+      "repositorySha256": "72e8d32501e954502d0153dc96e08b037dbb724ec174b8cc4c0e0e6c2e70f0d7"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/chat-image-slots.test.js",
+      "sourceSha256": "62aac4bb9e7385741a116c75aac27bb56ac76ac877e591d4c9330ac21f421db2",
+      "repositorySha256": "facbc6bdcf744825ec921f44df7c65c51139aab1116bec5cf6975b6b4d2d31fd"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/chat-message-image-markup.test.js",
+      "sourceSha256": "4104c06cf094e7227226b44b0b9135cd1bc1c3a466494b10aa04c50c32a5720f",
+      "repositorySha256": "4104c06cf094e7227226b44b0b9135cd1bc1c3a466494b10aa04c50c32a5720f"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/comfy-prompt-presets.test.js",
+      "sourceSha256": "a4a642fe1be604924bb0bce33e4993722b7d43f4df432b9ef2c91c55a2034cb2",
+      "repositorySha256": "a4a642fe1be604924bb0bce33e4993722b7d43f4df432b9ef2c91c55a2034cb2"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/confirmable-chat-save.test.js",
+      "sourceSha256": "c7099b570f8d0d196c4b4c234dd5b58c5b6fbd54b1c2be71409c4ecdb5955389",
+      "repositorySha256": "c7099b570f8d0d196c4b4c234dd5b58c5b6fbd54b1c2be71409c4ecdb5955389"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/direct-draw.test.js",
+      "sourceSha256": "c72b2b0d89ffba14127a6d5c210e05a3a28e66b55585b14f05af445afd72c4fa",
+      "repositorySha256": "615335c68fb68d29c4c8396261556c828465d2661cb95bd8f7f07beeb662d5e9"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/draw-cancellation-ui.test.js",
+      "sourceSha256": "2e0e4c80456917ad38a0658cefee48e487940ed8ce2d2c07221d5d017f5db9a7",
+      "repositorySha256": "2e0e4c80456917ad38a0658cefee48e487940ed8ce2d2c07221d5d017f5db9a7"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/draw-preview-rendering.test.js",
+      "sourceSha256": "f6efadceed86d19b167c1e074828a71b2d7f82ab08d376d8f0e1f2f8e1ed70e3",
+      "repositorySha256": "150e33d4c1236fba4600e789c3938edb5b9ba502eb803bf074faba3794eddcc8"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/draw-run-adoption.test.js",
+      "sourceSha256": "4f33fe36cd22a8299ada5c898cd31612c7ba471b68a3a31d3c3cb316f2395fd6",
+      "repositorySha256": "4f33fe36cd22a8299ada5c898cd31612c7ba471b68a3a31d3c3cb316f2395fd6"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/draw-run-client.test.js",
+      "sourceSha256": "3d06213d60bae82a39dff8e3d0d1ebf1cd00a322b97b9d8bed9907b57152b65b",
+      "repositorySha256": "3d06213d60bae82a39dff8e3d0d1ebf1cd00a322b97b9d8bed9907b57152b65b"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/draw-run-coordinator.test.js",
+      "sourceSha256": "0c9b891ecf3f14d4b63e2e761f733ab4965aec5024a760e0ae0558410f0bd8b2",
+      "repositorySha256": "0c9b891ecf3f14d4b63e2e761f733ab4965aec5024a760e0ae0558410f0bd8b2"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/draw-run-debug.test.js",
+      "sourceSha256": "b838f8a980124ab40d2b232896bab4821051091e31ea02e802914f3c508da508",
+      "repositorySha256": "b838f8a980124ab40d2b232896bab4821051091e31ea02e802914f3c508da508"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/draw-run-markers.test.js",
+      "sourceSha256": "d3359d477d60c8b36003e6dd6aa69d65b9c1dddffa390b926bdf503cbf113709",
+      "repositorySha256": "d3359d477d60c8b36003e6dd6aa69d65b9c1dddffa390b926bdf503cbf113709"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/draw-run-recovery-runtime.test.js",
+      "sourceSha256": "e493f4ededbe0de3a47d1f547fbacb0dde1ee34f15a3034d86ec11dd026f80b9",
+      "repositorySha256": "e493f4ededbe0de3a47d1f547fbacb0dde1ee34f15a3034d86ec11dd026f80b9"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/draw-run-recovery.test.js",
+      "sourceSha256": "f005dd78e87a6f3ba97b5b75ae008c24596e7f722ad22ad0d1bef48161a6ec20",
+      "repositorySha256": "f005dd78e87a6f3ba97b5b75ae008c24596e7f722ad22ad0d1bef48161a6ec20"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/draw-settings.test.js",
+      "sourceSha256": "b130d46d8e22ba63ea0fb9efbe3845138603a242a69c929bc35782732e1d4556",
+      "repositorySha256": "b130d46d8e22ba63ea0fb9efbe3845138603a242a69c929bc35782732e1d4556"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/draw-work-cancellation.test.js",
+      "sourceSha256": "7bec4b97558e7815a007d6a39cf7e0b2e49765ca94fd9a6c8a27beb4b5de55d6",
+      "repositorySha256": "7bec4b97558e7815a007d6a39cf7e0b2e49765ca94fd9a6c8a27beb4b5de55d6"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/drawing-chain-integration.test.js",
+      "sourceSha256": "abf47984f52a07f20e10d42be2ec87b052242d8449421820b64d373464b6ad64",
+      "repositorySha256": "974883e9c038b6b48053f2cdba65426e8099faf1777b1d015c73e9f5d5cf9c2b"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/female-story-only.test.js",
+      "sourceSha256": "1c188809be580cb32934cfe1323833c4a7ba49729fb434f06d10189854a042fe",
+      "repositorySha256": "1c188809be580cb32934cfe1323833c4a7ba49729fb434f06d10189854a042fe"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/final-comfy-positive-guard.test.js",
+      "sourceSha256": "6cbdb9afbf4dcf69ef92b39078711708e8904ba2943ffdcdafc62bc60b5f6633",
+      "repositorySha256": "6cbdb9afbf4dcf69ef92b39078711708e8904ba2943ffdcdafc62bc60b5f6633"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/fixtures/capsule-lifecycle-fixture.mjs",
+      "sourceSha256": "0a3004f9e982ba1d47641a59cb1946d06c9be12df4686d510ab8ffd6c1744723",
+      "repositorySha256": "0a3004f9e982ba1d47641a59cb1946d06c9be12df4686d510ab8ffd6c1744723"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/fixtures/provider-runtime-fixture.mjs",
+      "sourceSha256": "1b22c2d61096d1e34bc7336589d2c4e64fff83b057ff7ce7c839d5f00c4cb96b",
+      "repositorySha256": "705f30e30e8ecdeb449a734da443d50980397e0485d9d33999592ff2d6dd6c5c"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/fixtures/scene-planner-opening-v1.json",
+      "sourceSha256": "128bfcbd8f285a42d17e5e7cbf6d76759d96c3c1802c80af22d56779df9902b1",
+      "repositorySha256": "128bfcbd8f285a42d17e5e7cbf6d76759d96c3c1802c80af22d56779df9902b1"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/image-card-redraw-provider.test.js",
+      "sourceSha256": "aedc56db9b0b15e36906ab51cb81190bd9a7d6fc029093bd78a617cb9a634f63",
+      "repositorySha256": "aedc56db9b0b15e36906ab51cb81190bd9a7d6fc029093bd78a617cb9a634f63"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/image-job-delivery-target.test.js",
+      "sourceSha256": "319c7ccae3c8acb46d55da722d06edf357947a46b813b2519657e1d2e558bd3f",
+      "repositorySha256": "319c7ccae3c8acb46d55da722d06edf357947a46b813b2519657e1d2e558bd3f"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/image-job-reattach.test.js",
+      "sourceSha256": "c3e96084f3817a283d113a29f039f7a6841868f7325945141e03487f8f0c81c2",
+      "repositorySha256": "c3e96084f3817a283d113a29f039f7a6841868f7325945141e03487f8f0c81c2"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/image-job-recovery-executor.test.js",
+      "sourceSha256": "07a04827ca6e7f50579bafa2e00b1f7daf34607511efce914a3beaa71a38c6fb",
+      "repositorySha256": "07a04827ca6e7f50579bafa2e00b1f7daf34607511efce914a3beaa71a38c6fb"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/image-job-recovery-runtime.test.js",
+      "sourceSha256": "94c8a87bbdb67925920b38c864da39751baf2ee3a9b7bdb3b96ceb462d83cbe0",
+      "repositorySha256": "9f85e061790313a9a56cca8c8c8d0a76c7188bc5dc028375fa6e508fd0a13df2"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/image-slot-validity.test.js",
+      "sourceSha256": "b429799517adfe26f1d530a280ab3b997046ce871e2e2fa73e853a62dc0a4ecf",
+      "repositorySha256": "b429799517adfe26f1d530a280ab3b997046ce871e2e2fa73e853a62dc0a4ecf"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/male-image-exclusion.test.js",
+      "sourceSha256": "ef29ee413f1ef18dd1d9af1883345373aab751f2bc75b487eb2f17319c2e8c91",
+      "repositorySha256": "ef29ee413f1ef18dd1d9af1883345373aab751f2bc75b487eb2f17319c2e8c91"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/male-story-anchor-does-not-block-female.test.js",
+      "sourceSha256": "30cb0a3226f95f12dd4aacbc78d66dcb72b3d583cc6ba540899a7bb88a62c9ea",
+      "repositorySha256": "30cb0a3226f95f12dd4aacbc78d66dcb72b3d583cc6ba540899a7bb88a62c9ea"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/narrative-wrapper-anchor.test.js",
+      "sourceSha256": "937942d256cacb1b275a814448d1b99f07513f8bb4813e5969af6138d327dffd",
+      "repositorySha256": "937942d256cacb1b275a814448d1b99f07513f8bb4813e5969af6138d327dffd"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/page-farewell-pagehide.test.js",
+      "sourceSha256": "a987807e288bdf66c00cd5a71848e09783a3d5843e62defb79c77d9a7cea754e",
+      "repositorySha256": "a987807e288bdf66c00cd5a71848e09783a3d5843e62defb79c77d9a7cea754e"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/page-farewell.test.js",
+      "sourceSha256": "1289bb28619de27de997d99a3445a1ca1629bf4e947c3753597a29348e316175",
+      "repositorySha256": "1289bb28619de27de997d99a3445a1ca1629bf4e947c3753597a29348e316175"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/pending-image-jobs.test.js",
+      "sourceSha256": "414f156f9a0b4f8f1a790efb76fc39b9004e4747d1abf6aa29063b99ae0bf9e3",
+      "repositorySha256": "414f156f9a0b4f8f1a790efb76fc39b9004e4747d1abf6aa29063b99ae0bf9e3"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/prepared-slot-executor.test.js",
+      "sourceSha256": "4badbdb86c8bfc2823a49828e1c2fc186ef5a67f64fd01bc69e42f8062a0d249",
+      "repositorySha256": "4badbdb86c8bfc2823a49828e1c2fc186ef5a67f64fd01bc69e42f8062a0d249"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/present-character-boundaries.test.js",
+      "sourceSha256": "d79276ec650fff34862eca65b4c8e326282b8d027deff1a668626d5624d2e17b",
+      "repositorySha256": "d79276ec650fff34862eca65b4c8e326282b8d027deff1a668626d5624d2e17b"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/prompt-template-migration.test.js",
+      "sourceSha256": "7e34016c59eaea2b6147022e893d7743b27925fd17cf1518900953363551e292",
+      "repositorySha256": "fe7ecff5434e1d98cf897b7fd494310a53a30d82705e009e5f26090ced8e604d"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/provider-compilers.test.js",
+      "sourceSha256": "4a6a012bc94234f3c5f1a1f734c83fbf91f9192d8f93bbccee1379a5d49ea4da",
+      "repositorySha256": "ac48d111f5c0aebae3b161f69f458d121aefafab1eeb344cb0349a382875048c"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/recoverable-image-jobs.test.js",
+      "sourceSha256": "1eb8d8c161b37867dfabe16ae0985cec195b16d47605d7126299841bb1d306ea",
+      "repositorySha256": "4dfaae03b524c22afef63e0387f258c1c9d38eed254cdbdb6cffcb2d978fe06d"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/removed-settings-pages.test.js",
+      "sourceSha256": "5881624bdd1ca94e3d07e9c12a766fe148629b04dbc2dc9df8a6d2607b381075",
+      "repositorySha256": "5881624bdd1ca94e3d07e9c12a766fe148629b04dbc2dc9df8a6d2607b381075"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/reopen-inline-placement.test.js",
+      "sourceSha256": "5e7f0f64b1ced5a43c37c36dc243c923ff3a518933160fea5ecfc5b13eb0d38e",
+      "repositorySha256": "5e7f0f64b1ced5a43c37c36dc243c923ff3a518933160fea5ecfc5b13eb0d38e"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/saved-preview-selection.test.js",
+      "sourceSha256": "9ef8ab4e32029ef09a4e17e6a43f1cb8e36009cbf18fafca931f641e5fd4096d",
+      "repositorySha256": "9ef8ab4e32029ef09a4e17e6a43f1cb8e36009cbf18fafca931f641e5fd4096d"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/scene-placement.test.js",
+      "sourceSha256": "b34168b44174b789b763830a0eab3f236fe1d386633e29ee0bb5e5d0bf9e1895",
+      "repositorySha256": "b34168b44174b789b763830a0eab3f236fe1d386633e29ee0bb5e5d0bf9e1895"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/scene-plan-arguments.test.js",
+      "sourceSha256": "4691d8c1e91eb84a21d3aa61f9d39c93912931c446b05c8c069f6cea03e15f8c",
+      "repositorySha256": "4691d8c1e91eb84a21d3aa61f9d39c93912931c446b05c8c069f6cea03e15f8c"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/scene-plan-contract.test.js",
+      "sourceSha256": "25109cd3f196f9ba65cdfe94cb9397a5a37626bc4d02fd02144e717a772601af",
+      "repositorySha256": "25109cd3f196f9ba65cdfe94cb9397a5a37626bc4d02fd02144e717a772601af"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/scene-plan-refusal.test.js",
+      "sourceSha256": "71264ed456d05c05d90601d5b99d43627c271d030294939ec2d382adc2192afc",
+      "repositorySha256": "71264ed456d05c05d90601d5b99d43627c271d030294939ec2d382adc2192afc"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/scene-planner-error-ui.test.js",
+      "sourceSha256": "0984f54d1262df69c6a1f0b9de3a5eea57ef79687d3aca714f16e071c0326237",
+      "repositorySha256": "0984f54d1262df69c6a1f0b9de3a5eea57ef79687d3aca714f16e071c0326237"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/scene-prompt-expansion.test.js",
+      "sourceSha256": "0952c1940910a3c7cc8688f0f6a4960595e1c2c5be43e56995b235978d9ccdc1",
+      "repositorySha256": "0952c1940910a3c7cc8688f0f6a4960595e1c2c5be43e56995b235978d9ccdc1"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/scene-slot-dom.test.js",
+      "sourceSha256": "58cee2f2744868377c67c099bad4de3982d65dd720dbc0a3b086dfbb49c17ad6",
+      "repositorySha256": "58cee2f2744868377c67c099bad4de3982d65dd720dbc0a3b086dfbb49c17ad6"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/scene-slot-protection.test.js",
+      "sourceSha256": "e52fd90e546544655024c3dcc7075803f374b3703a5ff5e2c5e536368f660085",
+      "repositorySha256": "e52fd90e546544655024c3dcc7075803f374b3703a5ff5e2c5e536368f660085"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/self-audit-fixes.test.js",
+      "sourceSha256": "bb40e8534d8163c2e5cc4150dcd0221c930bbd31ac590c0a76a816978f963f66",
+      "repositorySha256": "fdb04c621e823cc8a597580b0055c103cfeb265bf8c59bcbe5201c01d0f80333"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/visible-image-anchor.test.js",
+      "sourceSha256": "f714b999630b063dc3e3a7f024105f95130463df39e835289a2c6dc3e6db5e40",
+      "repositorySha256": "f714b999630b063dc3e3a7f024105f95130463df39e835289a2c6dc3e6db5e40"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/visible-picture-regions.test.js",
+      "sourceSha256": "a89fd958292f259c30076a8fa207592d94024dd7716c10d5e4be76b5c80c1864",
+      "repositorySha256": "a89fd958292f259c30076a8fa207592d94024dd7716c10d5e4be76b5c80c1864"
+    },
+    {
+      "path": "runtime/modules/draw/shared/tests/wardrobe-continuity.test.js",
+      "sourceSha256": "58e743f65cea7aae243138e7228f0ac05c16ac0c0e33a512633eaf1bbc995f59",
+      "repositorySha256": "e811d311b7813cd21fa02958fa8268bfaea61a9ed15fe4e9e64edd72bb803b73"
+    },
+    {
+      "path": "runtime/modules/draw/shared/visible-image-anchor.js",
+      "sourceSha256": "3db1f2ab0d0a75e02e7ea070e51b37de89022182c5d9af3e7a984453bb000491",
+      "repositorySha256": "3db1f2ab0d0a75e02e7ea070e51b37de89022182c5d9af3e7a984453bb000491"
+    },
+    {
+      "path": "runtime/modules/draw/shared/wardrobe-continuity.js",
+      "sourceSha256": "f713e413a3ea3adddc2da0fdc62f4f35b5d81fe65f8fcab140a88b0f65b72071",
+      "repositorySha256": "f713e413a3ea3adddc2da0fdc62f4f35b5d81fe65f8fcab140a88b0f65b72071"
+    },
+    {
+      "path": "runtime/modules/draw/shared/worldbook-processor.js",
+      "sourceSha256": "e275e52e5af3a55ee7e93e2520fa799fadfc1359b21a06b96a1c5b0a837d9467",
+      "repositorySha256": "e275e52e5af3a55ee7e93e2520fa799fadfc1359b21a06b96a1c5b0a837d9467"
+    },
+    {
+      "path": "runtime/modules/variables/var-commands.js",
+      "sourceSha256": "a2eaa5e335fbf1dfcd84321eac164695cb8756ae5aa2e3d68112cf62eccdd676",
+      "repositorySha256": "a2eaa5e335fbf1dfcd84321eac164695cb8756ae5aa2e3d68112cf62eccdd676"
+    },
+    {
+      "path": "runtime/package.json",
+      "sourceSha256": "ccdf8de44295f59be00f6b8cf1359959938a16a4ccf8c55940d8af1894748c5f",
+      "repositorySha256": "ccdf8de44295f59be00f6b8cf1359959938a16a4ccf8c55940d8af1894748c5f"
+    },
+    {
+      "path": "runtime/shared/common/abort-utils.js",
+      "sourceSha256": "64cd75e93ac24e7a53422b21852789488191e21ecd3988decd9bccc15b6e0f40",
+      "repositorySha256": "64cd75e93ac24e7a53422b21852789488191e21ecd3988decd9bccc15b6e0f40"
+    },
+    {
+      "path": "runtime/shared/common/generate-interceptor.js",
+      "sourceSha256": "2bf2391423fc8439969c689c6d54748cf5ec9f457805e29b1700af9d4167582a",
+      "repositorySha256": "2bf2391423fc8439969c689c6d54748cf5ec9f457805e29b1700af9d4167582a"
+    },
+    {
+      "path": "runtime/shared/host-llm/model-family.js",
+      "sourceSha256": "f5d4bb2062b0131d525d49b2bb9e78752e2a12041507a75832268e9d807e1a3d",
+      "repositorySha256": "f5d4bb2062b0131d525d49b2bb9e78752e2a12041507a75832268e9d807e1a3d"
+    },
+    {
+      "path": "runtime/shared/server-plugin/copy.js",
+      "sourceSha256": "96ddfcbbbe5ebeba70b92b592920214fe3cc4d9ad3f0777d8c0dab5350d6fb5d",
+      "repositorySha256": "96ddfcbbbe5ebeba70b92b592920214fe3cc4d9ad3f0777d8c0dab5350d6fb5d"
+    },
+    {
+      "path": "runtime/shared/server-plugin/identity.js",
+      "sourceSha256": "977a3de77851194e388c6004e12b642d617655851600ae4a762e6964c6a954d3",
+      "repositorySha256": "977a3de77851194e388c6004e12b642d617655851600ae4a762e6964c6a954d3"
+    },
+    {
+      "path": "runtime/shared/server-plugin/installation-guide.css",
+      "sourceSha256": "c5f030af36d4b5353cbaee044ce68255e9951ab310c433c0ac2f8681cbc60f7f",
+      "repositorySha256": "c5f030af36d4b5353cbaee044ce68255e9951ab310c433c0ac2f8681cbc60f7f"
+    },
+    {
+      "path": "runtime/shared/server-plugin/installation-guide.js",
+      "sourceSha256": "451b26a403f3e13c04ae1665d1fbbf0b3bf359793ca8d950ea643b026e69a10d",
+      "repositorySha256": "e0692e22518bea06948476d48571ae8f7963609300a9a7d1a41baeb4d33a3d3b"
+    },
+    {
+      "path": "runtime/shared/server-plugin/standalone-installation.js",
+      "sourceSha256": "8e394721db969de9f907d53294690e94cfd8cc286e2e948e3962095af63c425b",
+      "repositorySha256": "661f4f00f734464a15a5bd19ef2fe93ca7e3ae4783e80b3f9c29e98875147fcc"
     },
     {
       "path": "runtime/widgets/message-toolbar.js",
-      "sourceSha256": "580eaf2230bb27d3ff67c14964022be35bad5ea6fb385f5e3b183d586f0de5d9"
+      "sourceSha256": "580eaf2230bb27d3ff67c14964022be35bad5ea6fb385f5e3b183d586f0de5d9",
+      "repositorySha256": "580eaf2230bb27d3ff67c14964022be35bad5ea6fb385f5e3b183d586f0de5d9"
     },
     {
       "path": "server-plugin/index.js",
-      "sourceSha256": "01597f05091156e87e5861a441064836058362bc911cded60329e69e5c8d0819"
-    },
-    {
-      "path": "server-plugin/lib/photos.js",
-      "sourceSha256": "6bd998e248c23bb59039d58bc2890494ab5da418575fa6951fcb929930c6b166"
+      "sourceSha256": "3e63d910809fc5712750c0d2a30a35a0fe0ad1397ef187bfa1d7afb2c6f42c89",
+      "repositorySha256": "2557e8b8d1e4e2656a3a651aa1ba832bfad792320f790ea0f9ff6e7265899666"
     },
     {
       "path": "server-plugin/lib/runtime.js",
-      "sourceSha256": "fd97a994144fe0dc56794bc9de1254420262a4c5c867e34fc9c1015f0175c980"
+      "sourceSha256": "fd97a994144fe0dc56794bc9de1254420262a4c5c867e34fc9c1015f0175c980",
+      "repositorySha256": "fd97a994144fe0dc56794bc9de1254420262a4c5c867e34fc9c1015f0175c980"
     },
     {
-      "path": "server-plugin/lib/transport.js",
-      "sourceSha256": "e4fe2df291bc571b58bd874e1e2a0ef95f4cc0bb7183e66ae14d5d1d9fa45b67"
+      "path": "server-plugin/lib/settings.js",
+      "sourceSha256": "b24076ea7753d469a29d37d383c539b5f6d4a3f9cf9774d1c7a95ba32d1a8cf6",
+      "repositorySha256": "b24076ea7753d469a29d37d383c539b5f6d4a3f9cf9774d1c7a95ba32d1a8cf6"
     },
     {
       "path": "server-plugin/lib/user-context.js",
-      "sourceSha256": "2e7038cfd5a8f7947fd306037699fbe19f7cfaf7cfc0ed3f664d775fb2d29549"
-    },
-    {
-      "path": "server-plugin/lib/workflow.js",
-      "sourceSha256": "7189e619d23c3f4070ad15c25a3fcfb2db268cec6998d772ad652a66fb2437bd"
+      "sourceSha256": "2e7038cfd5a8f7947fd306037699fbe19f7cfaf7cfc0ed3f664d775fb2d29549",
+      "repositorySha256": "2e7038cfd5a8f7947fd306037699fbe19f7cfaf7cfc0ed3f664d775fb2d29549"
     },
     {
       "path": "server-plugin/manifest.json",
-      "sourceSha256": "85e4ba6d6991d2b20e7ebf75de5d7b12af92a41d3ecfc60f92270756feb24f59"
+      "sourceSha256": "85e4ba6d6991d2b20e7ebf75de5d7b12af92a41d3ecfc60f92270756feb24f59",
+      "repositorySha256": "0bf8594ad34bf21172121fcda24c6388e569f912ad598111345d343bd1cb4dcf"
     },
     {
       "path": "server-plugin/package.json",
-      "sourceSha256": "e057da775d321536ef476460d1b44bf19f16b9b79dc3dd0cdd68fa72949d8330"
-    },
-    {
-      "path": "server-plugin/runtime/cancellation.js",
-      "sourceSha256": "a474d62cc8e9d2cfee08c03fc455797562cb6a779917a1f1c33edd51acd0fa8a"
+      "sourceSha256": "e057da775d321536ef476460d1b44bf19f16b9b79dc3dd0cdd68fa72949d8330",
+      "repositorySha256": "b2fc81bed42584c849180b35225045427408046c00ff015a5872f19bb7d917eb"
     },
     {
       "path": "server-plugin/runtime/COPYRIGHT",
-      "sourceSha256": "b69f894267d4eb21e527f7dede3f0811eeda79b0843a5cc956b06fd1234acab2"
-    },
-    {
-      "path": "server-plugin/runtime/diagnostics-routes.js",
-      "sourceSha256": "f4c78e9ff01bb1fcf6e2b0bcc9965faf32d52a48e7c34c488be6279be24f6ce0"
-    },
-    {
-      "path": "server-plugin/runtime/draw-runs/draw-run-manager.js",
-      "sourceSha256": "108bc64929ec5e82d9d83ee9f60d3e62c9a70bbb083749d7c784d32e8fdeb29d"
-    },
-    {
-      "path": "server-plugin/runtime/draw-runs/envelope.js",
-      "sourceSha256": "a5d034c32247fa2abdd0f7c195d1508bfbf077586a3512cbeb15cc3793eb1996"
-    },
-    {
-      "path": "server-plugin/runtime/draw-runs/loopback-host-client.js",
-      "sourceSha256": "53879aef34141e163f7dec2306ddc3b99e9bd8efd16b6a52fa00d963c3faaa2b"
-    },
-    {
-      "path": "server-plugin/runtime/draw-runs/loopback-probe.js",
-      "sourceSha256": "09d716b9b25214e98be62f13d18ad61b860d0cb257d84de3ea217a8a2525826b"
-    },
-    {
-      "path": "server-plugin/runtime/draw-runs/routes.js",
-      "sourceSha256": "b9abcf14696a3f63040c9f351ac9cad02e9901a10eee700c698ea5769a07f9b6"
-    },
-    {
-      "path": "server-plugin/runtime/draw-runs/vendor/agent-core-node.cjs",
-      "sourceSha256": "ede71b17c9bb4ad6d1fbb3ec619171794feccdfacb37c491811808791087f873"
-    },
-    {
-      "path": "server-plugin/runtime/draw-runs/vendor/draw-run-runtime.cjs",
-      "sourceSha256": "f8767224d6759af886415a6064ccd9b71a785432336aa3f187afd6fbdf9c6807"
-    },
-    {
-      "path": "server-plugin/runtime/draw-runs/vendor/THIRD_PARTY_LICENSES.txt",
-      "sourceSha256": "76f20f28d3fb4838e15f00cd6f760c29a6ac755f0dacc6622f7e0ccc903bd13c"
-    },
-    {
-      "path": "server-plugin/runtime/image-jobs/job-manager.js",
-      "sourceSha256": "0716ecd73fcda96d86fc4a2877b7dff68815c016d5b10a19199344a48e9950c8"
-    },
-    {
-      "path": "server-plugin/runtime/image-jobs/routes.js",
-      "sourceSha256": "f668d6ebd41f0ca48e83ee47b1e1a7a125e8b17614584eb97e139cfe6ad16c4a"
-    },
-    {
-      "path": "server-plugin/runtime/image-jobs/service.js",
-      "sourceSha256": "3c92e100f0adfff86e3d661b2a195591894f0b8e8ccce02f5c1624175083fe1b"
-    },
-    {
-      "path": "server-plugin/runtime/index.js",
-      "sourceSha256": "e232ebe58a7927903b878c92d60511d8efa26090d3479d958a3ce4a16db95c37"
-    },
-    {
-      "path": "server-plugin/runtime/manifest.json",
-      "sourceSha256": "0d9c63de487f99b97677d6aa2778fb4c8fdd7b46a76006d69060a6e94fd1c565"
+      "sourceSha256": "b69f894267d4eb21e527f7dede3f0811eeda79b0843a5cc956b06fd1234acab2",
+      "repositorySha256": "b69f894267d4eb21e527f7dede3f0811eeda79b0843a5cc956b06fd1234acab2"
     },
     {
       "path": "server-plugin/runtime/NOTICE",
-      "sourceSha256": "12e02f28483bc52af2766f9998abc3511af9414d5dce9406b9d5524723b1ffd4"
-    },
-    {
-      "path": "server-plugin/runtime/package.json",
-      "sourceSha256": "337c421af135f6534462004073120ee84b7e007e1373e3b49290f237f59222af"
-    },
-    {
-      "path": "server-plugin/runtime/providers/comfyui/adapter.js",
-      "sourceSha256": "3a51a2e6b12726dcd28b33e0b6fd5aac331a0e0d32c6729206d66598b12d0bc3"
-    },
-    {
-      "path": "server-plugin/runtime/providers/comfyui/role-photo-upload.js",
-      "sourceSha256": "9700d0602f6c88321a007de3f2e7757da975b78e19c7edd8ba40077db5cabea9"
-    },
-    {
-      "path": "server-plugin/runtime/providers/novelai/adapter.js",
-      "sourceSha256": "6feccccfa6138338ca7ec544093cd281ce76d992256a4e7ff3fe3774bd502a8f"
-    },
-    {
-      "path": "server-plugin/runtime/providers/novelai/client.js",
-      "sourceSha256": "1e9da13d8cdd22f206ec2da6117fd67bb3660d7300cf04ca987be1c707934f40"
-    },
-    {
-      "path": "server-plugin/runtime/providers/novelai/v5-stream.js",
-      "sourceSha256": "18a97c535ee4d9fb05f768e71c040b39adb66e45415b13c118c48005930e9272"
-    },
-    {
-      "path": "server-plugin/runtime/providers/novelai/vendor/novel-v5-parser.cjs",
-      "sourceSha256": "5d253dcd65c1357c0d459f37645d0195dc83cbe321041530d1430bf24436ea76"
-    },
-    {
-      "path": "server-plugin/runtime/providers/sd-webui/adapter.js",
-      "sourceSha256": "1da8d75cb8e12a5345113e88c6de4486b884b9b73a83ab236a7c5dee2a13c19f"
-    },
-    {
-      "path": "server-plugin/runtime/providers/upstream.js",
-      "sourceSha256": "ac9c3a61ca349971dfe69feecd6d8319c1cfd13c4f4737489820b1afb06cdd3d"
+      "sourceSha256": "12e02f28483bc52af2766f9998abc3511af9414d5dce9406b9d5524723b1ffd4",
+      "repositorySha256": "12e02f28483bc52af2766f9998abc3511af9414d5dce9406b9d5524723b1ffd4"
     },
     {
       "path": "server-plugin/runtime/README.md",
-      "sourceSha256": "5a550b535c95da8171905a5b9ab19fd1cb746d95cc19edd1ab0c740201b366d3"
-    },
-    {
-      "path": "server-plugin/runtime/request-abort.js",
-      "sourceSha256": "733d46418a5dd767fae685e2df0748cb1054dba65ceb1a992ea7f85a149c6156"
-    },
-    {
-      "path": "server-plugin/runtime/tests/cancellation.test.js",
-      "sourceSha256": "3f1dc51d33ff01677c3ad3494b33913086b5b2fc722298313e21d266158e0b05"
-    },
-    {
-      "path": "server-plugin/runtime/tests/draw-run-manager.test.js",
-      "sourceSha256": "fe8a6bc7830e5df19fa3f998167b20e563ccc1259a2db88b61a72bca5b881fcc"
-    },
-    {
-      "path": "server-plugin/runtime/tests/draw-run-routes.test.js",
-      "sourceSha256": "20adb93e73991f7f39316881170d5133e3a135fc4ce1f08aee85b909543cefe7"
-    },
-    {
-      "path": "server-plugin/runtime/tests/job-manager.test.js",
-      "sourceSha256": "ba7f918f4edbb22b7fdfb7671a2f8ade0cc9e4c092c2e592516a83b122fc78c4"
-    },
-    {
-      "path": "server-plugin/runtime/tests/job-routes.test.js",
-      "sourceSha256": "70ffbe211f9c187ee0c482d3138317ceb6d9ddcceebe6cbe4ada84687fdc1f36"
-    },
-    {
-      "path": "server-plugin/runtime/tests/loopback-host-client.test.js",
-      "sourceSha256": "b01f520d57005ec733febac74cdf11d4b04452c5c958866f3d0efe1db6ff16c2"
-    },
-    {
-      "path": "server-plugin/runtime/tests/loopback-probe.test.js",
-      "sourceSha256": "8c9c6e925f52e4682058065567bc02b85aed0b567dde2cac6fdbe7fa1177f738"
-    },
-    {
-      "path": "server-plugin/runtime/tests/provider-adapters.test.js",
-      "sourceSha256": "d6ffdce1f8304ebd1208d9d9ae3a11a72d4e85a04725a180ffd8c67b87ad527c"
+      "sourceSha256": "1e699f22f33e04e148dbee235bcc6934b2ac741c0d61c90307ee635aa6e332d8",
+      "repositorySha256": "1d98f6d324e7d0c30b95cc3c05d7a98c3141cee170fce2e10358bc6a89960dd3"
     },
     {
       "path": "server-plugin/runtime/UPSTREAM-LICENSE.md",
-      "sourceSha256": "6cb4f290be1a97f0bce4bce57fb1791b1c299552a0863f3078553146bfa025aa"
+      "sourceSha256": "6cb4f290be1a97f0bce4bce57fb1791b1c299552a0863f3078553146bfa025aa",
+      "repositorySha256": "6cb4f290be1a97f0bce4bce57fb1791b1c299552a0863f3078553146bfa025aa"
+    },
+    {
+      "path": "server-plugin/runtime/cancellation.js",
+      "sourceSha256": "a474d62cc8e9d2cfee08c03fc455797562cb6a779917a1f1c33edd51acd0fa8a",
+      "repositorySha256": "a474d62cc8e9d2cfee08c03fc455797562cb6a779917a1f1c33edd51acd0fa8a"
+    },
+    {
+      "path": "server-plugin/runtime/diagnostics-routes.js",
+      "sourceSha256": "f4c78e9ff01bb1fcf6e2b0bcc9965faf32d52a48e7c34c488be6279be24f6ce0",
+      "repositorySha256": "f4c78e9ff01bb1fcf6e2b0bcc9965faf32d52a48e7c34c488be6279be24f6ce0"
+    },
+    {
+      "path": "server-plugin/runtime/draw-runs/draw-run-manager.js",
+      "sourceSha256": "108bc64929ec5e82d9d83ee9f60d3e62c9a70bbb083749d7c784d32e8fdeb29d",
+      "repositorySha256": "108bc64929ec5e82d9d83ee9f60d3e62c9a70bbb083749d7c784d32e8fdeb29d"
+    },
+    {
+      "path": "server-plugin/runtime/draw-runs/envelope.js",
+      "sourceSha256": "a5d034c32247fa2abdd0f7c195d1508bfbf077586a3512cbeb15cc3793eb1996",
+      "repositorySha256": "a5d034c32247fa2abdd0f7c195d1508bfbf077586a3512cbeb15cc3793eb1996"
+    },
+    {
+      "path": "server-plugin/runtime/draw-runs/loopback-host-client.js",
+      "sourceSha256": "53879aef34141e163f7dec2306ddc3b99e9bd8efd16b6a52fa00d963c3faaa2b",
+      "repositorySha256": "53879aef34141e163f7dec2306ddc3b99e9bd8efd16b6a52fa00d963c3faaa2b"
+    },
+    {
+      "path": "server-plugin/runtime/draw-runs/loopback-probe.js",
+      "sourceSha256": "09d716b9b25214e98be62f13d18ad61b860d0cb257d84de3ea217a8a2525826b",
+      "repositorySha256": "09d716b9b25214e98be62f13d18ad61b860d0cb257d84de3ea217a8a2525826b"
+    },
+    {
+      "path": "server-plugin/runtime/draw-runs/routes.js",
+      "sourceSha256": "b9abcf14696a3f63040c9f351ac9cad02e9901a10eee700c698ea5769a07f9b6",
+      "repositorySha256": "b9abcf14696a3f63040c9f351ac9cad02e9901a10eee700c698ea5769a07f9b6"
+    },
+    {
+      "path": "server-plugin/runtime/draw-runs/vendor/THIRD_PARTY_LICENSES.txt",
+      "sourceSha256": "76f20f28d3fb4838e15f00cd6f760c29a6ac755f0dacc6622f7e0ccc903bd13c",
+      "repositorySha256": "76f20f28d3fb4838e15f00cd6f760c29a6ac755f0dacc6622f7e0ccc903bd13c"
+    },
+    {
+      "path": "server-plugin/runtime/draw-runs/vendor/agent-core-node.cjs",
+      "sourceSha256": "ede71b17c9bb4ad6d1fbb3ec619171794feccdfacb37c491811808791087f873",
+      "repositorySha256": "ede71b17c9bb4ad6d1fbb3ec619171794feccdfacb37c491811808791087f873"
+    },
+    {
+      "path": "server-plugin/runtime/draw-runs/vendor/draw-run-runtime.cjs",
+      "sourceSha256": "f8767224d6759af886415a6064ccd9b71a785432336aa3f187afd6fbdf9c6807",
+      "repositorySha256": "ef2597ea54a9ce39a656654a4f50eccd674c5d845d8a76af8727eaccd79f136e"
+    },
+    {
+      "path": "server-plugin/runtime/image-jobs/job-manager.js",
+      "sourceSha256": "0716ecd73fcda96d86fc4a2877b7dff68815c016d5b10a19199344a48e9950c8",
+      "repositorySha256": "0716ecd73fcda96d86fc4a2877b7dff68815c016d5b10a19199344a48e9950c8"
+    },
+    {
+      "path": "server-plugin/runtime/image-jobs/routes.js",
+      "sourceSha256": "f668d6ebd41f0ca48e83ee47b1e1a7a125e8b17614584eb97e139cfe6ad16c4a",
+      "repositorySha256": "f668d6ebd41f0ca48e83ee47b1e1a7a125e8b17614584eb97e139cfe6ad16c4a"
+    },
+    {
+      "path": "server-plugin/runtime/image-jobs/service.js",
+      "sourceSha256": "3c92e100f0adfff86e3d661b2a195591894f0b8e8ccce02f5c1624175083fe1b",
+      "repositorySha256": "3c92e100f0adfff86e3d661b2a195591894f0b8e8ccce02f5c1624175083fe1b"
+    },
+    {
+      "path": "server-plugin/runtime/index.js",
+      "sourceSha256": "e232ebe58a7927903b878c92d60511d8efa26090d3479d958a3ce4a16db95c37",
+      "repositorySha256": "e232ebe58a7927903b878c92d60511d8efa26090d3479d958a3ce4a16db95c37"
+    },
+    {
+      "path": "server-plugin/runtime/manifest.json",
+      "sourceSha256": "0d9c63de487f99b97677d6aa2778fb4c8fdd7b46a76006d69060a6e94fd1c565",
+      "repositorySha256": "0d9c63de487f99b97677d6aa2778fb4c8fdd7b46a76006d69060a6e94fd1c565"
+    },
+    {
+      "path": "server-plugin/runtime/package.json",
+      "sourceSha256": "337c421af135f6534462004073120ee84b7e007e1373e3b49290f237f59222af",
+      "repositorySha256": "337c421af135f6534462004073120ee84b7e007e1373e3b49290f237f59222af"
+    },
+    {
+      "path": "server-plugin/runtime/providers/comfyui/adapter.js",
+      "sourceSha256": "3a51a2e6b12726dcd28b33e0b6fd5aac331a0e0d32c6729206d66598b12d0bc3",
+      "repositorySha256": "3a51a2e6b12726dcd28b33e0b6fd5aac331a0e0d32c6729206d66598b12d0bc3"
+    },
+    {
+      "path": "server-plugin/runtime/providers/comfyui/role-photo-upload.js",
+      "sourceSha256": "9700d0602f6c88321a007de3f2e7757da975b78e19c7edd8ba40077db5cabea9",
+      "repositorySha256": "9700d0602f6c88321a007de3f2e7757da975b78e19c7edd8ba40077db5cabea9"
+    },
+    {
+      "path": "server-plugin/runtime/providers/novelai/adapter.js",
+      "sourceSha256": "6feccccfa6138338ca7ec544093cd281ce76d992256a4e7ff3fe3774bd502a8f",
+      "repositorySha256": "6feccccfa6138338ca7ec544093cd281ce76d992256a4e7ff3fe3774bd502a8f"
+    },
+    {
+      "path": "server-plugin/runtime/providers/novelai/client.js",
+      "sourceSha256": "1e9da13d8cdd22f206ec2da6117fd67bb3660d7300cf04ca987be1c707934f40",
+      "repositorySha256": "1e9da13d8cdd22f206ec2da6117fd67bb3660d7300cf04ca987be1c707934f40"
+    },
+    {
+      "path": "server-plugin/runtime/providers/novelai/v5-stream.js",
+      "sourceSha256": "18a97c535ee4d9fb05f768e71c040b39adb66e45415b13c118c48005930e9272",
+      "repositorySha256": "18a97c535ee4d9fb05f768e71c040b39adb66e45415b13c118c48005930e9272"
+    },
+    {
+      "path": "server-plugin/runtime/providers/novelai/vendor/novel-v5-parser.cjs",
+      "sourceSha256": "5d253dcd65c1357c0d459f37645d0195dc83cbe321041530d1430bf24436ea76",
+      "repositorySha256": "5d253dcd65c1357c0d459f37645d0195dc83cbe321041530d1430bf24436ea76"
+    },
+    {
+      "path": "server-plugin/runtime/providers/sd-webui/adapter.js",
+      "sourceSha256": "1da8d75cb8e12a5345113e88c6de4486b884b9b73a83ab236a7c5dee2a13c19f",
+      "repositorySha256": "1da8d75cb8e12a5345113e88c6de4486b884b9b73a83ab236a7c5dee2a13c19f"
+    },
+    {
+      "path": "server-plugin/runtime/providers/upstream.js",
+      "sourceSha256": "ac9c3a61ca349971dfe69feecd6d8319c1cfd13c4f4737489820b1afb06cdd3d",
+      "repositorySha256": "ac9c3a61ca349971dfe69feecd6d8319c1cfd13c4f4737489820b1afb06cdd3d"
+    },
+    {
+      "path": "server-plugin/runtime/request-abort.js",
+      "sourceSha256": "733d46418a5dd767fae685e2df0748cb1054dba65ceb1a992ea7f85a149c6156",
+      "repositorySha256": "733d46418a5dd767fae685e2df0748cb1054dba65ceb1a992ea7f85a149c6156"
+    },
+    {
+      "path": "server-plugin/runtime/tests/cancellation.test.js",
+      "sourceSha256": "3f1dc51d33ff01677c3ad3494b33913086b5b2fc722298313e21d266158e0b05",
+      "repositorySha256": "3f1dc51d33ff01677c3ad3494b33913086b5b2fc722298313e21d266158e0b05"
+    },
+    {
+      "path": "server-plugin/runtime/tests/draw-run-manager.test.js",
+      "sourceSha256": "657861c4ab1cd171d3d156f46e64ede8e67c25dcb19e04a11694bac2557b7edc",
+      "repositorySha256": "c65b9b9b37a217416e1fa7d562a88efa475852b8351d3f22b5b3efc12699ebe6"
+    },
+    {
+      "path": "server-plugin/runtime/tests/draw-run-routes.test.js",
+      "sourceSha256": "20adb93e73991f7f39316881170d5133e3a135fc4ce1f08aee85b909543cefe7",
+      "repositorySha256": "20adb93e73991f7f39316881170d5133e3a135fc4ce1f08aee85b909543cefe7"
+    },
+    {
+      "path": "server-plugin/runtime/tests/job-manager.test.js",
+      "sourceSha256": "ba7f918f4edbb22b7fdfb7671a2f8ade0cc9e4c092c2e592516a83b122fc78c4",
+      "repositorySha256": "ba7f918f4edbb22b7fdfb7671a2f8ade0cc9e4c092c2e592516a83b122fc78c4"
+    },
+    {
+      "path": "server-plugin/runtime/tests/job-routes.test.js",
+      "sourceSha256": "70ffbe211f9c187ee0c482d3138317ceb6d9ddcceebe6cbe4ada84687fdc1f36",
+      "repositorySha256": "70ffbe211f9c187ee0c482d3138317ceb6d9ddcceebe6cbe4ada84687fdc1f36"
+    },
+    {
+      "path": "server-plugin/runtime/tests/loopback-host-client.test.js",
+      "sourceSha256": "b01f520d57005ec733febac74cdf11d4b04452c5c958866f3d0efe1db6ff16c2",
+      "repositorySha256": "b01f520d57005ec733febac74cdf11d4b04452c5c958866f3d0efe1db6ff16c2"
+    },
+    {
+      "path": "server-plugin/runtime/tests/loopback-probe.test.js",
+      "sourceSha256": "8c9c6e925f52e4682058065567bc02b85aed0b567dde2cac6fdbe7fa1177f738",
+      "repositorySha256": "8c9c6e925f52e4682058065567bc02b85aed0b567dde2cac6fdbe7fa1177f738"
+    },
+    {
+      "path": "server-plugin/runtime/tests/provider-adapters.test.js",
+      "sourceSha256": "d6ffdce1f8304ebd1208d9d9ae3a11a72d4e85a04725a180ffd8c67b87ad527c",
+      "repositorySha256": "d6ffdce1f8304ebd1208d9d9ae3a11a72d4e85a04725a180ffd8c67b87ad527c"
     },
     {
       "path": "server-plugin/runtime/web/routes.js",
-      "sourceSha256": "ada291d9fe647eef9c230456cdeda902e9816ba0b20f5e255c786e42f553a631"
+      "sourceSha256": "ada291d9fe647eef9c230456cdeda902e9816ba0b20f5e255c786e42f553a631",
+      "repositorySha256": "ada291d9fe647eef9c230456cdeda902e9816ba0b20f5e255c786e42f553a631"
     },
     {
       "path": "server-plugin/runtime/web/web-runtime.cjs",
-      "sourceSha256": "0bd8005e553cd023d4bcc2d0ce2077d39abb3ce00818007e7b65c3040cdea191"
+      "sourceSha256": "0bd8005e553cd023d4bcc2d0ce2077d39abb3ce00818007e7b65c3040cdea191",
+      "repositorySha256": "0bd8005e553cd023d4bcc2d0ce2077d39abb3ce00818007e7b65c3040cdea191"
     },
     {
       "path": "server-plugin/tests/integration.test.cjs",
-      "sourceSha256": "1f1124121a88eeaa5ac968d0c259c0901a50a7f713d09dbd1ac253a073c738e5"
+      "sourceSha256": "2c6cc445e4bd48de0524c95699b22d3c11729962f496a30e07edeb424b21b63b",
+      "repositorySha256": "b26e27e4a295a7c267f9fb1e47bd5f57641bab92872a4519a40fadfce4485e1c"
     },
     {
-      "path": "server-plugin/workflows/krea2-identity-api.json",
-      "sourceSha256": "5080a053a28f61d643039989d4e571cf74fc2eec71066e3d725034978835fd78"
-    },
-    {
-      "path": "server-plugin/workflows/krea2-reference-api.json",
-      "sourceSha256": "d0db273fb9ca0d9e5ba2dd984f4858eca9ce518aaeadb0e90c7565d7700f647e"
+      "path": "server-plugin/tests/settings.test.cjs",
+      "sourceSha256": "2ea42f5b6f0e1298c909c0629dfba94f57fdc8ce0803cb29e3aa6bb1c8fedfc9",
+      "repositorySha256": "2906c44b1f1c8631d914de7fff94104006dc635449e6e340964f2d0267aa2fb6"
     }
   ],
   "distributionChanges": [
-    "Product version metadata updated to 0.3.0",
-    "Three test paths made repository-relative",
-    "Two tests for deleted providers excluded",
-    "Backend README replaced with current documentation",
-    "One stale role-save control assertion synchronized with current UI",
-    "Generated diagnostic data excluded from release",
-    "One stale role-save control assertion synchronized with current UI"
+    "Product metadata set to 0.3.1; live metadata unchanged",
+    "Installation-specific test imports made repository-relative",
+    "Backend runtime rebuilt with the existing build script",
+    "Matching backend download ZIP and SHA256SUMS generated; excluded from their own archive",
+    "Documentation and product lockfile updated; live settings and services unchanged",
+    "Changed publication text uses LF; repositorySha256 describes exact published bytes",
+    "Wardrobe tests use two female actors while preserving all assertions; dedicated male-filter tests remain enabled"
+  ],
+  "transformedPaths": [
+    "manifest.json",
+    "package.json",
+    "server-plugin/manifest.json",
+    "server-plugin/package.json",
+    "runtime/modules/draw/shared/tests/audit-regressions.test.js",
+    "runtime/modules/draw/shared/tests/direct-draw.test.js",
+    "runtime/modules/draw/shared/tests/drawing-chain-integration.test.js",
+    "runtime/modules/draw/shared/tests/wardrobe-continuity.test.js",
+    "server-plugin/tests/settings.test.cjs",
+    "server-plugin/runtime/tests/draw-run-manager.test.js",
+    "runtime/modules/draw/shared/tests/audit-followup.test.js"
+  ],
+  "removedPreviousSourcePaths": [
+    "runtime/modules/agent-core/dist/agent-core-browser.js",
+    "runtime/modules/draw/providers/comfyui/character-translation-request.js",
+    "runtime/modules/draw/providers/comfyui/character-translation.js",
+    "runtime/modules/draw/providers/comfyui/tests/character-translation-request.test.js",
+    "runtime/modules/draw/shared/danbooru-local-db.js",
+    "runtime/modules/draw/shared/data/danbooru-chars.dat",
+    "runtime/modules/draw/shared/draw-agent.js",
+    "server-plugin/lib/photos.js",
+    "server-plugin/lib/transport.js",
+    "server-plugin/lib/workflow.js",
+    "server-plugin/workflows/krea2-identity-api.json",
+    "server-plugin/workflows/krea2-reference-api.json"
+  ],
+  "reviewedDistributionDifferences": [
+    "manifest.json",
+    "runtime/modules/draw/shared/tests/audit-followup.test.js",
+    "runtime/modules/draw/shared/tests/audit-regressions.test.js",
+    "runtime/modules/draw/shared/tests/direct-draw.test.js",
+    "runtime/modules/draw/shared/tests/drawing-chain-integration.test.js",
+    "runtime/modules/draw/shared/tests/wardrobe-continuity.test.js",
+    "server-plugin/manifest.json",
+    "server-plugin/package.json",
+    "server-plugin/runtime/draw-runs/vendor/draw-run-runtime.cjs",
+    "server-plugin/runtime/tests/draw-run-manager.test.js",
+    "server-plugin/tests/settings.test.cjs"
   ]
 }

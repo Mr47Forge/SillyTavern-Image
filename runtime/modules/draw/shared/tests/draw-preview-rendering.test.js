@@ -23,7 +23,7 @@ const stubs = {
     'image-diagnostics.js': 'export const writeImageError=async()=>{};export const openImageDiagnostics=()=>{};',
     'extensions.js': 'export const getContext = () => globalThis.__drawPreviewTest.ctx;',
     'user.js': 'export const getCurrentUserHandle = () => "fixture";',
-    'script.js': 'export const messageFormatting = text => globalThis.__drawPreviewTest.messageFormatting(text);',
+    'script.js': 'export const messageFormatting = text => globalThis.__drawPreviewTest.messageFormatting(text);export const setExtensionPrompt=()=>{};export const extension_prompt_types={IN_CHAT:1};export const extension_prompt_roles={USER:1};',
     'utils.js': 'export const saveBase64AsFile = async () => { throw new Error("Unexpected image upload"); };',
     'event-manager.js': `
         export const createModuleEvents = () => ({ on() {}, cleanup() {} });
@@ -125,7 +125,7 @@ for (const savedReference of [false, true]) {
         await api.setSlotSelection(slotId, selected.imgId);
         if (savedReference) {
             message.extra.stimageDrawSaved = {
-                [slotId]: { imgId: selected.imgId, savedUrl: '/saved-history.png' },
+                [slotId]: { imgId: selected.imgId, savedUrl: '/user/images/fixture/saved-history.png' },
             };
         }
         const pending = stagePendingSlots(root);
@@ -184,7 +184,7 @@ test('settlement and reopening retain old images alongside newly completed and f
     const oldCards = [...root.querySelectorAll('.sti-nd-img[data-state="preview"]')];
     assert.equal(oldCards.length, 3);
 
-    await seedImage('new-a', 'complete', { savedUrl: '/saved-new-a.png' });
+    await seedImage('new-a', 'complete', { savedUrl: '/user/images/fixture/saved-new-a.png' });
     await seedImage('new-b', 'failure', { base64: null, status: 'failed', errorMessage: 'generation failed' });
     message.mes = `${sourceText}\n[image:new-a]\n[image:new-b]`;
     await api.renderPreviewsForMessage(0, { refreshSlotIds: ['new-a', 'new-b'] });
@@ -212,7 +212,7 @@ test('content leases respect host-filtered markers instead of restoring the raw 
     assert.equal(root.querySelector('.sti-nd-img'), null);
 });
 
-test('only an explicit text synchronization rebuilds missing anchors', async t => {
+test('missing images are rescued without rewriting prose; explicit synchronization updates host text', async t => {
     const slotId = 'missing-anchor';
     const { message, root } = mountMessage(t, `Before[image : ${slotId}]After`);
     await seedImage(slotId, 'image');
@@ -220,7 +220,7 @@ test('only an explicit text synchronization rebuilds missing anchors', async t =
 
     await api.renderPreviewsForMessage(0);
 
-    assert.equal(root.textContent, 'outdated rendering');
+    assert.equal(root.firstChild.textContent, 'outdated rendering');
     await api.syncRenderedMessageFromState(0, { chatId: 'test-chat', expectedMessage: message });
 
     assert.ok(root.querySelector(`[data-slot-id="${slotId}"] img`));
@@ -273,7 +273,7 @@ test('redraw progress and failure keep the old image without changing the attemp
 for (const failedBeforeRedraw of [false, true]) test(`an unavailable retained image cannot hide redraw state or recovery actions (already broken: ${failedBeforeRedraw})`, async t => {
     const slotId = `broken-redraw-${failedBeforeRedraw}`;
     const { root } = mountMessage(t, `[image:${slotId}]`);
-    const oldId = await seedImage(slotId, 'old', { savedUrl: '/missing.png', tags: 'old tags' });
+    const oldId = await seedImage(slotId, 'old', { savedUrl: '/user/images/fixture/missing.png', tags: 'old tags' });
     await api.setSlotSelection(slotId, oldId);
     await api.renderPreviewsForMessage(0);
     const card = root.querySelector('.sti-nd-img'), img = card.querySelector('img');
@@ -335,7 +335,7 @@ test('unchanged refresh preserves the open editor, its unsaved draft and menu', 
 for (const failure of ['event', 'cached']) test(`first image load failure is retryable without changing the saved record (${failure})`, async t => {
     const slotId = `first-load-${failure}`;
     const { root } = mountMessage(t, `[image:${slotId}]`);
-    const imgId = await seedImage(slotId, 'saved', { savedUrl: '/saved.png', tags: 'saved tags' });
+    const imgId = await seedImage(slotId, 'saved', { savedUrl: '/user/images/fixture/saved.png', tags: 'saved tags' });
     await api.renderPreviewsForMessage(0);
     const card = root.querySelector('.sti-nd-img'), img = card.querySelector('img');
     const original = await api.getPreview(imgId);
@@ -346,7 +346,7 @@ for (const failure of ['event', 'cached']) test(`first image load failure is ret
     if (failure === 'event') img.dispatchEvent(new window.Event('error'));
     else {
         // A new projection must observe an error whose event already fired.
-        api.patchImageCard(card, { html: api.buildImageHtml({ slotId, imgId, url: '/saved.png', tags: 'saved tags', messageId: 0 }) }, {
+        api.patchImageCard(card, { html: api.buildImageHtml({ slotId, imgId, url: '/user/images/fixture/saved.png', tags: 'saved tags', messageId: 0 }) }, {
             retry: () => api.renderPreviewsForMessage(0, { refreshSlotIds: [slotId] }),
         });
     }
@@ -393,14 +393,14 @@ for (const outcome of ['ready', 'error', 'superseded', 'detached']) {
     test(`new image decoding is independent of projection and cannot destroy the old view (${outcome})`, async t => {
         const slotId = `decode-${outcome}`;
         const { root } = mountMessage(t, `[image:${slotId}]`);
-        await seedImage(slotId, 'old', { savedUrl: '/old.png' });
+        await seedImage(slotId, 'old', { savedUrl: '/user/images/fixture/old.png' });
         await api.renderPreviewsForMessage(0);
         const card = root.querySelector('.sti-nd-img'), img = card.querySelector('img');
         let finish, fail;
         const decoding = new Promise((resolve, reject) => { finish = resolve; fail = reject; });
-        const markup = id => ({ html: api.buildImageHtml({ slotId, imgId: id, url: `/${id}.png`, tags: id, positive: '', messageId: 0 }) });
+        const markup = id => ({ html: api.buildImageHtml({ slotId, imgId: id, url: `/user/images/fixture/${id}.png`, tags: id, positive: '', messageId: 0 }) });
         api.patchImageCard(card, markup('new'), { loadImage: () => decoding });
-        assert.equal(img.getAttribute('src'), '/old.png');
+        assert.equal(img.getAttribute('src'), '/user/images/fixture/old.png');
         assert.equal(card.dataset.imgId, `${slotId}-old`);
         if (outcome === 'superseded') api.patchImageCard(card, markup('newest'), { loadImage: async () => {} });
         if (outcome === 'detached') card.remove();
@@ -408,7 +408,7 @@ for (const outcome of ['ready', 'error', 'superseded', 'detached']) {
         else finish();
         await new Promise(resolve => setImmediate(resolve));
         assert.ok(card.querySelector('img') === img);
-        assert.equal(img.getAttribute('src'), outcome === 'ready' ? '/new.png' : outcome === 'superseded' ? '/newest.png' : '/old.png');
+        assert.equal(img.getAttribute('src'), outcome === 'ready' ? '/user/images/fixture/new.png' : outcome === 'superseded' ? '/user/images/fixture/newest.png' : '/user/images/fixture/old.png');
         if (outcome === 'error') {
             assert.ok(card.querySelector('[role="alert"]'));
             assert.notEqual(card.dataset.state, 'failed');
@@ -421,7 +421,7 @@ const CODE_BLOCK = ['', '', '```html', '<div>frontend</div>', '```', ''].join('\
 for (const refreshBeforeDecode of [false, true]) test(`continuation during image decode transfers the pending view (host refresh: ${refreshBeforeDecode})`, async t => {
     const slotId = `decode-continuation-${refreshBeforeDecode}`;
     const { message, root } = mountMessage(t, `[image:${slotId}]`);
-    const oldId = await seedImage(slotId, 'old', { savedUrl: '/old.png' });
+    const oldId = await seedImage(slotId, 'old', { savedUrl: '/user/images/fixture/old.png' });
     await api.setSlotSelection(slotId, oldId);
     await api.renderPreviewsForMessage(0);
     const card = root.querySelector('.sti-nd-img'), img = card.querySelector('img');
@@ -430,17 +430,17 @@ for (const refreshBeforeDecode of [false, true]) test(`continuation during image
     const iframe = document.createElement('iframe'); root.append(iframe);
     const decoding = Promise.withResolvers();
     t.mock.method(window.HTMLImageElement.prototype, 'decode', () => decoding.promise);
-    const newId = await seedImage(slotId, 'new', { savedUrl: '/new.png' });
+    const newId = await seedImage(slotId, 'new', { savedUrl: '/user/images/fixture/new.png' });
     await api.setSlotSelection(slotId, newId);
     await api.renderPreviewsForMessage(0, { refreshSlotIds: [slotId] });
-    assert.equal(img.getAttribute('src'), '/old.png');
+    assert.equal(img.getAttribute('src'), '/user/images/fixture/old.png');
     message.mes += ' continuation'; root.append(document.createTextNode(' continuation'));
     if (refreshBeforeDecode) await api.renderPreviewsForMessage(0);
     decoding.resolve();
     // The replacement performs real asynchronous gallery reads, not a timer-based repaint.
     for (let turn = 0; turn < 100 && card.dataset.imgId !== newId; turn++) await new Promise(resolve => setImmediate(resolve));
     assert.equal(card.dataset.imgId, newId);
-    assert.equal(img.getAttribute('src'), '/new.png');
+    assert.equal(img.getAttribute('src'), '/user/images/fixture/new.png');
     assert.equal(card.querySelector('[role="status"]'), null);
     assert.equal(root.querySelector('.sti-nd-img'), card);
     assert.equal(card.querySelector('img'), img);
@@ -452,12 +452,12 @@ for (const refreshBeforeDecode of [false, true]) test(`continuation during image
 for (const boundary of ['chat', 'swipe', 'lease', 'edit', 'removed']) test(`obsolete image decode cannot paint across ${boundary}; a current view can resume`, async t => {
     const slotId = `decode-revoked-${boundary}`;
     const { message, root } = mountMessage(t, `[image:${slotId}]`);
-    await seedImage(slotId, 'old', { savedUrl: '/old.png' });
+    await seedImage(slotId, 'old', { savedUrl: '/user/images/fixture/old.png' });
     await api.renderPreviewsForMessage(0);
     const card = root.querySelector('.sti-nd-img'), img = card.querySelector('img');
     const decoding = Promise.withResolvers(), controller = new AbortController();
     t.mock.method(window.HTMLImageElement.prototype, 'decode', () => decoding.promise);
-    const newId = await seedImage(slotId, 'new', { savedUrl: '/new.png' });
+    const newId = await seedImage(slotId, 'new', { savedUrl: '/user/images/fixture/new.png' });
     await api.setSlotSelection(slotId, newId);
     await api.renderPreviewsForMessage(0, { refreshSlotIds: [slotId], signal: controller.signal });
     const ctx = host.ctx, source = message.mes;
@@ -468,14 +468,14 @@ for (const boundary of ['chat', 'swipe', 'lease', 'edit', 'removed']) test(`obso
     if (boundary === 'removed') message.mes = 'slot removed';
     decoding.resolve();
     await new Promise(resolve => setImmediate(resolve));
-    assert.equal(img.getAttribute('src'), '/old.png');
+    assert.equal(img.getAttribute('src'), '/user/images/fixture/old.png');
     if (boundary === 'removed') return;
     host.ctx = ctx; message.swipe_id = 0; message.mes = source;
     root.closest('.mes').classList.remove('editing');
     await api.renderPreviewsForMessage(0);
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(card.dataset.imgId, newId);
-    assert.equal(img.getAttribute('src'), '/new.png');
+    assert.equal(img.getAttribute('src'), '/user/images/fixture/new.png');
 });
 
 test('a revoked content lease does not paint; remount reads the existing image without generating again', async t => {

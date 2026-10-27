@@ -9,19 +9,21 @@ export function stripDrawImageSlots(sourceText) {
     return String(sourceText ?? '').replace(createDrawImageSlotRegex(), '');
 }
 // 剧情直出标记：剧情模型在回复尾部输出 <image>...</image> 块，插件解析后直接出图（跳过场景规划）。
-const DRAW_IMAGE_OPEN = '<image>';
-const DRAW_IMAGE_CLOSE = '</image>';
-
-export function parseDrawImageDirectives(sourceText) {
+export function parseDrawImageDirectives(sourceText,{skipInvalid=false}={}) {
     const text = String(sourceText ?? '');
     const results = [];
     let start = 0;
+    let imageIndex = 0;
     while (true) {
-        const open = text.indexOf(DRAW_IMAGE_OPEN, start);
-        if (open < 0) break;
-        const close = text.indexOf(DRAW_IMAGE_CLOSE, open + DRAW_IMAGE_OPEN.length);
-        if (close < 0) break;
-        const body = text.slice(open + DRAW_IMAGE_OPEN.length, close);
+        const opening=/<image\s*>/ig;opening.lastIndex=start;
+        const match=opening.exec(text);
+        if(!match)break;
+        const open=match.index;
+        const closing=/<\/image\s*>/ig;closing.lastIndex=open+match[0].length;
+        const end=closing.exec(text);
+        if(!end)break;
+        const close=end.index;
+        const body = text.slice(open + match[0].length, close);
         const lines = body.split(String.fromCharCode(10));
         let prompt = '';
         let negative = '';
@@ -56,27 +58,23 @@ export function parseDrawImageDirectives(sourceText) {
             else if (key === 'post_prompt') postPrompt = val;
         }
         let characters = [];
+        let parseError='';
+        try{
         if (charactersRaw.startsWith('[')) {
             try { characters = JSON.parse(charactersRaw); }
             catch { throw new Error('绘图指令的人物资料格式不完整，请重新生成这条剧情回复'); }
             if (!Array.isArray(characters)) throw new Error('绘图指令的人物资料必须是列表');
         } else if (charactersRaw) characters = charactersRaw.split(/[,，、]/).map(x => x.trim()).filter(Boolean);
+        }catch(error){if(!skipInvalid)throw error;parseError=error.message;}
         if (prompt || negative || characters.length) {
-            results.push({ prompt, negative, characters, ...(after ? { after } : {}), ...(postPrompt ? { post_prompt: postPrompt } : {}) });
+            results.push({ imageIndex, prompt, negative, characters,...(parseError?{parseError}:{}), ...(after ? { after } : {}), ...(postPrompt ? { post_prompt: postPrompt } : {}) });
         }
-        start = close + DRAW_IMAGE_CLOSE.length;
+        imageIndex++;
+        start = close + end[0].length;
     }
     return results;
 }
 
 export function stripDrawImageDirectives(sourceText) {
-    let text = String(sourceText ?? '');
-    while (true) {
-        const open = text.indexOf(DRAW_IMAGE_OPEN);
-        if (open < 0) break;
-        const close = text.indexOf(DRAW_IMAGE_CLOSE, open + DRAW_IMAGE_OPEN.length);
-        if (close < 0) break;
-        text = text.slice(0, open) + text.slice(close + DRAW_IMAGE_CLOSE.length);
-    }
-    return text;
+    return String(sourceText??'').replace(/<image\s*>[\s\S]*?<\/image\s*>/gi,'');
 }

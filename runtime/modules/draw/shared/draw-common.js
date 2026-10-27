@@ -1,4 +1,5 @@
 import { getContext } from "/scripts/extensions.js";
+import { setExtensionPrompt, extension_prompt_types, extension_prompt_roles } from '/script.js';
 import { formatScenePlannerProgress, toScenePlannerProgress } from './draw-capsule-copy.js';
 
 // 出场角色检测放在 present-characters.js（同样不依赖宿主模块，便于单测），这里保持原有导出位置。
@@ -23,6 +24,10 @@ import {
 } from "./scene-plan-contract.js";
 import { ScenePlacementError } from './scene-placement.js';
 import { getRenderedSceneSlotIds, replaceSceneSlotElements } from './scene-slot-dom.js';
+import {shouldUsePortableSavedImage} from './saved-preview-selection.js';
+import {isUnclaimedImageSlot} from './image-slot-validity.js';
+import {mountImageCardAtVisibleAnchor} from './visible-image-anchor.js';
+import {getImageSlotDirective,getImageSlotRecord} from './image-directive-identity.js';
 import { protectDrawImageMarkers, restoreDrawImageMarkers } from './scene-slot-protection.js';
 import { getPendingImageJobSlots, PendingJobState } from './pending-image-jobs.js';
 import { findImageJobDeliverySlot } from './image-job-delivery-target.js';
@@ -117,27 +122,48 @@ function stripDrawImageHtml(text) {
 }
 
 export function stripDrawArtifactsFromMessage(text) {
-    const clean = String(text ?? '').replace(/\n{0,2}<sti-draw-instruction>[\s\S]*?<\/sti-draw-instruction>/g, '');
-    return stripDrawImageDirectives(stripDrawImageHtml(clean).replace(createDrawImageSlotRegex(), ''));
+    // This legacy helper is intentionally restricted to STI-owned artifacts.
+    // Generic <image> and other extension/roleplay containers are NOT ours.
+    const original = String(text ?? '');
+    const stripOwned = part => stripDrawImageHtml(part)
+        .replace(/\n{0,2}<sti-draw-instruction>[\s\S]*?<\/sti-draw-instruction>/g, '')
+        .replace(/\[image\s*:\s*slot-[a-z0-9_-]+\]/gi, '');
+    // Preserve hidden protocol containers byte-for-byte, including unclosed ones.
+    const hidden = /<hidden\b[^>]*>[\s\S]*?(?:<\/hidden\s*>|$)/gi;
+    let result = '', previous = 0;
+    for (const match of original.matchAll(hidden)) {
+        result += stripOwned(original.slice(previous, match.index)) + match[0];
+        previous = match.index + match[0].length;
+    }
+    return result + stripOwned(original.slice(previous));
+}
+
+const DRAW_EXTENSION_PROMPT_KEY = 'SillyTavernImage.DirectDraw';
+
+function setDrawPrompt(value = '') {
+    // Use the host's independent extension prompt channel. A USER-role prompt
+    // respects the existing preset's SYSTEM/DEVELOPER output contract.
+    setExtensionPrompt(DRAW_EXTENSION_PROMPT_KEY, value, extension_prompt_types.IN_CHAT, 0,
+        false, extension_prompt_roles.USER);
 }
 
 async function injectDrawDirectiveInstruction(chat) {
+    // Clear the previous turn first so disabled/failed turns cannot leak rules.
+    setDrawPrompt('');
     if (!Array.isArray(chat) || !chat.length) return;
-    // 往最后一条消息追加指令。unshift is_system 会被酒馆 coreChat 的 filter(!is_system) 过滤掉，不生效。
-    let last = null;
-    for (let index = chat.length - 1; index >= 0; index--) {
-        const message = chat[index];
-        if (message && !message.is_system && message.role !== 'system' && message.role !== 'developer'
-            && typeof message.mes === 'string') { last = message; break; }
-    }
-    if (!last || typeof last.mes !== 'string') return;
     const instruction = await window.stimageComfyDraw?.getDirectDrawInstruction?.(chat);
-    if (!instruction) return;
-    const opening = '\n\n<sti-draw-instruction>';
-    const closing = '</sti-draw-instruction>';
-    const previous = last.mes.lastIndexOf(opening);
-    if (previous >= 0 && last.mes.endsWith(closing)) last.mes = last.mes.slice(0, previous);
-    last.mes += opening + '\n' + instruction + '\n' + closing;
+    if (!instruction) throw new Error('绘图模块未提供本轮绘图指令，请检查插件初始化状态');
+    // The active tool-transport preset archives ordinary extension messages.
+    // Its already-established guide marker is the one current-instruction
+    // channel. Adapt our own prompt only when that transport is running.
+    const engine = window.__antiTruncationEngine;
+    const viaGuide = engine?.installed === true && engine?.enabled !== false;
+    const currentInstruction = viaGuide
+        ? '\u3010ToolCall\u5f15\u5bfc\u3011[UserDrawingInstructions]\n' + instruction
+        : instruction;
+    setDrawPrompt(currentInstruction);
+    console.info('[STI Draw]',JSON.stringify({stage:'instruction-injected',
+        channel:viaGuide?'toolcall-user-guide':'in-chat',depth:0,characters:instruction.length}));
 }
 
 export function stripDrawArtifactsFromChat(chat) {
@@ -161,16 +187,22 @@ export function stripDrawArtifactsFromChat(chat) {
 }
 
 export function setupDrawGenerateInterceptor(options = {}) {
-    const shouldStrip = typeof options.shouldStrip === 'function' ? options.shouldStrip : () => true;
-    registerGenerateInterceptor('draw', async (chat) => {
-        if (!shouldStrip()) return;
-        stripDrawArtifactsFromChat(chat);
+    const shouldInject = typeof options.shouldStrip === 'function' ? options.shouldStrip : () => true;
+    registerGenerateInterceptor('draw', async (chat, _size, _abort, type) => {
+        if(['quiet','impersonate'].includes(type)){setDrawPrompt('');return;}
+        if (!shouldInject()) {
+            setDrawPrompt('');
+            return;
+        }
+        // Never mutate the host's chat messages, <hidden>, <content>, or
+        // any other preset/extension-owned markup.
         await injectDrawDirectiveInstruction(chat);
     }, GENERATE_INTERCEPTOR_ORDER.DRAW);
 }
 
 export function cleanupDrawGenerateInterceptor() {
     unregisterGenerateInterceptor('draw');
+    setDrawPrompt('');
 }
 
 export { joinTags };
@@ -394,6 +426,16 @@ export function extractSlotIds(mes) {
     return ids;
 }
 
+export async function getOwnedImageSlotIds(message){
+    const pending=await getPendingImageJobSlots();
+    const owned=new Set();
+    for(const id of extractSlotIds(message?.mes)){
+        if(message.extra?.sti_comfy_slots?.[id]||getDrawSavedEntry(message,id)||getSlotActivity(id)
+            ||pending.has(id)||(await getPreviewsBySlot(id)).length)owned.add(id);
+    }
+    return owned;
+}
+
 // Project an existing text slot immediately, before gallery I/O. This is only a
 // loading surface: it cannot create slots, claim requests or rebuild host text.
 function mountImageSlotShells(content, messageId, message) {
@@ -406,6 +448,66 @@ function mountImageSlotShells(content, messageId, message) {
                 index: activity ? activity.index + 1 : 0, total: activity?.total || 0 }) };
         });
     replaceSceneSlotElements(content, replacements, { shouldReplaceExisting: () => false });
+    // Re-entering a chat must preserve already mounted, visible inline cards.
+    // Raw <hidden> text and source slot order do not describe the *rendered*
+    // message after the host and other regex plugins format it. Never relocate
+    // those cards solely because source markup was called hidden/out-of-order.
+    let gallery=content.querySelector('[data-sti-visible-gallery]');
+    const actuallyHidden=element=>{
+        for(let parent=element;parent && parent!==content;parent=parent.parentElement){
+            if(parent.hidden || parent.getAttribute?.('aria-hidden')==='true'
+                || parent.tagName?.toLowerCase()==='status_block'
+                || parent.tagName?.toLowerCase()==='template'
+                || parent.style?.display==='none'||parent.style?.visibility==='hidden')return true;
+            try{
+                const css=parent.ownerDocument?.defaultView?.getComputedStyle?.(parent);
+                if(css?.display==='none'||css?.visibility==='hidden'||css?.visibility==='collapse')return true;
+            }catch{ /* Lack of computed style is not evidence of invisibility. */ }
+        }
+        return false;
+    };
+    // Keep the exact original slot ID, saved image and generated card markup.
+    // A card that is visible in its original paragraph must NEVER be moved.
+    let preceding=null;
+    for(const slotId of extractSlotIds(message.mes)){
+        let card=content.querySelector(buildDrawSlotSelector(slotId));
+        const needsRescue=!card || actuallyHidden(card);
+        if(!card){
+            const holder=content.ownerDocument.createElement('template');
+            holder.innerHTML=buildPendingImageHtml({slotId,messageId,loading:true,
+                label:DRAW_SLOT_COPY.loading});
+            card=holder.content.firstElementChild;
+        }
+        if(!card)continue;
+        // Host regexes may drop the image marker but keep its original prose.
+        // Recover next to the matching *visible* story sentence before using
+        // the message-end gallery. This is a display-only recovery.
+        let restored=false;
+        const after=needsRescue?getImageSlotDirective(message,slotId)?.after:'';
+        if(needsRescue && after){
+            restored=mountImageCardAtVisibleAnchor(content,card,after);
+            // Only this newly rescued card can move. Existing visible cards
+            // are never reordered, even if later source metadata disagrees.
+            if(restored&&preceding?.isConnected&&(preceding.compareDocumentPosition(card)&2))preceding.after(card);
+        }
+        if(needsRescue && !restored){
+            // If the story quote is not visible, keep the generated picture
+            // beside the preceding picture, without cloning or rekeying it.
+            if(preceding && preceding.isConnected && !actuallyHidden(preceding)){
+                preceding.after(card);
+            }else{
+                if(!gallery){
+                    gallery=content.ownerDocument.createElement('div');
+                    gallery.setAttribute('data-sti-visible-gallery','');
+                    gallery.className='sti-nd-visible-gallery';
+                    gallery.style.cssText='display:block;position:relative;width:100%;margin:0.7em 0;';
+                    content.append(gallery);
+                }
+                gallery.append(card);
+            }
+        }
+        preceding=card;
+    }
 }
 
 async function persistChatSilently() {
@@ -461,7 +563,7 @@ function normalizeDrawSavedEntry(slotId, data = {}) {
         characterPrompts: data.characterPrompts ?? null,
         negativePrompt: data.negativePrompt ?? null,
         postPrompt: data.postPrompt ?? null,
-        updatedAt: Number.isFinite(data.updatedAt) ? data.updatedAt : Date.now(),
+        updatedAt: Number.isFinite(data.updatedAt) ? data.updatedAt : 0,
     };
 }
 
@@ -515,7 +617,7 @@ export async function materializeDrawSavedPreview(message, slotId, { messageId, 
 export async function setDrawSavedEntry(messageId, slotId, data) {
     const ctx = getContext();
     const message = ctx.chat?.[messageId];
-    const entry = normalizeDrawSavedEntry(slotId, data);
+    const entry = normalizeDrawSavedEntry(slotId, {...data,updatedAt:data?.updatedAt??Date.now()});
     if (!message || !entry) return false;
 
     const savedMap = ensureSavedMap(message, DRAW_SAVED_EXTRA_KEY);
@@ -551,7 +653,7 @@ export async function clearDrawSavedEntry(messageId, slotId) {
     if (!message?.extra || !slotId) return false;
 
     let changed = false;
-    for (const key of [DRAW_SAVED_EXTRA_KEY, LEGACY_NOVEL_SAVED_EXTRA_KEY]) {
+    for (const key of [DRAW_SAVED_EXTRA_KEY, LEGACY_NOVEL_SAVED_EXTRA_KEY, 'xiaobaixDrawSaved']) {
         const savedMap = getSavedMap(message, key);
         if (!savedMap?.[slotId]) continue;
         delete savedMap[slotId];
@@ -596,7 +698,7 @@ async function resolveRenderPreviewForSlot(message, messageId, slotId) {
     // The gallery selection is the explicit choice, also after a detached
     // delivery or recovery. A chat's saved URL is only a portable fallback; it
     // must not overrule a newer choice (including a selected failed attempt).
-    if (savedEntry?.savedUrl && (!display.selectedImgId || display.selectedImgId === savedEntry.imgId)) {
+    if (shouldUsePortableSavedImage(savedEntry,display)) {
         const previews = await getPreviewsBySlot(slotId);
         const successPreviews = previews.filter(hasPreviewImage);
         const selectedIndex = successPreviews.findIndex(p => p.imgId === savedEntry.imgId);
@@ -754,9 +856,21 @@ async function renderPreviewsForMessageNow(messageId, {
         if (!refreshSlots.has(slotId) && existing && !existing.hasAttribute('data-sti-draw-loading')) continue;
         let replacementHtml, imageHtml;
         try {
-            const displayData = await resolveRenderPreviewForSlot(message, messageId, slotId);
+            let displayData = await resolveRenderPreviewForSlot(message, messageId, slotId);
             const activity = getSlotActivity(slotId);
             const pendingSlot = await resolvePendingSlot(slotId);
+            const savedEntry = getDrawSavedEntry(message,slotId);
+            const slotIdentity=message.extra?.sti_comfy_slots?.[slotId];
+            const portable=getImageSlotRecord(message,slotId);
+            if(!displayData.hasData&&!displayData.isFailed&&portable){
+                displayData={...displayData,isFailed:true,preview:portable,failedInfo:portable};
+            }
+            if (isUnclaimedImageSlot({savedEntry,activity,pendingSlot,displayData,slotIdentity})) {
+                // Render-only suppression. Do not alter any original chat text;
+                // a later genuine job will re-activate its slot automatically.
+                replacements.push({ slotId, removeOrphan:true });
+                continue;
+            }
             if (activity || pendingSlot || displayData.isFailed) {
                 const versions = displayData.hasData ? [] : await getPreviewsBySlot(slotId);
                 const visibleUrl = existing?.querySelector('img')?.getAttribute('src');
@@ -764,7 +878,7 @@ async function renderPreviewsForMessageNow(messageId, {
                     : versions.find(item => hasPreviewImage(item) && getPreviewDisplayUrl(item) === visibleUrl)
                         ?? versions.find(hasPreviewImage)
                         ?? getDrawSavedPreview(message, slotId, messageId, String(ctx.chatId));
-                if (retained && (retained.base64 || !String(retained.savedUrl || '').startsWith('/user/images/'))) imageHtml = buildImageHtml({ slotId, imgId: retained.imgId,
+                if (retained && hasPreviewImage(retained)) imageHtml = buildImageHtml({ slotId, imgId: retained.imgId,
                     url: getPreviewDisplayUrl(retained), tags: retained.tags || '', positive: retained.positive || '',
                     messageId, state: retained.savedUrl ? ImageState.SAVED : ImageState.PREVIEW });
             }
@@ -790,12 +904,12 @@ async function renderPreviewsForMessageNow(messageId, {
                     errorType: interrupted?.label || displayData.failedInfo?.errorType || ErrorType.CACHE_LOST.label,
                     errorMessage: interrupted?.desc || displayData.failedInfo?.errorMessage || ErrorType.CACHE_LOST.desc,
                 });
-            } else if (displayData.hasData && displayData.preview
-                && String(displayData.preview.savedUrl || '').startsWith('/user/images/') && !displayData.preview.base64) {
-                replacementHtml = buildRemotePullPlaceholderHtml({
-                    slotId, imgId: displayData.preview.imgId, messageId,
-                });
             } else if (displayData.hasData && displayData.preview) {
+                // A saved H28K URL is already an actual image. Display it
+                // directly in the chat on every device; do not require a
+                // manual sync step for an image that has already been saved.
+                // The URL is validated by the saved-entry normalizer.
+
                 const url = getPreviewDisplayUrl(displayData.preview);
                 replacementHtml = buildImageHtml({
                     slotId,
@@ -809,6 +923,9 @@ async function renderPreviewsForMessageNow(messageId, {
                     currentIndex: displayData.currentIndex ?? 0,
                 });
                 void warmSlotPreviewNeighbors(slotId, displayData.currentIndex ?? 0).catch(() => {});
+            } else if(slotIdentity){
+                replacementHtml=buildFailedPlaceholderHtml({slotId,messageId,
+                    errorType:'未找到可恢复的图片记录',errorMessage:'槽位尚在，但本设备没有完整图片输入或任务记录。请检查服务器保存记录，不能把它视为正在生成。'});
             } else {
                 // A saved image on another device cannot be downloaded unless
                 // the chat itself carries the H28K file reference.
@@ -844,6 +961,10 @@ async function renderPreviewsForMessageNow(messageId, {
     for (const replacement of replacements) {
         const card = mesTextEl.querySelector(buildDrawSlotSelector(replacement.slotId));
         if (!card) continue;
+        if(replacement.removeOrphan) {
+            card.remove();
+            continue;
+        }
         const retry = () => {
             // A continuation invalidates the old snapshot, not this mounted
             // slot. Re-read current facts; never let the stale load paint them.

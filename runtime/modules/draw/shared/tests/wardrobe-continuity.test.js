@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 
 const alice={name:'Alice',enabled:true,aliases:['\u5c0f\u827e'],type:'woman',appearance:'brown eyes'};
 const bob={name:'Bob',enabled:true,type:'man'};
-const known=[alice,bob];
+const known=[alice,bob,{name:'Beth',type:'woman',enabled:true}];
 const fingerprint='navy blazer, white shirt, black pleated skirt, opaque black tights';
 function historical(narrative,characters,after=narrative) {
     const m={is_user:false,mes:narrative+'\n<image>\nprompt: 1girl, bright room\ncharacters: '+JSON.stringify(characters)+'\nafter: '+after+'\n</image>'};
@@ -45,9 +45,9 @@ test('hallucinated wardrobe swap is rejected when story has no clothing event',(
     assert.equal(tasks[0].chars[0].costume,fingerprint);
 });
 test('explicit clothing change updates only the named role',()=>{
-    const sentence='Alice changed clothes and put on a red coat. Bob waits beside her.';
-    const tasks=built(sentence,[image(sentence,[{name:'Alice',costume:'red coat'},{name:'Bob',costume:'different hat'}],'2people, indoors')],{
-        wardrobeLedger:[{name:'Alice',costume:fingerprint},{name:'Bob',costume:'gray coat, brown hat'}],
+    const sentence='Alice changed clothes and put on a red coat. Beth waits beside her.';
+    const tasks=built(sentence,[image(sentence,[{name:'Alice',costume:'red coat'},{name:'Beth',costume:'different hat'}],'2people, indoors')],{
+        wardrobeLedger:[{name:'Alice',costume:fingerprint},{name:'Beth',costume:'gray coat, brown hat'}],
     });
     assert.equal(tasks[0].chars[0].costume,'red coat');
     assert.equal(tasks[0].chars[1].costume,'gray coat, brown hat');
@@ -64,8 +64,8 @@ test('single reply with two images freezes clothing chosen at its first image',(
     const a='Alice enters the studio.';
     const b='Alice stands by the easel.';
     const tasks=built(a+'\n\n'+b,[
-        image(a,[{name:'Alice',costume:fingerprint}]),
-        image(b,[{name:'Alice',costume:'random blue gown'}]),
+        image(a,[{name:'Alice',costume:fingerprint}],'Alice entering the studio, front wide shot'),
+        image(b,[{name:'Alice',costume:'random blue gown'}],'Alice working at an easel, over shoulder view'),
     ]);
     assert.equal(tasks[1].chars[0].costume,fingerprint);
     assert.match(tasks[1].characterPrompts[0].prompt,/black pleated skirt/);
@@ -146,8 +146,8 @@ test('new temporary visual state persists across following image within same rep
     const a='Alice is wounded and bandaged.';
     const b='Alice sits down by the window.';
     const tasks=built(a+'\n\n'+b,[
-        image(a,[{name:'Alice',costume:fingerprint,state:'bandaged arm'}]),
-        image(b,[{name:'Alice',costume:fingerprint,state:''}]),
+        image(a,[{name:'Alice',costume:fingerprint,state:'bandaged arm'}],'Alice receiving a bandage, close view'),
+        image(b,[{name:'Alice',costume:fingerprint,state:''}],'Alice sitting beside the window, side shot'),
     ]);
     assert.equal(tasks[1].chars[0].state,'bandaged arm');
     assert.match(tasks[1].characterPrompts[0].prompt,/bandaged arm/);

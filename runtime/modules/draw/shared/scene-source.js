@@ -73,6 +73,59 @@ function applyMappedFilterRules(mapped, rules = []) {
     return result;
 }
 
+// Source-only exclusion: never edit the user's actual message or preset tags.
+// Image slot placement must be limited to visible narrative beats, not status.
+function restrictToNarrativeBody(mapped) {
+    const text=getMappedText(mapped);
+    // Presets may wrap visible story in <content><hidden>...</hidden></content>.
+    // The <hidden> keyword alone is not evidence that this *content* is hidden.
+    for(const name of ['maintext','content']) {
+        const opening=new RegExp('<'+name+'\\b[^>]*>','i').exec(text);
+        if(!opening)continue;
+        const start=opening.index+opening[0].length;
+        const closing=new RegExp('</'+name+'\\s*>','i').exec(text.slice(start));
+        if(closing)return {mapped:mapped.slice(start,start+closing.index),explicitBody:true};
+    }
+    // Without an explicit narrative container, exclude state metadata.
+    const status=/<status_block\b[^>]*>/i.exec(text);
+    return {mapped:status?mapped.slice(0,status.index):mapped,explicitBody:false};
+}
+
+function removeHiddenMappedRegions(mapped,{explicitBody=false}={}) {
+    const text=getMappedText(mapped);
+    if(explicitBody) {
+        // A whole-body <hidden> wrapper is used by some presets *around visible
+        // narrative*. Strip only the wrappers for source mapping, never drop
+        // the user's prose or alter message.mes.
+        const opening=/^\s*<hidden\b[^>]*>/i.exec(text);
+        const closing=/<\/hidden\s*>\s*$/i.exec(text);
+        if(opening && closing && closing.index>=opening[0].length){
+            const first=opening[0].indexOf('<');
+            const last=closing.index;
+            const result=mapped.filter((item,index)=>!((index>=first&&index<opening[0].length)
+                ||(index>=last&&index<last+closing[0].trimStart().length)));
+            return removeHiddenMappedRegions(result);
+        }
+    }
+    // Hidden sub-sections not enclosing the entire story remain non-narrative.
+    const tags=/<\/?(?:hidden|status_block)\b[^>]*>/gi;
+    let hiddenDepth=0,statusDepth=0,opening=null;
+    const ranges=[];
+    for(const match of text.matchAll(tags)){
+        const tag=match[0].toLowerCase(),close=tag.startsWith('</');
+        const status=tag.includes('status_block');
+        const before=hiddenDepth+statusDepth;
+        if(!close&&before===0)opening=match.index;
+        if(status)statusDepth=Math.max(0,statusDepth+(close?-1:1));
+        else hiddenDepth=Math.max(0,hiddenDepth+(close?-1:1));
+        if(close&&before>0&&hiddenDepth+statusDepth===0&&opening!==null){
+            ranges.push([opening,match.index+match[0].length]);opening=null;
+        }
+    }
+    if(hiddenDepth+statusDepth>0&&opening!==null)ranges.push([opening,text.length]);
+    return ranges.length?mapped.filter((item,index)=>!ranges.some(([start,end])=>index>=start&&index<end)):mapped;
+}
+
 function trimMappedText(mapped) {
     const text = getMappedText(mapped);
     if (!text) return [];
@@ -211,6 +264,10 @@ export function createSceneSource(sourceText, options = {}) {
     const original = String(sourceText ?? '');
     let mapped = createMappedText(original);
     mapped = removeMappedMatches(mapped, new RegExp(IMAGE_MARKER_REGEX.source, 'gi'));
+    if(options.restrictToNarrativeBody === true) {
+        const body=restrictToNarrativeBody(mapped);
+        mapped=removeHiddenMappedRegions(body.mapped,{explicitBody:body.explicitBody});
+    }
     mapped = applyMappedFilterRules(mapped, options.filterRules);
     mapped = trimMappedText(mapped);
 
@@ -222,5 +279,34 @@ export function createSceneSource(sourceText, options = {}) {
         content,
         numberedContent: buildNumberedContent(content, internalPoints),
         points: internalPoints.map(({ number, offset }) => ({ number, offset })),
+        anchors: internalPoints.map((point,index)=>({offset:point.offset,
+            text:content.slice(internalPoints[index-1]?.contentOffset||0,point.contentOffset)
+                .replace(/<[^>]*>/g,'').trim()})),
     };
+}
+
+// One validated source boundary is shared by first placement and DOM recovery.
+export function resolveSceneAnchor(source,after){
+    const narrative=source.sourceText;
+    const normalize=value=>String(value||'').normalize('NFKC').toLowerCase().replace(/[\p{P}\p{Z}\s\u200B-\u200F\uFEFF]/gu,'');
+    const exact=narrative.indexOf(after);
+    let offset=null;
+    if(after&&exact>=0&&narrative.indexOf(after,exact+1)<0&&source.content.includes(after)){
+        const end=exact+after.length;
+        if(source.points.some(p=>p.offset===end))offset=end;
+    }
+    if(offset===null){
+        const needle=normalize(after);
+        if(needle.length<8||!normalize(source.content).includes(needle))return null;
+        let text='',cursor=0;const ends=[];
+        for(const character of narrative){
+            cursor+=character.length;const part=normalize(character);text+=part;
+            for(let i=0;i<part.length;i++)ends.push(cursor);
+        }
+        const at=text.indexOf(needle);
+        if(at<0||text.indexOf(needle,at+1)>=0)return null;
+        offset=source.points.find(p=>p.offset>=ends[at+needle.length-1])?.offset??null;
+    }
+    const anchor=source.anchors?.find(p=>p.offset===offset);
+    return anchor?.text?{offset,after:anchor.text}:null;
 }

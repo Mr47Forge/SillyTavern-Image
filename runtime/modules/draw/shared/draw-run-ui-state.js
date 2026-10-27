@@ -1,8 +1,10 @@
 import { matchesDrawRunActivityTarget } from './draw-run-activity.js';
 import { DRAW_CAPSULE_COPY, formatPlannerRetryProgress } from './draw-capsule-copy.js';
 
-const DRAW_RUN_UI_STATES = new Set(['submitting', 'accepted', 'uncertain', 'cancelling']);
-const DRAW_RUN_COMPLETION_TARGET_STATES = new Set(['idle', 'accepted', 'uncertain', 'cancelling']);
+const DRAW_RUN_UI_STATES = new Set([
+    'submitting', 'accepted', 'uncertain', 'queued', 'llm', 'gen', 'cooldown', 'reconnecting', 'cancelling',
+]);
+const DRAW_RUN_COMPLETION_TARGET_STATES = new Set(['idle', ...DRAW_RUN_UI_STATES]);
 
 const ANALYSIS_STAGES = new Set([
     'planning',
@@ -97,9 +99,13 @@ export async function runDrawCancellationAction({ cancel, isCurrent, getState, s
     try {
         const operation = cancel();
         if (isCurrent()) setState('cancelling');
-        return await operation;
+        const accepted = await operation;
+        if (accepted === false && isCurrent() && getState() === 'cancelling')
+            setState(previous === 'cancelling' ? 'uncertain' : previous);
+        return accepted;
     } catch (error) {
-        if (isCurrent() && getState() === 'cancelling') setState(previous);
+        if (isCurrent() && getState() === 'cancelling')
+            setState(previous === 'cancelling' ? 'uncertain' : previous);
         throw error;
     }
 }
@@ -128,13 +134,13 @@ export function resolveDrawRunUiState({
         if (detail.aborted === true && success === 0) return 'idle';
         return total > 0 && success >= total ? 'success' : 'partial';
     }
-    // submitting 是本页在 marker 写入前持有的临时态。共享恢复器此时看到
-    // “没有 marker”并不能证明提交结束，不能把仍在预处理的按钮误重置为空闲。
-    if (!pending && currentState === 'submitting') return currentState;
+    // Callers preserve live provider jobs before reconciliation. Without either
+    // a local owner or a durable task, no busy phase may keep the controls locked.
     if (!pending) return DRAW_RUN_UI_STATES.has(currentState) ? 'idle' : currentState;
     if (matches && detail.phase === 'cancelling') return 'cancelling';
     if (matches && detail.phase === 'cancel_failed') return 'accepted';
-    if (currentState === 'cancelling') return 'cancelling';
+    // Cached UI state alone cannot prove cancellation is still in progress.
+    // Pending state and matching cancellation activity take precedence.
     if (matches && detail.phase === 'uncertain') return 'uncertain';
     if (currentState === 'uncertain' && detail.phase === 'reconciled') return currentState;
     if (matches && ['accepted', 'active'].includes(detail.phase)) return 'accepted';

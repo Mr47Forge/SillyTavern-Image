@@ -28,10 +28,11 @@ import {
 } from './gallery-cache.js';
 import { executeImageJobReattachEntry } from './image-job-recovery-executor.js';
 import { saveComfyImageToServer } from './server-image-autosave.js';
+import {recordImageSlotResult} from './image-directive-identity.js';
 import { planImageJobReattach, ReattachAction } from './image-job-reattach.js';
 import { readPageFarewells } from './page-farewell.js';
-import { getPendingImageJob, listPendingImageJobs, PendingJobState } from './pending-image-jobs.js';
-import { removeSceneSlotPlaceholders } from './scene-placement.js';
+import { getPendingImageJob, listPendingImageJobs, PendingJobState,recordPendingImageJob,markPendingImageJobActive,releasePendingImageJobLease } from './pending-image-jobs.js';
+import { removeSceneSlotPlaceholders,isSceneSlotAlive } from './scene-placement.js';
 import { deliverPreparedImage } from './prepared-image-delivery.js';
 import {
     classifyError,
@@ -40,6 +41,7 @@ import {
     isMessageBeingEdited,
     renderPreviewsForMessage,
     materializeDrawSavedPreview,
+    clearDrawSavedEntry,
 } from './draw-common.js';
 import {
     classifyImageJobDeliveryTarget,
@@ -212,6 +214,7 @@ function createDeliveryAdapter() {
                     if (record.provider === 'comfyui') {
                         const target = requireAvailableTarget(record, item);
                         if (!target) throw new Error('图片归属聊天已变化，等待重新接回');
+                        recordImageSlotResult(target.message,item.slotId,await getPreview(item.imgId));
                         await saveComfyImageToServer(item.imgId, {
                             slotId: item.slotId,
                             chatId: record.delivery.chatId,
@@ -252,7 +255,20 @@ function createDeliveryAdapter() {
                     });
                 },
                 remove: () => deletePreview(failedImgId),
-                select: () => setSlotSelection(item.slotId, failedImgId),
+                select: async () => {
+                    await setSlotSelection(item.slotId,failedImgId);
+                    const target=requireAvailableTarget(record,item);
+                    if(!target)return;
+                    const preview=await getPreview(failedImgId);
+                    await guard();
+                    const current=requireAvailableTarget(record,item);
+                    if(!current||current.message!==target.message)throw new Error('图片归属聊天已变化，等待重新接回');
+                    if(recordImageSlotResult(current.message,item.slotId,preview)){
+                        const cleared=await clearDrawSavedEntry(current.messageId,item.slotId);
+                        if(!cleared)await saveChatAndConfirm({ctx:getContext(),verify:chat=>chat.some(m=>
+                            m.extra?.sti_comfy_slots?.[item.slotId]?.imgId===failedImgId)});
+                    }
+                },
                 clearSelection: () => clearSlotSelection(item.slotId),
             });
             if (committed) await renderRecord(record);
@@ -413,6 +429,38 @@ function clearRecoveryTimer() {
     recoveryTimerAt = 0;
 }
 
+// Rebuild only existing owned jobs after device-cache loss. This path never
+// POSTs a generation; missing jobs settle through the existing expired-job flow.
+export async function restorePortableImageJobs(ctx,records,backendJobs){
+    const existing=new Set(records.map(p=>p.jobId)),groups=new Map();
+    for(const [messageId,message] of (ctx.chat||[]).entries()){
+        for(const [slotId,entry] of Object.entries(message.extra?.sti_comfy_slots||{})){
+            if(!entry.jobId||!entry.input||!entry.imgId||!Number.isInteger(entry.jobIndex)
+                ||!isSceneSlotAlive(message.mes,slotId)||existing.has(entry.jobId))continue;
+            const group=groups.get(entry.jobId)||{messageId,message,entries:[]};
+            group.entries.push({slotId,entry});groups.set(entry.jobId,group);
+        }
+    }
+    for(const [jobId,group] of groups){
+        if(!group.entries.some(p=>['pending','unknown'].includes(p.entry.status)))continue;
+        if(await getPendingImageJob(jobId))continue;
+        const server=backendJobs.find(job=>job.id===jobId);
+        const items=group.entries.map(({slotId,entry})=>({index:entry.jobIndex,slotId,imgId:entry.imgId,
+            deliveryCommitted:entry.status==='success'&&!!group.message.extra?.stimageDrawSaved?.[slotId]?.savedUrl,
+            previewMetadata:entry.input}));
+        // Deleted slots have no remaining authority over an old backend result.
+        for(const item of server?.items||[])if(!items.some(p=>p.index===item.index))items.push({index:item.index,
+            slotId:`discarded-${jobId}-${item.index}`,imgId:`discarded-${jobId}-${item.index}`,discarded:true,deliveryCommitted:true});
+        try{
+            const record=await recordPendingImageJob({jobId,provider:'comfyui',
+                delivery:{mode:'slots',chatId:String(ctx.chatId),messageId:String(group.messageId),swipeIndex:group.message.swipe_id??0,preserveSlotsOnCancel:true},
+                gallery:{chatId:String(ctx.chatId),messageId:String(group.messageId),characterName:group.message.name||''},items});
+            await markPendingImageJobActive(jobId,record.leaseId);
+            await releasePendingImageJobLease(jobId,record.leaseId);
+        }catch(error){if(!['PENDING_JOB_CONFLICT','PENDING_IMAGE_SLOT_BUSY'].includes(error?.code))throw error;}
+    }
+}
+
 function scheduleRecovery(delay = 0) {
     if (!runtimeEvents) return;
     const runAt = Date.now() + Math.max(0, delay);
@@ -479,15 +527,23 @@ async function runRecoveryPass() {
         scheduleRecovery(RETRY_DELAY_MS);
         return;
     }
+    let backendJobs;
+    const hasPortableJobs=ctx.chat?.some(m=>Object.values(m.extra?.sti_comfy_slots||{}).some(p=>p.jobId&&p.input&&['pending','unknown'].includes(p.status)));
+    if(hasPortableJobs){
+        try{
+            backendJobs=await runtimeClient.listJobs();
+            await restorePortableImageJobs(ctx,allRecords,backendJobs);
+            allRecords=await listPendingImageJobs();
+        }catch(error){console.warn('[ImageJobs] 无法确认聊天中的原后台任务，保留原任务且不重新提交:',error);scheduleRecovery(RETRY_DELAY_MS);return;}
+    }
     const records = allRecords.filter(record => (
         !isBlocked(record) && record.state !== PendingJobState.ADOPTING
         && (record.delivery?.mode === 'gallery' || record.delivery?.retainWithoutSlot || record.delivery?.chatId === chatId)
     ));
     if (records.length === 0) return;
 
-    let backendJobs;
     try {
-        backendJobs = await runtimeClient.listJobs();
+        backendJobs ??= await runtimeClient.listJobs();
     } catch (error) {
         console.warn('[ImageJobs] 暂时无法查询后台任务，等待网络恢复:', error);
         scheduleRecovery(RETRY_DELAY_MS);

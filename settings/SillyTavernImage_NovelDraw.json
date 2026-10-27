@@ -7,12 +7,13 @@
     "characterTags": [
       {
         "id": "char-1792816744922-q91y",
-        "enabled": true,
+        "enabled": false,
         "name": "林希雅",
         "aliases": [],
         "type": "girl",
         "appearance": "cute",
-        "appearanceZh": "可爱",
+        "appearanceZh": "可爱，巨乳，无毛馒头逼，肉感十足，无赘肉",
+        "appearanceSource": "chinese",
         "negativeTags": "",
         "danbooruTag": "",
         "outfits": [],
@@ -25,7 +26,9 @@
         "name": "温若兰",
         "aliases": [],
         "type": "girl",
-        "appearance": "",
+        "appearance": "gentle and tender expression, huge breasts, hairless plump vulva, very voluptuous and fleshy body",
+        "appearanceZh": "温婉，巨乳，无毛馒头逼，肉感十足，无赘肉",
+        "appearanceSource": "chinese",
         "negativeTags": "",
         "danbooruTag": "",
         "outfits": [],
@@ -36,7 +39,6 @@
     "characterGroups": [],
     "characterGroupPresets": [],
     "characterGroupPresetApplied": null,
-    "danbooruLocalDB": false,
     "messageFilterRules": [
       {
         "start": "<think>",
@@ -84,6 +86,6 @@
       "uploadedBooks": [],
       "keywordFilterMode": "auto"
     },
-    "updatedAt": 1792851783054
+    "updatedAt": 1793071041321
   }
 }
