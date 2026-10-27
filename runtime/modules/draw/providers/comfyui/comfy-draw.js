@@ -1087,8 +1087,8 @@ async function fetchComfyDirectImageFromWorkflow(workflow, {
                 ?.filter(it => it[0] === 'execution_error')
                 .map(it => it[1])
                 .map(it => `${it.node_type} [${it.node_id}] ${it.exception_type}: ${it.exception_message}`)
-                .join('\n') || '';
-            throw withImageRequestOutcome(new Error(`ComfyUI 生成失败${errorMessages ? `\n\n${errorMessages}` : ''}`), ImageRequestOutcome.REJECTED);
+                .join('\r\n') || '';
+            throw withImageRequestOutcome(new Error(`ComfyUI 生成失败${errorMessages ? `\r\n\r\n${errorMessages}` : ''}`), ImageRequestOutcome.REJECTED);
         }
 
         const imgInfo = resolveComfyDirectOutputImage(item, workflow, preferredSaveImageNodeId);
@@ -3628,7 +3628,7 @@ async function handleWorldbookFiles(files) {
             const message = container.ownerDocument.createElement('p');
             message.className = 'form-hint';
             message.style.color = 'var(--danger)';
-            message.textContent = errors.join('\n');
+            message.textContent = errors.join('\r\n');
             container.replaceChildren(message);
         }
     }
@@ -4383,8 +4383,8 @@ async function getActiveDrawingWorldbook(chat,shared){
         const native = await getWorldInfoPrompt(scan, 8192, true, { trigger: 'normal' });
         const nativeText = [native.worldInfoBefore,
             ...(native.worldInfoDepth || []).flatMap(item => item.entries || []), native.worldInfoAfter]
-            .filter(Boolean).join('\n');
-        worldbook = [nativeText, worldbook].filter(Boolean).join('\n\n');
+            .filter(Boolean).join('\r\n');
+        worldbook = [nativeText, worldbook].filter(Boolean).join('\r\n\r\n');
     }
     return worldbook;
 }
@@ -4433,16 +4433,28 @@ async function buildTasksFromMessage({ message, signal, promptOverride = '', tas
         :useInjectedFacts&&injectedWorldbook===undefined&&injectedDrawingFacts?.chatId===String(ctx.chatId)
         &&injectedDrawingFacts.messageId===ctx.chat.indexOf(message)?injectedDrawingFacts.worldbook
         :await getActiveDrawingWorldbook(ctx.chat||[],shared);
-    const tasks = buildDirectDrawTasks(readDirectDrawDirectives(message), getActivePreset(settings), {
+    // Every warning shown to the user must also reach the persistent diagnostics.
+    // Collect synchronously; flush before returning (or rethrowing) so a partial
+    // valid batch never silently loses the rejected image's actual reason.
+    const validationNotices = [];
+    let tasks;
+    try {
+        tasks = buildDirectDrawTasks(readDirectDrawDirectives(message), getActivePreset(settings), {
         sourceText: message.mes,
         knownCharacters,
         requireFemaleImage:true,
         skipInvalidImages:true,
         appearanceSources:{worldbook},
-        onCountMismatch:({expected,received})=>globalThis.toastr?.warning?.('当前设置 '+expected+' 张，模型本轮提供 '+received+' 条绘图指令；按设置上限和实际有效指令生成，不会复制或补调模型。','绘图数量不符'),
+        onCountMismatch:({expected,received})=>{
+            const warning = '当前设置 '+expected+' 张，模型本轮提供 '+received+' 条绘图指令；按设置上限和实际有效指令生成，不会复制或补调模型。';
+            validationNotices.push({stage:'绘图数量校验',errorType:'DRAW_IMAGE_COUNT_MISMATCH',errorMessage:warning});
+            globalThis.toastr?.warning?.(warning,'绘图数量不符');
+        },
         onImageRejected:({image,message}) => {
-            console.warn('[ComfyDraw] 第 '+image+' 张图已拦截：'+message);
-            globalThis.toastr?.warning?.('第 '+image+' 张图已跳过：'+message,'绘图过滤');
+            const detail = '第 '+image+' 张绘图被跳过：'+message;
+            validationNotices.push({stage:'第 '+image+' 张绘图指令校验',errorType:'DRAW_IMAGE_REJECTED',errorMessage:detail});
+            console.warn('[ComfyDraw] '+detail);
+            globalThis.toastr?.warning?.(detail,'绘图过滤');
         },
         wardrobeLedger:buildWardrobeLedger(getContext().chat||[],{
             readDirectives:readDirectDrawDirectives,knownCharacters,excludeMessage:message,
@@ -4453,6 +4465,22 @@ async function buildTasksFromMessage({ message, signal, promptOverride = '', tas
         filterRules: shared.messageFilterRules?.length ? shared.messageFilterRules : DEFAULT_MESSAGE_FILTER_RULES,
         // Missing story anchors reject only their picture; no scattering.
     });
+    } finally {
+        if (validationNotices.length) {
+            const results = await Promise.allSettled(validationNotices.map(notice => writeImageError({
+                ...notice,
+                provider: 'ComfyUI',
+                source: 'draw-validation',
+                chatId: String(ctx.chatId || ''),
+                messageId: String(ctx.chat?.indexOf(message) ?? ''),
+            })));
+            for (const result of results) {
+                if (result.status === 'rejected') {
+                    console.error('[ComfyDraw] failed to persist drawing validation warning', result.reason);
+                }
+            }
+        }
+    }
     signal?.throwIfAborted();
     return { tasks, sceneSource: null };
 }
