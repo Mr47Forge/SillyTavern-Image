@@ -96,7 +96,7 @@ test('duplicate effective positive prompts must not be submitted as separate ima
 });
 test('female NSFW appearance rule is short and appears in image instructions',()=>{
     const instruction = buildDirectDrawInstruction({preset:{maxImages:2}});
-    assert.match(instruction, /女性 NSFW 外阴外观：无阴毛，大阴唇饱满闭合，小阴唇自然状态不外露。/);
+    assert.match(instruction, /女性 NSFW 外阴外观：无阴毛，大阴唇饱满闭合，小阴唇自然状态不外露，外阴及阴唇肤色白皙浅粉，无深色素沉着。/);
     assert.doesNotMatch(instruction, /未成年人、年龄不明确|普通或未展示该部位/);
 });
 
