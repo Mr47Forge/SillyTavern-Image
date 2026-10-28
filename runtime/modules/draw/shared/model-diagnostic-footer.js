@@ -1,9 +1,10 @@
 // The selected novel preset emits transport/IDE scaffolding around an actual
-// <content> payload. Do not hardcode its changing chapter filenames or statuses.
+// narrative payload. Do not hardcode chapter filenames or stream statuses.
 const DIAGNOSTIC_FOOTER = '[IDE Diagnostics Node: Viewport Stream Committed | Checksum Verified | Mode: PERSISTED]';
 const END_OF_REPLY = /(?:[ \t]*\r?\n)*[ \t]*\[IDE Diagnostics Node:\s*Viewport Stream Committed\s*\|\s*Checksum Verified\s*\|\s*Mode:\s*PERSISTED\][ \t\r\n]*$/i;
-const OPEN_CONTENT = /<content\s*>/i;
-const CLOSE_CONTENT = /<\/content\s*>/gi;
+// Accept both supported manuscript containers without tying diagnosis to a
+// specific preset: the known IDE transport header must precede the wrapper.
+const OPEN_CONTENT = /<(content|maintext)\s*>/i;
 const IDE_HEADER = /\[(?:FastIO Node|Output Channel|Antigravity IDE Viewport):[^\r\n\]]+\]/i;
 const VISIBLE_PROTOCOL_LINE = /\[(?:FastIO Node|Output Channel|Antigravity IDE Viewport):[^\r\n\]]+\]/gi;
 
@@ -15,12 +16,13 @@ export function locateModelContentEnvelope(source, {allowIncomplete=false}={}) {
     // Ordinary story prose may contain <content>; isolate only a known protocol.
     if (!IDE_HEADER.test(prefix)) return null;
     const first = opening.index + opening[0].length;
-    CLOSE_CONTENT.lastIndex = first;
+    const closingPattern = new RegExp('</' + opening[1] + '\\s*>', 'gi');
+    closingPattern.lastIndex = first;
     let closing, match;
-    while ((match = CLOSE_CONTENT.exec(text))) closing = match;
+    while ((match = closingPattern.exec(text))) closing = match;
     if (!closing && !allowIncomplete) return null;
     return {
-        first, last: closing?.index ?? text.length,
+        tagName: opening[1].toLowerCase(), first, last: closing?.index ?? text.length,
         prefix, suffix: closing ? text.slice(closing.index + closing[0].length) : '',
         body: text.slice(first, closing?.index ?? text.length),complete: Boolean(closing)
     };
@@ -77,6 +79,47 @@ export function suppressRenderedModelDiagnosticFooter(root, originalSource) {
                     && /^\[(?:Antigravity IDE Viewport|FastIO Node|Output Channel|IDE Diagnostics Node):/i.test(child.textContent.trim())) {
                     if (child.style.display !== 'none') { child.style.display = 'none'; changed = true; }
                 }
+            }
+        }
+        // Some presets append a status payload immediately after </maintext>.
+        // Markdown may put its status element in the same paragraph as the last
+        // image slot; hide that element only, never the containing paragraph.
+        if (envelope.complete && /<status_block\b[^>]*>/i.test(envelope.suffix)) {
+            for (const status of root.querySelectorAll('status_block')) {
+                if (status.closest('.sti-nd-img') || status.style.display === 'none') continue;
+                status.style.display = 'none';
+                changed = true;
+            }
+        }
+        // DOMPurify may remove a custom <Status_block> tag while leaving its
+        // text in the paragraph containing the final image. Match the exact
+        // post-body status payload and remove only that text, not the paragraph.
+        const statusBody = /<status_block\b[^>]*>([\s\S]*?)<\/status_block\s*>/i
+            .exec(envelope.suffix)?.[1]?.trim();
+        if (envelope.complete && statusBody && !envelope.body.includes(statusBody)
+            && !root.querySelector('status_block')) {
+            for (const paragraph of [...root.querySelectorAll('p')].reverse()) {
+                if (paragraph.style.display === 'none') continue;
+                const walker = root.ownerDocument.createTreeWalker(paragraph, 4);
+                const nodes = [];
+                let item;
+                while ((item = walker.nextNode())) {
+                    if (!item.parentElement?.closest('.sti-nd-img, [hidden], [aria-hidden="true"]'))
+                        nodes.push(item);
+                }
+                const full = nodes.map(n => n.nodeValue || '').join('');
+                const at = full.lastIndexOf(statusBody);
+                if (at < 0 || full.slice(at + statusBody.length).trim()) continue;
+                let offset = 0;
+                for (const node of nodes) {
+                    const value = node.nodeValue || '';
+                    const start = Math.max(0, at - offset);
+                    const end = Math.min(value.length, at + statusBody.length - offset);
+                    if (start < end) node.nodeValue = value.slice(0,start) + value.slice(end);
+                    offset += value.length;
+                }
+                changed = true;
+                break;
             }
         }
         // Markdown may append the protocol suffix inside the last story paragraph.
