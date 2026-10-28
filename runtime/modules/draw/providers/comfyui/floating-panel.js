@@ -431,15 +431,17 @@ const STYLES = `
 .nd-floating-global.show-detail .nd-detail {
     transform: translateY(0) scale(1);
 }
+/* Keep the floating gear at a stable hit target immediately on opening.
+   The old translate/scale animation could move it between pointerdown/up. */
 .nd-floating-global .nd-menu {
     top: auto;
     bottom: calc(100% + 8px);
     right: 0;
-    transform: translateY(6px) scale(0.96);
-    transform-origin: bottom right;
+    transform: none;
+    transition: opacity 0.12s ease;
 }
 .nd-floating-global.expanded .nd-menu {
-    transform: translateY(0) scale(1);
+    transform: none;
 }
 .nd-floating-global .nd-arrow { transform: rotate(180deg); }
 .nd-floating-global.expanded .nd-arrow { transform: rotate(0deg); }
