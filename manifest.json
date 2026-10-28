@@ -5,7 +5,7 @@
   "optional": [],
   "js": "extension/entry.js",
   "author": "Mr47Forge",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "generate_interceptor": "stimageGenerateInterceptor",
   "homePage": "https://github.com/Mr47Forge/SillyTavern-Image",
   "auto_update": false,
