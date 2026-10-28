@@ -108,13 +108,6 @@ export function mergeSharedDrawSettingsIntoStorageRoot(storageValue, sharedSetti
     };
 }
 
-export function mergeNovelDrawProviderSettingsIntoStorageRoot(storageValue, providerSettings) {
-    return {
-        ...pickNovelDrawProviderSettings(providerSettings),
-        ...normalizeSharedDrawSettings(storageValue),
-    };
-}
-
 export async function loadSharedDrawSettings() {
     if (settingsLoaded && settingsCache) return settingsCache;
 
