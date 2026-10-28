@@ -1,5 +1,4 @@
-import {createDrawImageSlotRegex,stripDrawImageDirectives} from './image-marker-syntax.js';
-import {createSceneSource,resolveSceneAnchor} from './scene-source.js';
+import {createDrawImageSlotRegex} from './image-marker-syntax.js';
 import {assembleCharacterPrompts} from './character-prompts.js';
 import {PreviewStatus,DRAW_SLOT_ERRORS} from './image-record.js';
 const savedKeys=['stimageDrawSaved','xiaobaixDrawSaved','novelDrawSaved'];
@@ -20,9 +19,10 @@ export function getImageSlotDirective(message,slotId){
         if(matches.length!==1)return null;
         identity=matches[0];
     }
-    const source=createSceneSource(stripDrawImageDirectives(message?.mes||''),{restrictToNarrativeBody:true});
-    const anchor=identity.after?resolveSceneAnchor(source,identity.after):null;
-    return {imageIndex:identity.imageIndex,after:anchor?.after||''};
+    // This is the identity saved at the original, host-visible placement.
+    // Recovery must not re-filter the source with a different preset-specific
+    // narrative rule; mountImageCardAtVisibleAnchor verifies DOM visibility.
+    return {imageIndex:identity.imageIndex,after:String(identity.after||identity.requestedAfter||'').replace(/\s+/g,' ').trim()};
 }
 
 export function bindImageSlotDirectives(message,tasks,ids,metadata=[],{jobId='',backend=false}={}){

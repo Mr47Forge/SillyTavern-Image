@@ -4,7 +4,7 @@ const shared='runtime/modules/draw/shared/tests/';
 const files=[
  'scripts/install-server.test.mjs',
  ...['audit-followup','audit-regressions','direct-draw','direct-stream-cards','wardrobe-continuity','scene-placement','male-image-exclusion',
- 'direct-failure-retry','drawing-chain-integration','model-diagnostic-footer','draw-validation-diagnostics','host-visible-scene','image-diagnostics-layout','all-fixes-continuity','draw-run-client','scene-plan-contract',
+ 'direct-failure-retry','drawing-chain-integration','codex-save-recovery','generated-image-owner','model-diagnostic-footer','draw-validation-diagnostics','host-visible-scene','image-diagnostics-layout','all-fixes-continuity','draw-run-client','scene-plan-contract',
  'prepared-slot-executor','image-card-redraw-provider','draw-preview-rendering','removed-settings-pages','removed-manual-gallery-actions'].map(name=>shared+name+'.test.js'),
  ...['storage-boundaries','capsule-lifecycle','cancel-capsule-unlock','cancellation-storage-timeout','draw-cancellation-ui',
  'draw-work-cancellation','backend-image-jobs','recoverable-image-jobs','confirmable-chat-save',
