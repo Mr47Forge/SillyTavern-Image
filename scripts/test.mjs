@@ -12,7 +12,7 @@ const files = roots.flatMap(root => readdirSync(root)
     .filter(name => /\.test\.(?:js|mjs|cjs)$/.test(name))
     .map(name => root + '/' + name)).sort();
 
-// Retired suites are preserved as historical source text under tests/retired.
+// Retired suites are preserved under metadata/audit-20261028/retired.
 // Only tests of current, supported runtime behavior are executable here.
 console.log('[TEST COVERAGE]', files.length, '/', files.length,
     'active test files; legacy-only fixtures preserved separately.');
