@@ -1,4 +1,6 @@
 import { parseDrawImageDirectives, stripDrawImageDirectives, stripDrawImageSlots } from './image-marker-syntax.js';
+import { stripModelDiagnosticFooter } from './model-diagnostic-footer.js';
+import { isHostVisibleAnchor, hostVisibleSourcePoints, visibleFallbackOffset } from './host-visible-scene.js';
 import { joinTags, assembleCharacterPrompts, usesChineseAppearance } from './character-prompts.js';
 import { createSceneSource, resolveSceneAnchor } from './scene-source.js';
 import { hasOwnedImageSlots } from './image-directive-identity.js';
@@ -11,7 +13,7 @@ import { buildMaleImageOnlyRule, filterMaleImageDirective, containsMaleAnatomy, 
 export function stripDirectDrawSource(text) {
     let clean = stripDrawImageDirectives(String(text || ''));
     for (const tag of parseChatImageTags(clean).reverse()) clean = clean.slice(0, tag.start) + clean.slice(tag.end);
-    return clean;
+    return stripModelDiagnosticFooter(clean);
 }
 
 function sourceText(message) {
@@ -49,7 +51,7 @@ function assembleDirectCharacterPrompts(chars,known){
 
 export function buildDirectDrawTasks(directives, preset = {}, options = {}) {
     if (!Array.isArray(directives) || directives.length === 0) {
-        const error = new Error('\u5f53\u524d\u5267\u60c5\u6ca1\u6709\u7ed8\u56fe\u6307\u4ee4(<image>)\uff0c\u672c\u8f6e\u672a\u63d0\u4ea4 ComfyUI\uff1b\u8bf7\u68c0\u67e5\u6a21\u578b\u5de5\u5177\u8fd4\u56de\u7684\u5267\u60c5\u5b57\u6bb5\u3002');
+        const error = new Error('本轮模型回复没有可识别的绘图指令（支持 <image>...</image> 或 [image]...[/image]），未提交 ComfyUI；请检查回复正文或工具的剧情字段。');
         error.code = 'DRAW_DIRECTIVES_MISSING';
         throw error;
     }
@@ -89,11 +91,18 @@ export function buildDirectDrawTasks(directives, preset = {}, options = {}) {
     const selected = valid.slice(0,count||valid.length);
     const narrative = options.sourceText === undefined ? null
         : stripDrawImageSlots(stripDirectDrawSource(String(options.sourceText)));
-    const source = narrative === null ? null : createSceneSource(narrative, { filterRules: options.filterRules, restrictToNarrativeBody:true });
+    // When the host rendered text exists, it is the visibility authority.
+    // Keep an unfiltered source offset map for persistence but never authorize
+    // its hidden/status anchors without confirming actual host visibility.
+    const hostVisibleText = typeof options.hostVisibleText === 'string' && options.hostVisibleText.trim()
+        ? options.hostVisibleText : null;
+    const source = narrative === null ? null : createSceneSource(narrative, hostVisibleText
+        ? {restrictToNarrativeBody:false} : { filterRules: options.filterRules, restrictToNarrativeBody:true });
+    const visiblePoints = hostVisibleText ? hostVisibleSourcePoints(source,hostVisibleText) : source?.points || [];
     // Never invent a woman when the entire actual narrative is unmistakably
     // male-only. A male *sentence* in a story also featuring women is different.
-    if(options.requireFemaleImage === true && source?.content?.trim()
-        && anchorIsClearlyMaleOnly(source.content,options.knownCharacters||[]))
+    if(options.requireFemaleImage === true && (hostVisibleText || source?.content)?.trim()
+        && anchorIsClearlyMaleOnly(hostVisibleText || source.content,options.knownCharacters||[]))
         throw new Error('本次剧情只有男性出镜，不能凭空添加女性凑图。');
     // Hidden-only narrative: keep the requested image, show it in a visible image gallery.
     const mapped = [];
@@ -102,7 +111,7 @@ export function buildDirectDrawTasks(directives, preset = {}, options = {}) {
         try {
         const chars = pinImageCharacterAppearances(
             normalizeDirectCharacters(item.characters, options.knownCharacters),
-            appearanceLedger, options.knownCharacters||[],{...options.appearanceSources,narrative:source?.content||''});
+            appearanceLedger, options.knownCharacters||[],{...options.appearanceSources,narrative:hostVisibleText||source?.content||''});
         // Keep verified source corrections for every later image in this batch.
         // The pinning step already rejects unsupported generated changes.
         for(const person of chars) {
@@ -118,16 +127,19 @@ export function buildDirectDrawTasks(directives, preset = {}, options = {}) {
         if (source?.points.length) {
             const after = String(item.after || '').trim();
             // Preserve the scene-to-picture relationship, never scatter to an unrelated point.
-            let offset = after ? resolveSceneAnchor(source,after)?.offset??null
-                : Number.isInteger(item.sourceOffset) && source.points.some(p=>p.offset===item.sourceOffset)
+            const visibleAfter = !hostVisibleText || isHostVisibleAnchor(hostVisibleText,after);
+            let offset = after && visibleAfter ? resolveSceneAnchor(source,after)?.offset??null
+                : !after && Number.isInteger(item.sourceOffset) && visiblePoints.some(p=>p.offset===item.sourceOffset)
                     ? item.sourceOffset : null;
+            if(hostVisibleText && offset!==null && !visiblePoints.some(p=>p.offset===offset)
+                && !isHostVisibleAnchor(hostVisibleText,after)) offset=null;
             if(offset!==null && options.requireFemaleImage === true) {
                 const pointIndex=source.points.findIndex(p=>p.offset===offset);
                 const start=pointIndex>0?source.points[pointIndex-1].offset:0;
                 const chosenBeat=narrative.slice(start,offset);
                 if(anchorIsClearlyMaleOnly(chosenBeat,options.knownCharacters||[])){
-                    const candidates=source.points.filter((point,i)=>{
-                        const from=i>0?source.points[i-1].offset:0;
+                    const candidates=visiblePoints.filter((point,i)=>{
+                        const from=i>0?visiblePoints[i-1].offset:0;
                         return storyMentionsFemale(narrative.slice(from,point.offset),
                             options.knownCharacters||[]);
                     });
@@ -223,10 +235,16 @@ export function buildDirectDrawTasks(directives, preset = {}, options = {}) {
                 placement={...previous};
         }else if(previous?.mode==='source'){
             placement={...previous};
+        }else if(hostVisibleText && source){
+            const next=accepted.slice(i+1).find(item=>item.placement?.mode==='source');
+            const preceding=next ? visiblePoints.filter(point=>point.offset<next.placement.offset).at(-1)?.offset
+                : visibleFallbackOffset(source,hostVisibleText);
+            const offset=preceding??(next?.placement?.offset??null);
+            if(offset!==null)placement={mode:'source',sourceHash:source.sourceHash,offset};
         }else if(source?.points?.length){
             const next=accepted.slice(i+1).find(item=>item.placement?.mode==='source');
             if(next){
-                const preceding=source.points.filter(point=>point.offset<next.placement.offset).at(-1);
+                const preceding=visiblePoints.filter(point=>point.offset<next.placement.offset).at(-1);
                 placement={mode:'source',sourceHash:source.sourceHash,
                     offset:preceding?.offset??next.placement.offset};
             }
@@ -297,7 +315,7 @@ export function buildDirectDrawInstruction({ preset = {}, prompts = {}, characte
     const maxCharacters = Math.max(0, Math.floor(Number(preset.maxCharactersPerImage) || 0));
     return [
         '[绘图指令] 正文有可见画面时，为每幅图指定其对应的正文位置。绘图指令可以集中附在回复末尾，图片会插到各自 after 引用的原文后面。下列设置仅用于绘图描述，不改变正文的对话任务。',
-        '当前预设若要求通过工具输出剧情，保留预设原有的工具名称、参数结构和正文标签；必须把完整 <image> 绘图块放进同一工具中承载最终剧情的文字字段末尾，与剧情一起返回，不得只在空的普通正文外追加，也不得放进思考或状态字段。无需另建或额外执行绘图工具。普通文本回复则把绘图块附在同一条回复末尾。',
+        '当前预设若要求通过工具输出剧情，保留预设原有的工具名称、参数结构和正文标签；必须把完整绘图块（<image>...</image> 或 [image]...[/image]）放进同一工具中承载最终剧情的文字字段末尾，与剧情一起返回，不得只在空的普通正文外追加，也不得放进思考或状态字段。无需另建或额外执行绘图工具。普通文本回复则把绘图块附在同一条回复末尾。',
         drawingRequirements(prompts.topSystem) ? `以下仅约束绘图字段的选景与视角，正文身份和叙述服从酒馆预设：\n${drawingRequirements(prompts.topSystem)}` : '',
         drawingRequirements(prompts.sceneRules) ? `以下仅为图片画面规则：\n${drawingRequirements(prompts.sceneRules)}` : '',
         // Keep planner-role instructions out of the native chat preset.
@@ -318,19 +336,20 @@ export function buildDirectDrawInstruction({ preset = {}, prompts = {}, characte
         '镜头未拍到某衣物或物品，不等于自动脱掉或丢弃。出现新的换装、治愈、清洗、拿起或放下事件，才更新对应角色及对应状态；不改变其他人物。prompt 主要描述场景构图，不能与角色服装或状态矛盾。',
         filterRules.length ? `以下成对边界内的思考、状态或辅助内容不能作为画面或定位句来源：${JSON.stringify(filterRules)}` : '',
         prompts.fieldDescriptions ? `绘图字段补充说明（旧编号定位统一改为 after 原文定位）：\n${prompts.fieldDescriptions}` : '',
-        count ? 'MANDATORY IMAGE COUNT = ' + count + '. In this same story response, output EXACTLY ' + count + ' separate <image> blocks, not merely at most ' + count + '. Each block needs a DISTINCT English prompt grounded in a different actual visual moment of the narrative: action, interaction, setting, lighting, camera composition. Use appropriate characters and a genuine matching after anchor. Never clone an image prompt or only change the random seed. No second model call.' : '按剧情需要附绘图指令，最多 20 段。',
+        count ? 'MANDATORY IMAGE COUNT = ' + count + '. In this same story response, output EXACTLY ' + count + ' separate image instruction blocks (<image>...</image> OR [image]...[/image]), not merely at most ' + count + '. Each block needs a DISTINCT English prompt grounded in a different actual visual moment of the narrative: action, interaction, setting, lighting, camera composition. Use appropriate characters and a genuine matching after anchor. Never clone an image prompt or only change the random seed. No second model call.' : '按剧情需要附绘图指令，最多 20 段。',
         maxCharacters ? `每张图最多 ${maxCharacters} 名实际出镜角色。` : '',
         '必须服从当前设置的风格与视角，不额外强制写实或动漫。只描述实际出镜人物，不能凭空增加人物。',
         '绘图正向 prompt 里，已出镜的女性角色采用写实中国女性、自然东亚五官外貌（Chinese, East Asian facial features），这属于原有角色特征；不能因此增加人数、补充路人或加入额外女性。没有女性出镜则不要写女性或外貌标签。',
         '以下 image 格式仅是正文之外的绘图附加段。正文继续使用酒馆预设的规则与格式。',
         '绘图块使用以下文本格式，不调用旧规划工具。characters 列出全部实际出镜人物；只用角色库姓名。服装 costume 与连续状态 state 是独立字段，action 只写当前画面动作；已录入角色也须依据当前中文资料填写英文 appear，不要留空。',
-        'Only the drawing program writes bracketed slot IDs; model text must contain <image> blocks but no bracketed slot tokens.',
+        '女性 NSFW 外阴外观：无阴毛，大阴唇饱满闭合，小阴唇自然状态不外露，外阴及阴唇肤色白皙浅粉，无深色素沉着。',
+        'Only the drawing program writes [image:slot-id] placeholders. Your image instructions may use <image>...</image> OR [image]...[/image] (do not mix opening/closing formats inside one block).',
         '<image>', 'prompt: 英文画面提示词（单行，描述场景、构图、光线、视角；与人物字段合成完整画面）',
         'negative: 本画面额外的负向提示词（单行，没有则留空）',
         'characters: [{"name":"实际人物姓名","type":"身份标签","appear":"新人物外貌","costume":"当前服装完整指纹","state":"持续状态（伤势、湿污、持物等）","action":"当前动作","interact":"互动","uc":"人物额外负向"}]',
         'post_prompt: 整图末尾追加词（单行，没有则留空）',
         'after: 对应画面所在段落末尾的一句完整原文', '</image>',
-        '每段 <image> 都必须在 </image> 前填写 after: 字段，原样引用对应画面所在段落末尾的一句完整正文（含标点、单行）。引用必须在正文中唯一出现，不得改写或编造。',
-        count ? 'FINAL SELF CHECK: ' + count + ' pictures require ' + count + ' <image> blocks and ' + count + ' DISTINCT independent prompts in THIS ONE reply. Count the blocks and verify each describes a different true story beat BEFORE sending. No copies, no seed-only variants, no extra API calls.' : '',
+        '每段绘图块都必须在对应结束标签前填写 after: 字段，原样引用对应画面所在段落末尾的一句完整正文（含标点、单行）。引用必须在正文中唯一出现，不得改写或编造。',
+        count ? 'FINAL SELF CHECK: ' + count + ' pictures require ' + count + ' image instruction blocks (XML or bracket delimiters) and ' + count + ' DISTINCT independent prompts in THIS ONE reply. Count the blocks and verify each describes a different true story beat BEFORE sending. No copies, no seed-only variants, no extra API calls.' : '',
     ].map(value => String(value || '').trim()).filter(Boolean).join('\n\n');
 }

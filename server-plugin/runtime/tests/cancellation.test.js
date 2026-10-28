@@ -5,7 +5,6 @@ const { test } = require('node:test');
 const { setImmediate: turn } = require('node:timers/promises');
 const { createCancellationRegistry, registerCancellationRoutes } = require('../cancellation.js');
 const { createAsyncImageJobManager } = require('../image-jobs/job-manager.js');
-const { createDrawRunManager } = require('../draw-runs/draw-run-manager.js');
 
 function fixture(t, registryOptions = {}) {
     const registry = createCancellationRegistry(registryOptions);
@@ -19,42 +18,17 @@ function fixture(t, registryOptions = {}) {
             });
         },
     } } });
-    let plannerRelease;
-    const runs = createDrawRunManager({
-        cancellations: registry,
-        runtime: {
-            async executePreparedScenePlanner() { await new Promise(resolve => { plannerRelease = resolve; }); return []; },
-            compileDrawRunImages() { return { provider: 'fixture', context: {}, delay: { min: 0, max: 0 },
-                items: [{ kind: 'image', request: { name: 'child' }, timeout: 60_000 }],
-                artifacts: [{ task: { placement: { insertAfter: 1 } } }] }; },
-            deriveDrawRunChildJobId: id => `child-${id}`,
-            deriveDrawRunItemIds: id => ({ slotId: `slot-${id}`, imgId: `img-${id}` }),
-        },
-        agentCore: { createAgentAdapter() {} },
-        envelopeValidator: envelope => ({ envelope, inputBytes: 1 }),
-        imageJobService: {
-            create: (owner, body) => jobs.createJob({ owner, ...body }),
-            get: (owner, id) => jobs.getJob(owner, id),
-            cancel: (owner, id) => jobs.cancelJob(owner, id),
-        },
-        createHostClient() { assert.fail('no host session'); },
-        childSweepIntervalMs: 0,
-    });
     let route;
     registerCancellationRoutes({ post(_path, handler) { route = handler; } }, {
-        registry, jobManager: jobs, drawRunManager: runs,
+        registry, jobManager: jobs,
     });
-    t.after(() => { runs.close(); jobs.close(); registry.close(); });
+    t.after(() => { jobs.close(); registry.close(); });
     return {
-        starts, executions, jobs, runs,
+        starts, executions, jobs,
         create(id, owner = 'alice', items = [id]) {
             return jobs.createJob({ owner, provider: 'fixture', requestId: id, context: {}, delay: { min: 0, max: 0 },
                 items: items.map(name => ({ kind: 'image', request: { name }, timeout: 60_000 })) });
         },
-        createRun(id) { return runs.create('alice', { runId: id, sourceHash: 'hash', imageProvider: 'fixture',
-            planner: { validationContext: { sceneSource: { points: [{ offset: 1 }] } } },
-            agent: { channel: 'direct', providerConfig: { timeoutMs: 60_000 } }, generationRecipe: {} }); },
-        releasePlanner() { plannerRelease(); },
         cancel(body, owner = 'alice') {
             const res = { statusCode: 200, status(code) { this.statusCode = code; return this; }, send(body) { this.body = body; return this; } };
             route({ user: owner ? { profile: { handle: owner } } : undefined, body: { owner, ...body } }, res);
@@ -107,23 +81,14 @@ test('ready image survives cancellation and ACK/deletion cannot reopen its reque
     assert.equal(f.starts.some(item => item.name === 'queued'), false);
 });
 
-for (const phase of ['not-created', 'planning', 'dispatched']) test(`one cancellation fences Draw Run ${phase} and manual jobs together`, async t => {
+test('legacy run cancellation intent and current image jobs remain atomic and owner scoped', async t => {
     const f = fixture(t);
-    f.create('running'); await turn();
-    if (phase !== 'not-created') { f.createRun('plan'); await turn(); }
-    if (phase === 'dispatched') { f.releasePlanner(); await turn(); assert.equal(f.runs.get('alice', 'plan').state, 'dispatched'); }
-    f.create('queued');
-    assert.equal(f.cancel({ jobIds: ['running', 'queued'], runIds: ['plan'] }).statusCode, 200);
-    if (phase === 'planning') f.releasePlanner();
+    f.create('running'); await turn(); f.create('queued');
+    assert.equal(f.cancel({jobIds:['running','queued'],runIds:['old-plan']}).statusCode,200);
     await turn();
-    assert.deepEqual(f.starts.map(item => item.name), ['running']);
-    if (phase === 'not-created') assert.throws(() => f.createRun('plan'), error => error.code === 'request_cancelled');
-    else {
-        const run = f.runs.get('alice', 'plan');
-        assert.ok(run.cancelRequestedAt !== undefined);
-        assert.equal(f.runs.acknowledge('alice', 'plan').ok, true);
-        assert.throws(() => f.createRun('plan'), error => error.code === 'request_cancelled');
-    }
+    assert.deepEqual(f.starts.map(item=>item.name),['running']);
+    assert.equal(f.jobs.getJob('alice','queued').state,'cancelled');
+    assert.equal(f.cancel({runIds:['old-plan']}).statusCode,200);
 });
 
 test('invalid or unauthenticated sets cannot partially cancel a valid job', async t => {
@@ -170,26 +135,6 @@ test('global cancellation capacity rejects new admission but cannot prevent an a
     assert.throws(() => f.create('c', 'carol'), error => error.code === 'cancellation_limit');
     assert.equal(f.cancel({ jobIds: ['a'] }, 'alice').statusCode, 200);
     assert.equal(f.cancel({ jobIds: ['b'] }, 'bob').statusCode, 200);
-});
-
-test('planner admission reserves its child through dispatch and releases an unused child on removal', async t => {
-    const f = fixture(t, { maxTargetsPerOwner: 2 });
-    f.createRun('plan'); await turn();
-    assert.throws(() => f.create('extra'), error => error.code === 'cancellation_limit');
-    f.releasePlanner(); await turn();
-    assert.equal(f.runs.get('alice', 'plan').state, 'dispatched');
-    assert.deepEqual(f.starts.map(item => item.name), ['child']);
-    assert.equal(f.cancel({ runIds: ['plan'] }).statusCode, 200); await turn();
-    f.jobs.deleteJob('alice', 'child-plan'); f.runs.acknowledge('alice', 'plan');
-    assert.doesNotThrow(() => f.create('extra'));
-});
-
-test('cancelling an undispatched planner releases the unused child reservation', async t => {
-    const f = fixture(t, { maxTargetsPerOwner: 2 });
-    f.createRun('plan'); await turn();
-    f.cancel({ runIds: ['plan'] }); f.releasePlanner(); await turn();
-    f.runs.acknowledge('alice', 'plan');
-    assert.doesNotThrow(() => f.create('replacement'));
 });
 
 test('an account switch cannot acknowledge another profiles cancellation intent', async t => {

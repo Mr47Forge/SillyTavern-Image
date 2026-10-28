@@ -1,10 +1,12 @@
+import { openImageDatabase, runImageDatabaseOperation } from '../../../shared/common/indexed-db.js';
+import { getImageCacheOwner, imageCacheDatabaseName, assertImageCacheOwner } from './image-cache-owner.js';
+import { createDrawImageSlotRegex } from './image-marker-syntax.js';
 // gallery-cache.js
 // 画廊和缓存管理模块
 
 import { getContext } from "/scripts/extensions.js";
 import { saveBase64AsFile } from "/scripts/utils.js";
 import { hasPreviewImage, DRAW_SLOT_COPY, PreviewStatus } from './image-record.js';
-import { IMAGE_SAVE_LABEL_HTML } from './image-save-ui.js';
 import { writeImageError, openImageDiagnostics } from './image-diagnostics.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -14,7 +16,8 @@ import { writeImageError, openImageDiagnostics } from './image-diagnostics.js';
 const DB_NAME = 'sti_novel_draw_previews';
 const DB_STORE = 'previews';
 const DB_SELECTIONS_STORE = 'selections';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
+const DB_MIGRATIONS_STORE = 'migrated_slots';
 const CACHE_TTL = 5 * 60 * 1000;
 const PREVIEW_CACHE_LIMIT = 64;
 const PREVIEW_OBJECT_URL_LIMIT = 128;
@@ -29,6 +32,9 @@ const SLOT_ORDER_CACHE_TTL = 30 * 1000;
 // 状态
 // ═══════════════════════════════════════════════════════════════════════════
 
+let cacheOwner = '';
+let legacyMigratedSlots = new Set();
+let legacyMigration = null;
 let db = null;
 let dbOpening = null;
 let galleryOverlayCreated = false;
@@ -185,7 +191,6 @@ export function getPreviewDisplayUrl(preview = {}) {
     const parsed = parseBase64Image(preview?.base64);
     const savedUrl = safeImageUrl(preview?.savedUrl);
     if (!parsed?.data) return savedUrl;
-    if (!parsed?.data) return '';
 
     if (typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function' || typeof atob !== 'function') {
         return `data:${parsed.mime};base64,${parsed.data}`;
@@ -279,6 +284,7 @@ function prunePreviewCache() {
 }
 
 function getCachedPreviews(slotId) {
+    ensureGalleryOwner();
     prunePreviewCache();
     const cached = previewCache.get(slotId);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -321,9 +327,10 @@ function notifyCacheChangeListeners(slotIds) {
 }
 
 function ensureCacheSyncChannel() {
+    ensureGalleryOwner();
     if (cacheSyncChannel || typeof globalThis.BroadcastChannel !== 'function') return cacheSyncChannel;
     try {
-        cacheSyncChannel = new globalThis.BroadcastChannel(CACHE_SYNC_CHANNEL_NAME);
+        cacheSyncChannel = new globalThis.BroadcastChannel(imageCacheDatabaseName(CACHE_SYNC_CHANNEL_NAME));
         cacheSyncChannel.onmessage = (event) => {
             if (event.data?.type !== 'invalidate') return;
             const slotIds = normalizeChangedSlotIds(event.data.slotIds);
@@ -394,54 +401,133 @@ function isDbValid() {
     }
 }
 
-export async function openDB() {
-    if (dbOpening) return dbOpening;
+function ensureGalleryOwner() {
+    const owner = getImageCacheOwner();
+    if (cacheOwner === owner) return owner;
+    if (db) { try { db.close(); } catch {} }
+    db = null; dbOpening = null;
+    cacheSyncChannel?.close(); cacheSyncChannel = null;
+    invalidateCache(); clearPreviewObjectUrls();
+    currentGalleryData = null; galleryOverlayCreated = false;
+    globalThis.document?.getElementById('nd-gallery-overlay')?.remove();
+    legacyMigratedSlots = new Set(); legacyMigration = null;
+    cacheOwner = owner;
+    return owner;
+}
 
-    if (isDbValid() && db.objectStoreNames.contains(DB_SELECTIONS_STORE)) {
+function galleryOperation(work) {
+    const owner = getImageCacheOwner();
+    return runImageDatabaseOperation((resolve, reject, transaction) => work(value => {
+        try { assertImageCacheOwner(owner); resolve(value); } catch (error) { reject(error); }
+    }, reject, (database, ...args) => {
+        assertImageCacheOwner(owner);
+        if (database.name !== imageCacheDatabaseName(DB_NAME, owner)) throw new Error('图片缓存归属已变化，请重试');
+        return transaction(database, ...args);
+    }));
+}
+
+async function migrateLegacyChatPreviews(database, owner) {
+    const completedSlots = legacyMigratedSlots;
+    const slots = new Set();
+    for (const message of getContext()?.chat || []) for (const source of [message.mes, ...(message.swipes || [])]) {
+        for (const match of String(source || '').matchAll(createDrawImageSlotRegex())) if (!legacyMigratedSlots.has(match[1])) slots.add(match[1]);
+    }
+    if (!slots.size) return;
+    if (legacyMigration) { await legacyMigration; return migrateLegacyChatPreviews(database, owner); }
+    const operation = (async () => {
+        await galleryOperation((resolve, reject, transaction) => {
+            const tx = transaction(database, DB_MIGRATIONS_STORE, 'readonly');
+            for (const slotId of slots) tx.objectStore(DB_MIGRATIONS_STORE).get(slotId).onsuccess = event => {
+                if (event.target.result) { slots.delete(slotId); completedSlots.add(slotId); }
+            };
+            tx.oncomplete = () => resolve();
+            tx.onerror = tx.onabort = () => reject(storageWriteError(tx));
+        });
+        if (!slots.size) return;
+        const legacy = await openImageDatabase(DB_NAME);
+        try {
+            const records = !legacy.objectStoreNames.contains(DB_STORE) ? { previews: [], selections: [] } : await runImageDatabaseOperation((resolve, reject, transaction) => {
+                const stores = [DB_STORE, ...(legacy.objectStoreNames.contains(DB_SELECTIONS_STORE) ? [DB_SELECTIONS_STORE] : [])];
+                const tx = transaction(legacy, stores, 'readonly');
+                const previews = [], selections = [];
+                const store = tx.objectStore(DB_STORE);
+                const add = item => { if (item?.imgId && (!item.owner || item.owner === owner)) previews.push(item); };
+                if (store.indexNames.contains('slotId')) {
+                    for (const slotId of slots) {
+                        store.index('slotId').getAll(slotId).onsuccess = event => event.target.result.forEach(add);
+                        store.get(slotId).onsuccess = event => add(event.target.result);
+                    }
+                } else store.openCursor().onsuccess = event => {
+                    const cursor = event.target.result;
+                    if (!cursor) return;
+                    if (slots.has(cursor.value.slotId || cursor.value.imgId)) add(cursor.value);
+                    cursor.continue();
+                };
+                if (stores.includes(DB_SELECTIONS_STORE)) for (const slotId of slots) {
+                    tx.objectStore(DB_SELECTIONS_STORE).get(slotId).onsuccess = event => {
+                        if (event.target.result) selections.push(event.target.result);
+                    };
+                }
+                tx.oncomplete = () => resolve({ previews, selections });
+                tx.onerror = tx.onabort = () => reject(tx.error || new Error('旧图片缓存读取失败，原记录仍保留'));
+            });
+            assertImageCacheOwner(owner);
+            await galleryOperation((resolve, reject, transaction) => {
+                const tx = transaction(database, [DB_STORE, DB_SELECTIONS_STORE, DB_MIGRATIONS_STORE], 'readwrite');
+                const store = tx.objectStore(DB_STORE), selections = tx.objectStore(DB_SELECTIONS_STORE);
+                const migrated = tx.objectStore(DB_MIGRATIONS_STORE);
+                for (const slotId of slots) migrated.get(slotId).onsuccess = event => {
+                    // Another tab may have migrated and cleared this slot while
+                    // the legacy read was pending. Recheck in the same write.
+                    if (event.target.result) return;
+                    const previews = records.previews.filter(record => (record.slotId || record.imgId) === slotId);
+                    for (const record of previews) store.get(record.imgId).onsuccess = event => {
+                        if (!event.target.result) store.put({ ...record, owner });
+                    };
+                    const images = new Set(previews.map(record => record.imgId));
+                    for (const selection of records.selections) if (selection.slotId === slotId && images.has(selection.selectedImgId)) {
+                        selections.get(slotId).onsuccess = event => { if (!event.target.result) selections.put(selection); };
+                    }
+                    migrated.put({ slotId, completedAt: Date.now() });
+                };
+                tx.oncomplete = () => resolve();
+                tx.onerror = tx.onabort = () => reject(storageWriteError(tx));
+            });
+        } finally { legacy.close(); }
+        assertImageCacheOwner(owner);
+        for (const slotId of slots) completedSlots.add(slotId);
+    })();
+    legacyMigration = operation;
+    try { await operation; } finally { if (legacyMigration === operation) legacyMigration = null; }
+}
+
+export async function openDB() {
+    const owner = ensureGalleryOwner();
+    if (dbOpening) return dbOpening;
+    if (isDbValid() && db.objectStoreNames.contains(DB_SELECTIONS_STORE) && db.objectStoreNames.contains(DB_MIGRATIONS_STORE)) {
+        await migrateLegacyChatPreviews(db, owner);
+        assertImageCacheOwner(owner);
         return db;
     }
-
-    if (db) {
-        try { db.close(); } catch {}
-        db = null;
-    }
-
-    dbOpening = new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-        request.onerror = () => {
-            dbOpening = null;
-            reject(request.error);
-        };
-
-        request.onsuccess = () => {
-            db = request.result;
-            db.onclose = () => { db = null; };
-            db.onversionchange = () => { db.close(); db = null; };
-            dbOpening = null;
-            resolve(db);
-        };
-
-        request.onupgradeneeded = (e) => {
-            const database = e.target.result;
-            if (!database.objectStoreNames.contains(DB_STORE)) {
-                const store = database.createObjectStore(DB_STORE, { keyPath: 'imgId' });
-                ['messageId', 'chatId', 'timestamp', 'slotId', 'characterName'].forEach(idx => store.createIndex(idx, idx));
-            } else {
-                const store = e.target.transaction.objectStore(DB_STORE);
-                ['messageId', 'chatId', 'timestamp', 'slotId', 'characterName'].forEach((idx) => {
-                    if (!store.indexNames.contains(idx)) {
-                        store.createIndex(idx, idx);
-                    }
-                });
-            }
-            if (!database.objectStoreNames.contains(DB_SELECTIONS_STORE)) {
-                database.createObjectStore(DB_SELECTIONS_STORE, { keyPath: 'slotId' });
-            }
-        };
+    if (db) { try { db.close(); } catch {} db = null; }
+    const opening = openImageDatabase(imageCacheDatabaseName(DB_NAME, owner), DB_VERSION, (database, event) => {
+        const store = database.objectStoreNames.contains(DB_STORE)
+            ? event.target.transaction.objectStore(DB_STORE) : database.createObjectStore(DB_STORE, { keyPath: 'imgId' });
+        for (const index of ['messageId', 'chatId', 'timestamp', 'slotId', 'characterName']) {
+            if (!store.indexNames.contains(index)) store.createIndex(index, index);
+        }
+        if (!database.objectStoreNames.contains(DB_SELECTIONS_STORE)) database.createObjectStore(DB_SELECTIONS_STORE, { keyPath: 'slotId' });
+        if (!database.objectStoreNames.contains(DB_MIGRATIONS_STORE)) database.createObjectStore(DB_MIGRATIONS_STORE, { keyPath: 'slotId' });
+    }).then(async database => {
+        try { assertImageCacheOwner(owner); } catch (error) { database.close(); throw error; }
+        db = database;
+        database.onclose = () => { if (db === database) db = null; };
+        database.onversionchange = () => { database.close(); if (db === database) db = null; };
+        await migrateLegacyChatPreviews(database, owner);
+        return database;
     });
-
-    return dbOpening;
+    dbOpening = opening;
+    try { return await opening; } finally { if (dbOpening === opening) dbOpening = null; }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -451,9 +537,9 @@ export async function openDB() {
 export async function setSlotSelection(slotId, imgId) {
     const database = await openDB();
     if (!database.objectStoreNames.contains(DB_SELECTIONS_STORE)) return;
-    return new Promise((resolve, reject) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_SELECTIONS_STORE, 'readwrite');
+            const tx = transaction(database, DB_SELECTIONS_STORE, 'readwrite');
             tx.objectStore(DB_SELECTIONS_STORE).put({ slotId, selectedImgId: imgId, timestamp: Date.now() });
             tx.oncomplete = () => {
                 publishCacheChange([slotId]);
@@ -469,9 +555,9 @@ export async function setSlotSelection(slotId, imgId) {
 export async function getSlotSelection(slotId) {
     const database = await openDB();
     if (!database.objectStoreNames.contains(DB_SELECTIONS_STORE)) return null;
-    return new Promise((resolve, reject) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_SELECTIONS_STORE, 'readonly');
+            const tx = transaction(database, DB_SELECTIONS_STORE, 'readonly');
             const request = tx.objectStore(DB_SELECTIONS_STORE).get(slotId);
             request.onsuccess = () => resolve(request.result?.selectedImgId || null);
             request.onerror = () => reject(request.error);
@@ -556,11 +642,11 @@ export async function importPortablePreviews(previews = [], selections = [], opt
         .filter((selection) => selection.slotId && selection.selectedImgId);
     if (!records.length && !selectionRows.length) return { importedPreviews: 0, importedSelections: 0 };
 
-    await new Promise((resolve, reject) => {
+    await galleryOperation((resolve, reject, transaction) => {
         try {
             const stores = [DB_STORE];
             if (database.objectStoreNames.contains(DB_SELECTIONS_STORE)) stores.push(DB_SELECTIONS_STORE);
-            const tx = database.transaction(stores, 'readwrite');
+            const tx = transaction(database, stores, 'readwrite');
             const previewStore = tx.objectStore(DB_STORE);
             records.forEach((record) => previewStore.put(record));
             if (stores.includes(DB_SELECTIONS_STORE)) {
@@ -588,9 +674,9 @@ export async function importPortablePreviews(previews = [], selections = [], opt
 export async function clearSlotSelection(slotId) {
     const database = await openDB();
     if (!database.objectStoreNames.contains(DB_SELECTIONS_STORE)) return;
-    return new Promise((resolve, reject) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_SELECTIONS_STORE, 'readwrite');
+            const tx = transaction(database, DB_SELECTIONS_STORE, 'readwrite');
             tx.objectStore(DB_SELECTIONS_STORE).delete(slotId);
             tx.oncomplete = () => {
                 publishCacheChange([slotId]);
@@ -608,6 +694,7 @@ export async function clearSlotSelection(slotId) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export async function storePreview(opts,{ifAbsent=false}={}) {
+    const owner = getImageCacheOwner();
     const {
         imgId,
         slotId,
@@ -633,15 +720,17 @@ export async function storePreview(opts,{ifAbsent=false}={}) {
         chapterTitle = '',
     } = opts;
     const database = await openDB();
+    assertImageCacheOwner(owner);
     const ctx = getContext();
     const resolvedChatId = String(chatId || ctx.chatId || (ctx.characterId || 'unknown'));
     const resolvedCharacterName = String(characterName || getChatCharacterName());
     const resolvedSlotId = slotId || imgId;
 
-    return new Promise((resolve, reject) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_STORE, 'readwrite');
+            const tx = transaction(database, DB_STORE, 'readwrite');
             const record={
+                owner,
                 imgId,
                 slotId: resolvedSlotId,
                 messageId,
@@ -669,6 +758,7 @@ export async function storePreview(opts,{ifAbsent=false}={}) {
             if(ifAbsent){const found=store.get(imgId);found.onsuccess=()=>{if(!found.result)store.put(record);};}
             else store.put(record);
             tx.oncomplete = () => {
+                try { assertImageCacheOwner(owner); } catch (error) { reject(error); return; }
                 if (status === 'failed' && errorType !== 'deleted') {
                     void writeImageError({
                         imgId, slotId: resolvedSlotId, messageId, chatId: resolvedChatId,
@@ -713,9 +803,9 @@ export async function storeFailedPlaceholder(opts) {
 
 export async function getPreview(imgId) {
     const database = await openDB();
-    return new Promise((resolve, reject) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_STORE, 'readonly');
+            const tx = transaction(database, DB_STORE, 'readonly');
             const request = tx.objectStore(DB_STORE).get(imgId);
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
@@ -730,13 +820,15 @@ export async function getPreviewsBySlot(slotId) {
     if (cached) return cached;
 
     const database = await openDB();
-    return new Promise((resolve, reject) => {
+    const owner = getImageCacheOwner();
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_STORE, 'readonly');
+            const tx = transaction(database, DB_STORE, 'readonly');
             const store = tx.objectStore(DB_STORE);
 
             const processResults = (results) => {
                 results.sort((a, b) => b.timestamp - a.timestamp);
+                try { assertImageCacheOwner(owner); } catch (error) { reject(error); return; }
                 setCachedPreviews(slotId, results);
                 resolve(results);
             };
@@ -824,8 +916,8 @@ export async function getDisplayPreviewForSlot(slotId) {
 // successful save after an aborted transaction.
 export async function updatePreviewRecord(imgId, changes) {
     const database = await openDB();
-    return new Promise((resolve, reject) => {
-        const tx = database.transaction(DB_STORE, 'readwrite');
+    return galleryOperation((resolve, reject, transaction) => {
+        const tx = transaction(database, DB_STORE, 'readwrite');
         const store = tx.objectStore(DB_STORE);
         let updated;
         let failure;
@@ -864,9 +956,9 @@ export async function deletePreview(imgId) {
     const preview = await getPreview(imgId);
     const slotId = preview?.slotId;
 
-    return new Promise((resolve, reject) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction([DB_STORE, DB_SELECTIONS_STORE], 'readwrite');
+            const tx = transaction(database, [DB_STORE, DB_SELECTIONS_STORE], 'readwrite');
             tx.objectStore(DB_STORE).delete(imgId);
             if (slotId) {
                 const selections = tx.objectStore(DB_SELECTIONS_STORE);
@@ -905,9 +997,9 @@ export async function updatePreviewSavedUrl(imgId, savedUrl) {
     // Keep the local original for immediate reuse. The H28K URL is fallback
     // on a different device or after the browser itself evicts its storage.
 
-    return new Promise((resolve, reject) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_STORE, 'readwrite');
+            const tx = transaction(database, DB_STORE, 'readwrite');
             tx.objectStore(DB_STORE).put(preview);
             tx.oncomplete = () => {
                 if (!preview.base64) revokePreviewObjectUrl(imgId);
@@ -925,15 +1017,18 @@ export async function updatePreviewSavedUrl(imgId, savedUrl) {
 // Explicit action only: never called by the normal chat renderer.
 const remoteImagePulls = new Map();
 export async function pullServerImageManually(savedPreview, { signal, maxBytes = 25 * 1024 * 1024 } = {}) {
+    const owner = ensureGalleryOwner();
     const imgId = String(savedPreview?.imgId || '').trim();
     const url = String(savedPreview?.savedUrl || '').trim();
     if (!imgId || !url.startsWith('/user/images/') || url.includes('\\')) {
         throw new Error('图片没有可用的 H28K 保存地址');
     }
     const old = await getPreview(imgId);
+    assertImageCacheOwner(owner);
     if (old?.base64) return { downloaded: false, image: old };
     if (old?.savedUrl && old.savedUrl !== url) throw new Error('图片版本已经变化');
-    if (remoteImagePulls.has(imgId)) return remoteImagePulls.get(imgId);
+    const key = `${owner}:${imgId}`;
+    if (remoteImagePulls.has(key)) return remoteImagePulls.get(key);
     const work = (async () => {
         const res = await fetch(url, { credentials: 'same-origin', cache: 'force-cache', signal });
         if (!res.ok) throw new Error('从 H28K 拉取失败（HTTP ' + res.status + '）');
@@ -944,35 +1039,40 @@ export async function pullServerImageManually(savedPreview, { signal, maxBytes =
             throw new Error('服务器返回的图片格式或大小不正确');
         }
         const base64 = await blobToDataUrl(blob);
+        assertImageCacheOwner(owner);
         if (signal?.aborted) throw new DOMException('已取消', 'AbortError');
         const latest = await getPreview(imgId);
+        assertImageCacheOwner(owner);
         if (latest?.base64) return { downloaded: false, image: latest };
         if (latest?.savedUrl && latest.savedUrl !== url) throw new Error('图片版本已经变化');
         const image = { ...savedPreview, ...latest, imgId, savedUrl: url, base64 };
         await storePreview(image);
         return { downloaded: true, image };
     })();
-    remoteImagePulls.set(imgId, work);
-    try { return await work; } finally { remoteImagePulls.delete(imgId); }
+    remoteImagePulls.set(key, work);
+    try { return await work; } finally { remoteImagePulls.delete(key); }
 }
 
 export async function savePreviewImage(imgId, filePrefix = 'draw') {
+    const owner = ensureGalleryOwner();
     const preview = await getPreview(imgId);
+    assertImageCacheOwner(owner);
     if (!preview) throw new Error('图片缓存不存在');
     if (preview.savedUrl) return preview.savedUrl;
     if (!preview.base64) throw new Error('图片缓存不存在');
     const charName = preview.characterName || getChatCharacterName();
     const image = getBase64ImagePayload(preview.base64);
     const url = await saveBase64AsFile(image.base64, charName, `${filePrefix}_${imgId}`, image.format);
+    assertImageCacheOwner(owner);
     await updatePreviewSavedUrl(imgId, url);
     return url;
 }
 
 export async function getCacheStats() {
     const database = await openDB();
-    return new Promise((resolve) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_STORE, 'readonly');
+            const tx = transaction(database, DB_STORE, 'readonly');
             const store = tx.objectStore(DB_STORE);
             const countReq = store.count();
             let totalSize = 0, successCount = 0, failedCount = 0;
@@ -1007,9 +1107,9 @@ export async function clearExpiredCache(cacheDays = 3) {
     const database = await openDB();
     let cleaned = 0;
 
-    return new Promise((resolve) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_STORE, 'readwrite');
+            const tx = transaction(database, DB_STORE, 'readwrite');
             const store = tx.objectStore(DB_STORE);
             store.openCursor().onsuccess = (e) => {
                 const cursor = e.target.result;
@@ -1043,13 +1143,13 @@ export async function clearExpiredCache(cacheDays = 3) {
 
 export async function clearAllCache() {
     const database = await openDB();
-    return new Promise((resolve, reject) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
             const stores = [DB_STORE];
             if (database.objectStoreNames.contains(DB_SELECTIONS_STORE)) {
                 stores.push(DB_SELECTIONS_STORE);
             }
-            const tx = database.transaction(stores, 'readwrite');
+            const tx = transaction(database, stores, 'readwrite');
             tx.objectStore(DB_STORE).clear();
             if (stores.length > 1) {
                 tx.objectStore(DB_SELECTIONS_STORE).clear();
@@ -1069,9 +1169,9 @@ export async function clearAllCache() {
 
 export async function getGallerySummary() {
     const database = await openDB();
-    return new Promise((resolve) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_STORE, 'readonly');
+            const tx = transaction(database, DB_STORE, 'readonly');
             const store = tx.objectStore(DB_STORE);
             const summary = {};
 
@@ -1118,9 +1218,9 @@ export async function getGallerySummary() {
 
 export async function getCharacterPreviews(charName) {
     const database = await openDB();
-    return new Promise((resolve) => {
+    return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_STORE, 'readonly');
+            const tx = transaction(database, DB_STORE, 'readonly');
             const store = tx.objectStore(DB_STORE);
             const slots = {};
             const pushItem = (item) => {
@@ -1190,9 +1290,9 @@ function toGalleryImage(item) {
 
 // 逐条读取该角色的记录，只保留每个图组的元数据，读完一条就丢掉它的 base64，整个角色的图片不会同时驻留内存。
 function scanCharacterSlotOrder(charName) {
-    return openDB().then((database) => new Promise((resolve, reject) => {
+    return openDB().then((database) => galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_STORE, 'readonly');
+            const tx = transaction(database, DB_STORE, 'readonly');
             const store = tx.objectStore(DB_STORE);
             const slots = new Map();
             const visit = (item) => {
@@ -1235,6 +1335,7 @@ function scanCharacterSlotOrder(charName) {
 }
 
 function getCharacterSlotOrder(charName) {
+    ensureGalleryOwner();
     const cached = slotOrderCache.get(charName);
     if (cached && Date.now() - cached.at < SLOT_ORDER_CACHE_TTL) return cached.promise;
     const generation = slotOrderGeneration;
@@ -1248,10 +1349,10 @@ function getCharacterSlotOrder(charName) {
 }
 
 function readRecordsByKeys(keys) {
-    return openDB().then((database) => new Promise((resolve, reject) => {
+    return openDB().then((database) => galleryOperation((resolve, reject, transaction) => {
         const results = new Array(keys.length).fill(null);
         if (!keys.length) { resolve(results); return; }
-        const tx = database.transaction(DB_STORE, 'readonly');
+        const tx = transaction(database, DB_STORE, 'readonly');
         const store = tx.objectStore(DB_STORE);
         tx.oncomplete = () => resolve(results);
         tx.onabort = tx.onerror = () => reject(tx.error || new Error(DRAW_SLOT_COPY.storageReadFailed));
@@ -1292,9 +1393,9 @@ export async function getCharacterSlotsPage(charName, { offset = 0, limit = GALL
 export async function getSlotVersions(charName, slotId) {
     if (!slotId) return [];
     const database = await openDB();
-    const rows = await new Promise((resolve, reject) => {
+    const rows = await galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = database.transaction(DB_STORE, 'readonly');
+            const tx = transaction(database, DB_STORE, 'readonly');
             const store = tx.objectStore(DB_STORE);
             const found = [];
             const byIndex = store.indexNames.contains('slotId') ? store.index('slotId').getAll(slotId) : null;
@@ -1321,7 +1422,7 @@ function ensureGalleryStyles() {
     if (document.getElementById('nd-gallery-styles')) return;
     const style = document.createElement('style');
     style.id = 'nd-gallery-styles';
-    style.textContent = `#nd-gallery-overlay{position:fixed;top:var(--vv-top,0);left:0;width:100vw;height:var(--vvh, 100vh);z-index:100008;display:none;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px)}#nd-gallery-overlay.visible{display:flex;flex-direction:column;align-items:center;justify-content:center}.nd-gallery-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:20px;cursor:pointer;z-index:10}.nd-gallery-close:hover{background:rgba(255,255,255,0.2)}.nd-gallery-main{display:flex;align-items:center;gap:16px;max-width:90vw;max-height:70vh}.nd-gallery-nav{width:48px;height:48px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:24px;cursor:pointer;flex-shrink:0}.nd-gallery-nav:hover{background:rgba(255,255,255,0.2)}.nd-gallery-nav:disabled{opacity:0.3;cursor:not-allowed}.nd-gallery-img-wrap{position:relative;max-width:calc(90vw - 140px);max-height:70vh}.nd-gallery-img{max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5)}.nd-gallery-saved-badge{position:absolute;top:12px;left:12px;background:rgba(62,207,142,0.9);padding:4px 10px;border-radius:6px;font-size:11px;color:#fff;font-weight:600}.nd-gallery-thumbs{display:flex;gap:8px;margin-top:20px;padding:12px;background:rgba(0,0,0,0.3);border-radius:12px;max-width:90vw;overflow-x:auto}.nd-gallery-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.6;transition:all 0.15s;flex-shrink:0}.nd-gallery-thumb:hover{opacity:0.9}.nd-gallery-thumb.active{border-color:#d4a574;opacity:1}.nd-gallery-thumb.saved{border-color:rgba(62,207,142,0.8)}.nd-gallery-actions{display:flex;gap:12px;margin-top:16px}.nd-gallery-btn{padding:10px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;font-size:13px;cursor:pointer;transition:all 0.15s}.nd-gallery-btn:hover{background:rgba(255,255,255,0.2)}.nd-gallery-btn.primary{background:rgba(212,165,116,0.3);border-color:rgba(212,165,116,0.5)}.nd-gallery-btn.danger{color:#f87171;border-color:rgba(248,113,113,0.3)}.nd-gallery-btn.danger:hover{background:rgba(248,113,113,0.15)}.nd-gallery-info{text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,0.6)}`;
+    style.textContent = `#nd-gallery-overlay{position:fixed;top:var(--vv-top,0);left:0;width:100vw;height:var(--vvh, 100vh);z-index:100008;display:none;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px)}#nd-gallery-overlay.visible{display:flex;flex-direction:column;align-items:center;justify-content:center}.nd-gallery-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:20px;cursor:pointer;z-index:10}.nd-gallery-close:hover{background:rgba(255,255,255,0.2)}.nd-gallery-main{display:flex;align-items:center;gap:16px;max-width:90vw;max-height:70vh}.nd-gallery-nav{width:48px;height:48px;border:none;background:rgba(255,255,255,0.1);border-radius:50%;color:#fff;font-size:24px;cursor:pointer;flex-shrink:0}.nd-gallery-nav:hover{background:rgba(255,255,255,0.2)}.nd-gallery-nav:disabled{opacity:0.3;cursor:not-allowed}.nd-gallery-img-wrap{position:relative;max-width:calc(90vw - 140px);max-height:70vh}.nd-gallery-img{max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5)}.nd-gallery-saved-badge{position:absolute;top:12px;left:12px;background:rgba(62,207,142,0.9);padding:4px 10px;border-radius:6px;font-size:11px;color:#fff;font-weight:600}.nd-gallery-thumbs{display:flex;gap:8px;margin-top:20px;padding:12px;background:rgba(0,0,0,0.3);border-radius:12px;max-width:90vw;overflow-x:auto}.nd-gallery-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:0.6;transition:all 0.15s;flex-shrink:0}.nd-gallery-thumb:hover{opacity:0.9}.nd-gallery-thumb.active{border-color:#d4a574;opacity:1}.nd-gallery-thumb.saved{border-color:rgba(62,207,142,0.8)}.nd-gallery-actions{display:flex;gap:12px;margin-top:16px}.nd-gallery-btn{padding:10px 20px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;font-size:13px;cursor:pointer;transition:all 0.15s}.nd-gallery-btn:hover{background:rgba(255,255,255,0.2)}.nd-gallery-btn.danger{color:#f87171;border-color:rgba(248,113,113,0.3)}.nd-gallery-btn.danger:hover{background:rgba(248,113,113,0.15)}.nd-gallery-info{text-align:center;margin-top:12px;font-size:12px;color:rgba(255,255,255,0.6)}`;
     style.textContent += '#nd-gallery-overlay .nd-gallery-img-wrap{overflow:hidden;display:flex;align-items:center;justify-content:center;width:min(76vw,1200px);height:min(72vh,900px);max-width:min(76vw,1200px);max-height:72vh;touch-action:none;cursor:grab}#nd-gallery-overlay .nd-gallery-img-wrap:active{cursor:grabbing}#nd-gallery-overlay .nd-gallery-img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center;transition:transform .08s linear;user-select:none;pointer-events:none}#nd-gallery-overlay .nd-gallery-actions{flex-wrap:wrap;justify-content:center;margin-top:9px}#nd-gallery-overlay .nd-gallery-main{max-width:98vw;gap:9px}#nd-gallery-overlay .nd-gallery-thumbs{max-height:80px;margin-top:8px}#nd-gallery-overlay .nd-gallery-btn{padding:8px 13px}';
 
     style.textContent += `
@@ -1359,14 +1460,12 @@ function createGalleryOverlay() {
     overlay.id = 'nd-gallery-overlay';
     // Template-only UI markup.
     // eslint-disable-next-line no-unsanitized/property
-    overlay.innerHTML = `<button class="nd-gallery-close" id="nd-gallery-close">✕</button><div class="nd-gallery-main"><button class="nd-gallery-nav" id="nd-gallery-prev">‹</button><div class="nd-gallery-img-wrap"><img class="nd-gallery-img" id="nd-gallery-img" src="" alt=""><div class="nd-gallery-saved-badge" id="nd-gallery-saved-badge" style="display:none">已保存</div></div><button class="nd-gallery-nav" id="nd-gallery-next">›</button></div><div class="nd-gallery-thumbs" id="nd-gallery-thumbs"></div><div class="nd-gallery-actions" id="nd-gallery-actions"><button class="nd-gallery-btn" id="nd-gallery-prompt-log">提示词日志</button><button class="nd-gallery-btn primary" id="nd-gallery-use">使用此图</button><button class="nd-gallery-btn" id="nd-gallery-save">${IMAGE_SAVE_LABEL_HTML}</button><button class="nd-gallery-btn danger" id="nd-gallery-delete">🗑️ 删除</button></div><div class="nd-gallery-info" id="nd-gallery-info"></div>`;
+    overlay.innerHTML = `<button class="nd-gallery-close" id="nd-gallery-close">✕</button><div class="nd-gallery-main"><button class="nd-gallery-nav" id="nd-gallery-prev">‹</button><div class="nd-gallery-img-wrap"><img class="nd-gallery-img" id="nd-gallery-img" src="" alt=""><div class="nd-gallery-saved-badge" id="nd-gallery-saved-badge" style="display:none">已保存</div></div><button class="nd-gallery-nav" id="nd-gallery-next">›</button></div><div class="nd-gallery-thumbs" id="nd-gallery-thumbs"></div><div class="nd-gallery-actions" id="nd-gallery-actions"><button class="nd-gallery-btn" id="nd-gallery-prompt-log">提示词日志</button><button class="nd-gallery-btn danger" id="nd-gallery-delete">🗑️ 删除</button></div><div class="nd-gallery-info" id="nd-gallery-info"></div>`;
     document.body.appendChild(overlay);
 
     document.getElementById('nd-gallery-close').addEventListener('click', closeGallery);
     document.getElementById('nd-gallery-prev').addEventListener('click', () => navigateGallery(1));
     document.getElementById('nd-gallery-next').addEventListener('click', () => navigateGallery(-1));
-    document.getElementById('nd-gallery-use').addEventListener('click', useCurrentGalleryImage);
-    document.getElementById('nd-gallery-save').addEventListener('click', saveCurrentGalleryImage);
     document.getElementById('nd-gallery-delete').addEventListener('click', deleteCurrentGalleryImage);
     document.getElementById('nd-gallery-prompt-log').addEventListener('click', () => {
         const current=currentGalleryData?.previews?.[currentGalleryData.currentIndex];
@@ -1602,16 +1701,6 @@ function renderGallery() {
     document.getElementById('nd-gallery-next').disabled = currentIndex<=0
         && !(groupIndex>0);
 
-    const saveBtn = document.getElementById('nd-gallery-save');
-    if (current.savedUrl) {
-        saveBtn.disabled = true;
-    } else {
-        // Static draw-owned markup, without user input.
-        // eslint-disable-next-line no-unsanitized/property
-        saveBtn.innerHTML = IMAGE_SAVE_LABEL_HTML;
-        saveBtn.disabled = false;
-    }
-
     const displayVersion = previews.length - currentIndex;
     const date = new Date(current.timestamp).toLocaleString();
     document.getElementById('nd-gallery-info').textContent = `版本 ${displayVersion} / ${previews.length} · ${date}`;
@@ -1635,43 +1724,6 @@ async function navigateGallery(delta) {
     const maker=old.callbacks.createManagementCallbacks;
     const nextCallbacks=typeof maker==='function'?await maker(adjacent):old.callbacks;
     await openGallery(adjacent,Number(nextCallbacks.managementMessageId||0),nextCallbacks);
-}
-
-async function useCurrentGalleryImage() {
-    if (!currentGalleryData) return;
-
-    const { slotId, messageId, previews, currentIndex, callbacks } = currentGalleryData;
-    const selected = previews[currentIndex];
-    if (!selected) return;
-
-    await setSlotSelection(slotId, selected.imgId);
-    if (callbacks.onUse) callbacks.onUse(slotId, messageId, selected, previews.length);
-    closeGallery();
-    showToast('已切换显示图片');
-}
-
-async function saveCurrentGalleryImage() {
-    if (!currentGalleryData) return;
-
-    const { slotId, previews, currentIndex, callbacks } = currentGalleryData;
-    const current = previews[currentIndex];
-    if (!current || current.savedUrl) return;
-
-    try {
-        const charName = current.characterName || getChatCharacterName();
-        const image = getBase64ImagePayload(current.base64);
-        const url = await saveBase64AsFile(image.base64, charName, `novel_${current.imgId}`, image.format);
-        await updatePreviewSavedUrl(current.imgId, url);
-        current.savedUrl = url;
-        await setSlotSelection(slotId, current.imgId);
-        showToast(`已保存: ${url}`, 'success', 4000);
-        renderGalleryThumbs();
-        renderGallery();
-        if (callbacks.onSave) callbacks.onSave(current.imgId, url);
-    } catch (e) {
-        console.error('[GalleryCache] save failed:', e);
-        showToast(`保存失败: ${e.message}`, 'error');
-    }
 }
 
 function askGalleryConfirm(message) {

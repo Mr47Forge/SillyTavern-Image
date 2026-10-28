@@ -1,11 +1,11 @@
 {
   "name": "sillytavern-image",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "type": "module",
   "description": "独立定制绘图插件：剧情直出与 ComfyUI",
   "scripts": {
-    "build": "node scripts/build-runtime.mjs",
+    "build": "python scripts/build-server-package.py",
     "check": "node scripts/check-release.mjs",
     "test": "node scripts/test.mjs"
   },

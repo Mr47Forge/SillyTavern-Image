@@ -13,6 +13,8 @@ test('后端安装完整保留旧目录，同时不将旧文件混入新版',asy
   const run=spawnSync(process.execPath,['scripts/install-server.mjs',temp],{encoding:'utf8'});
   assert.equal(run.status,0,run.stderr);
   await access(join(target,'index.js'));
+  await assert.rejects(access(join(target,'sillytavern-image-server.zip')));
+  await assert.rejects(access(join(target,'SHA256SUMS')));
   await assert.rejects(access(join(target,'obsolete-file.txt')));
   const backups=await readdir(join(temp,'backups'));
   assert.equal(backups.length,1);

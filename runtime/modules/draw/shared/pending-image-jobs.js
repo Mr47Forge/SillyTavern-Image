@@ -32,6 +32,14 @@ import { runWithAbortDeadline } from '../../../shared/common/abort-utils.js';
 const DB_NAME = 'sti_image_backend_jobs';
 const DB_VERSION = 3;
 const DB_STORE = 'jobs';
+let ownerResolver = null;
+
+// The browser entry supplies the authenticated actor; the storage module stays
+// independent of host APIs for task-state tests and other host integrations.
+export function configurePendingImageJobOwner(resolveOwner) {
+    if (resolveOwner !== null && typeof resolveOwner !== 'function') throw new TypeError('任务归属读取函数无效');
+    ownerResolver = resolveOwner;
+}
 
 // 事务状态机：
 //
@@ -260,6 +268,8 @@ function normalizeChatTarget(source) {
 // 任何字段缺失的记录都无法安全恢复，直接当脏数据丢弃，绝不让它进入 reconcile。
 // 没有 leaseId 的记录同样是脏数据：所有权无法判定，就没法安全地决定谁来推进它。
 export function normalizePendingImageJob(source) {
+    const owner = normalizeText(source?.owner).trim();
+    if (ownerResolver && (!owner || owner !== String(ownerResolver() || ''))) return null;
     const jobId = normalizeText(source?.jobId).trim();
     const provider = normalizeText(source?.provider).trim();
     const leaseId = normalizeText(source?.leaseId).trim();
@@ -284,6 +294,7 @@ export function normalizePendingImageJob(source) {
     const lease = Number(source?.leaseExpiresAt);
     return {
         jobId,
+        ...(owner ? { owner } : {}),
         provider,
         leaseId,
         originRunId,
@@ -296,6 +307,8 @@ export function normalizePendingImageJob(source) {
         delivery,
         adoptionPhase,
         state,
+        backendAccepted: typeof source?.backendAccepted === 'boolean'
+            ? source.backendAccepted : state === PendingJobState.ACTIVE,
         leaseExpiresAt: Number.isFinite(lease) ? lease : 0,
         createdAt: Number.isFinite(Number(source?.createdAt)) ? Number(source.createdAt) : Date.now(),
         gallery: { ...(source?.gallery || {}) },
@@ -314,6 +327,7 @@ function createLeaseId() {
 async function addPendingImageJob(record, state, { conflictIsNull = false } = {}) {
     const normalized = normalizePendingImageJob({
         ...record,
+        ...(ownerResolver ? { owner: String(ownerResolver() || '') } : {}),
         state,
         adoptionPhase: state === PendingJobState.ADOPTING ? PendingJobAdoptionPhase.PENDING : null,
         leaseId: createLeaseId(),
@@ -450,6 +464,30 @@ export async function listPendingImageJobs() {
     return (records || []).map(normalizePendingImageJob).filter(Boolean);
 }
 
+export async function pendingImageJobOwnerMigrationNeeded() {
+    if (!ownerResolver) return false;
+    return runTransaction('readonly', (store, setOutput) => {
+        store.getAll().onsuccess = event => setOutput(event.target.result.some(record => !record.owner));
+    });
+}
+
+// Only the authenticated backend list can establish an old record's owner.
+// Missing or foreign jobs remain untouched instead of becoming false 404s.
+export async function migratePendingImageJobOwners(backendJobs, owner) {
+    if (!ownerResolver || !owner || String(ownerResolver() || '') !== owner) return false;
+    const known = new Set(backendJobs.map(job => job.id));
+    return runTransaction('readwrite', (store, setOutput) => {
+        store.getAll().onsuccess = event => {
+            if (String(ownerResolver() || '') !== owner) return setOutput(false);
+            for (const record of event.target.result) if (!record.owner && known.has(record.jobId)) {
+                const normalized = normalizePendingImageJob({ ...record, owner, backendAccepted: true });
+                if (normalized) store.put(normalized);
+            }
+            setOutput(true);
+        };
+    });
+}
+
 export async function getPendingImageJob(jobId) {
     const key = normalizeText(jobId).trim();
     if (!key) return null;
@@ -518,7 +556,7 @@ export async function acknowledgePendingImageJobCancellations({ jobIds, runIds }
 
 // POST 得到确认后调用：此后后端查不到这个 jobId 就确实等于任务已消失。
 export async function markPendingImageJobActive(jobId, leaseId) {
-    return setPendingImageJobState(jobId, leaseId, PendingJobState.ACTIVE);
+    return setPendingImageJobState(jobId, leaseId, PendingJobState.ACTIVE, { backendAccepted: true });
 }
 
 // 写正文之前先把 adoption 推进到 placing。之后即使保存结果不确定或页面死亡，恢复器也
@@ -574,6 +612,7 @@ export async function activateAdoptingPendingImageJob(jobId, leaseId, { cancelli
         return {
             ...record,
             state: shouldCancel ? PendingJobState.CANCELLING : PendingJobState.ACTIVE,
+            backendAccepted: true,
             cancelRequested: shouldCancel,
             adoptionPhase: null,
             // 激活与释放必须是同一个 IndexedDB 写；否则页面死在两写之间会平白阻塞接回 120 秒。

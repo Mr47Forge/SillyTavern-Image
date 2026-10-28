@@ -3,10 +3,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync, existsSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { buildDirectDrawInstruction, buildDirectDrawTasks, readDirectDrawDirectives,
     rememberDirectDrawDirectives, stripDirectDrawSource, getDirectDrawWorldbook } from '../direct-draw.js';
-import { parseDrawImageDirectives, stripDrawImageSlots } from '../image-marker-syntax.js';
+import { parseDrawImageDirectives, stripDrawImageSlots, stripUnownedDrawImageSlots } from '../image-marker-syntax.js';
 import { compile } from '../../providers/comfyui/compiler.js';
 import { selectPhotoCharacter } from '../../providers/comfyui/role-photo-reference.js';
 import { buildWardrobeLedger, formatWardrobeLedger } from '../wardrobe-continuity.js';
@@ -29,6 +28,30 @@ test('structured direct fields parse and keep the final append field', () => {
     const parsed = parseDrawImageDirectives(block)[0];
     assert.equal(parsed.characters[0].action, 'painting'); assert.equal(parsed.post_prompt, 'soft shadows');
 });
+test('bracket image directives parse four real picture tasks without a second LLM call', () => {
+    const source = ['An opening scene.', ...[1, 2, 3, 4].map(i =>
+        `[image]\nprompt: distinct scene ${i}\nnegative: blur\ncharacters: []\npost_prompt: soft light\nafter: An opening scene.\n[/image]`)].join('\n');
+    const parsed = parseDrawImageDirectives(source);
+    assert.equal(parsed.length, 4);
+    assert.deepEqual(parsed.map(item => item.imageIndex), [0, 1, 2, 3]);
+    assert.equal(parsed[3].prompt, 'distinct scene 4');
+    assert.equal(parsed[0].post_prompt, 'soft light');
+    const stripped = stripDirectDrawSource(source);
+    assert.ok(stripped.includes('An opening scene.'));
+    assert.ok(!stripped.includes('[image]'));
+    assert.ok(!stripped.includes('prompt:'));
+    assert.equal(readDirectDrawDirectives({mes:source}).length, 4);
+    assert.equal(buildDirectDrawTasks(parsed, {maxImages:4}, {sourceText:source}).length, 4);
+    assert.equal(stripDrawImageSlots('[image:slot-real] [image]'), ' [image]');
+});
+
+test('mixed bracket and XML directives retain numbering and real slots', () => {
+    const source = 'Story [image:slot-existing]\n[image]\nprompt: first\n[/image]\n<image>\nprompt: second\n</image>';
+    assert.deepEqual(parseDrawImageDirectives(source).map(item=>item.prompt),['first','second']);
+    assert.match(stripDirectDrawSource(source),/Story/);
+    assert.doesNotMatch(stripDirectDrawSource(source),/prompt:|\[image\]/);
+});
+
 test('legacy comma-separated people still work', () => {
     const parsed = parseDrawImageDirectives('<image>\nprompt: studio\ncharacters: 画师\n</image>');
     assert.equal(build(parsed)[0].chars[0].name, 'Alice');
@@ -58,12 +81,6 @@ test('direct negative composition honors effective overrides and keeps character
     const out = compile(build(), { ...recipe, negativePrefix: 'OVERRIDE GLOBAL', negativePromptOverride: 'OVERRIDE EXTRA' }).artifacts[0].promptData;
     for (const term of ['OVERRIDE GLOBAL', 'OVERRIDE EXTRA', 'red hair', 'gloves', 'blur']) assert.ok(out.negative.includes(term));
     assert.ok(!out.negative.includes('low quality'));
-});
-test('deployed backend artifact and frontend compile the migrated fields identically', () => {
-    const require = createRequire(import.meta.url);
-    const backend = require(new URL('../../../../../server-plugin/runtime/draw-runs/vendor/draw-run-runtime.cjs', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
-    const tasks = build();
-    assert.equal(JSON.stringify(compile(tasks, recipe)), JSON.stringify(backend.compileDrawRunImages('comfyui', tasks, recipe)));
 });
 test('aliases cannot bypass character limits, duplicates do not double count', () => {
     assert.throws(() => build([{ ...directive, characters: ['Alice', 'Beatrice'] }]), /超过/);
@@ -101,6 +118,12 @@ test('duplicate effective positive prompts must not be submitted as separate ima
     const unique=duplicate.map((x,i)=>({...x,prompt:i?'woman at sunset, view from behind':'woman at studio door, front view'}));
     assert.equal(build(unique,{...preset,maxImages:2}).length,2);
 });
+test('female NSFW appearance rule is short and appears in image instructions',()=>{
+    const instruction = buildDirectDrawInstruction({preset:{maxImages:2}});
+    assert.match(instruction, /女性 NSFW 外阴外观：无阴毛，大阴唇饱满闭合，小阴唇自然状态不外露，外阴及阴唇肤色白皙浅粉，无深色素沉着。/);
+    assert.doesNotMatch(instruction, /未成年人、年龄不明确|普通或未展示该部位/);
+});
+
 test('the original single-pass model prompt requests the exact number of unique image blocks',()=>{
     const instruction=buildDirectDrawInstruction({preset:{maxImages:3}});
     assert.match(instruction,/EXACTLY 3/);
@@ -262,6 +285,34 @@ test('new direct-only entry has no planner submission or fallback', () => {
     assert.ok(!/session\.(received|observe|requesting|retry)\(/.test(tags));
     assert.match(tags, /generateAndInsertImages\(\{ messageId: index \}\)/);
 });
+test('chat reopen resumes only complete unclaimed directives in auto mode', async () => {
+    const cases = [
+        {mode:'auto',state:'ready',stopped:true,expected:1},
+        {mode:'manual',state:'ready',stopped:true,expected:0},
+        {mode:'auto',state:'placed',stopped:true,expected:0},
+        {mode:'auto',state:'missing',stopped:true,expected:0},
+        {mode:'auto',state:'ready',stopped:false,expected:0},
+    ];
+    for(const scenario of cases) {
+        let calls=0;
+        const ctx = {
+            moduleInitialized:true,moduleLifecycleGeneration:7,
+            getSettings:()=>({mode:scenario.mode}),
+            getContext:()=>({chat:[{mes:'[image]\\nprompt: scene\\n[/image]'}],
+                streamingProcessor:{isStopped:scenario.stopped}}),
+            getDirectDrawReplyState:()=>({state:scenario.state}),
+            autoGenerateForLastAI:async()=>{calls++;},
+            setTimeout:fn=>{fn();},console,
+        };
+        vm.runInNewContext(fn(main,'resumeMissedAutomaticDraw'),ctx);
+        ctx.resumeMissedAutomaticDraw();
+        await Promise.resolve();
+        assert.equal(calls,scenario.expected,JSON.stringify(scenario));
+        ctx.resumeMissedAutomaticDraw(6);
+        assert.equal(calls,scenario.expected,'stale lifecycle cannot resume');
+    }
+});
+
 test('both old planner settings and direct settings normalize to direct without changing prompt values', () => {
     const ctx = { normalizePresets: x => structuredClone(x), normalizeWorkflowPresets: x => structuredClone(x),
         BUILTIN_WORKFLOWS: [], DEFAULT_COMFY_DRAW_SETTINGS: { timeout: 120000 },
@@ -288,9 +339,10 @@ for (const scenario of [{ backend: true }, { backend: false }, { backend: true, 
         selectedPresetId: 'p', useImageBackendJobs: backend };
     const shared = { characterTags: [painter], characterGroups: [], messageFilterRules: [] };
     const host = { chatId: 'synthetic', chat: [message] };
-    const ctx = { readDirectDrawDirectives, rememberDirectDrawDirectives, stripDirectDrawSource, buildDirectDrawTasks,
+    const ctx = { readDirectDrawDirectives, rememberDirectDrawDirectives, stripDirectDrawSource, stripUnownedDrawImageSlots, buildDirectDrawTasks,
+        readHostVisibleNarrative: () => null,
         characterLibraryFromSettings, selectEnabledCharacters, buildWardrobeLedger, buildRecentAppearanceLedger:()=>new Map(), structuredClone, AbortController, console,
-        getSettings: () => settings, getSharedDrawSettings: () => shared,getOwnedImageSlotIds:async()=>new Set(),getActiveDrawingWorldbook:async()=>'',
+        getSettings: () => settings, getSharedDrawSettings: () => shared,getOwnedImageSlotIds:async()=>new Set(),setActiveMessageText:(m,s)=>{m.mes=s;},syncRenderedMessageFromState:async()=>{},getActiveDrawingWorldbook:async()=>'',
         getActivePreset: s => s.presets[0], cloneSettingsObject: structuredClone, DEFAULT_MESSAGE_FILTER_RULES: [],
         normalizeNumber: (n, fallback) => Number(n) || fallback, createComfySeed: () => 123, COMFY_REQUEST_DELAY_MS: 0,
         createGenerationJob: () => ({ controller: new AbortController() }), getContext: () => host,
@@ -306,7 +358,7 @@ for (const scenario of [{ backend: true }, { backend: false }, { backend: true, 
     vm.runInNewContext(['getEffectiveParams', 'createComfyGenerationRecipe', 'buildTasksFromMessage', 'runPreparedComfySlots', 'generateAndInsertImages']
         .map(name => fn(main, name)).join('\n'), ctx);
     if (switchDuringSave) {
-        await assert.rejects(() => ctx.generateAndInsertImages({ messageId: 0 }), /回复分支已变化/);
+        await assert.rejects(() => ctx.generateAndInsertImages({ messageId: 0 }), /回复分支.*变化/);
         assert.equal(submitted, undefined); return;
     }
     await ctx.generateAndInsertImages({ messageId: 0 });

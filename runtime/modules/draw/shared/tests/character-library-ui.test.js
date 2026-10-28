@@ -6,7 +6,6 @@ import { parseHTML } from 'linkedom';
 import {
     GROUP_COLLAPSE_STORAGE_KEY,
     createCharacterLibraryUi,
-    resolveDragIds,
     resolveInsertion,
 } from '../character-library-ui.js';
 import { createCharacterEnabledControl, getCharacterEnabledFromCard } from '../character-enabled-control.js';
@@ -123,12 +122,6 @@ function mount({ library, storage = memoryStorage(), confirms = [], prompts = []
     const cardOf = id => $$('.sd-char-card').find(card => card.dataset.characterId === id);
     const sectionOf = id => $$('.lwb-cl-group').find(section => section.dataset.groupId === id);
     const groupButton = (groupId, action) => sectionOf(groupId).querySelector(`[data-lwb-group-action="${action}"]`);
-    const batch = action => click($(`[data-batch="${action}"]`));
-    const select = (...ids) => ids.forEach((id) => {
-        const box = cardOf(id).querySelector('.lwb-cl-select');
-        box.checked = true;
-        fire(box, 'change');
-    });
     const idsInGroup = groupId => Array.from(sectionOf(groupId).querySelectorAll('.sd-char-card')).map(card => card.dataset.characterId);
     const allIds = () => $$('.sd-char-card').map(card => card.dataset.characterId);
     const type = (id, name, value) => {
@@ -136,7 +129,7 @@ function mount({ library, storage = memoryStorage(), confirms = [], prompts = []
         if (input.tagName === 'TEXTAREA') input.textContent = value;
         input.value = value;
     };
-    return { document, window, ui, log, storage, fire, click, $, $$, cardOf, sectionOf, groupButton, batch, select, idsInGroup, allIds, type, rects, hitRef };
+    return { document, window, ui, log, storage, fire, click, $, $$, cardOf, sectionOf, groupButton, idsInGroup, allIds, type, rects, hitRef };
 }
 
 function sampleLibrary() {
@@ -173,13 +166,6 @@ test('resolveInsertion picks the insertion point by pointer position and ignores
     assert.deepEqual(resolveInsertion([], 50), { position: 'into', refId: '' });
 });
 
-test('resolveDragIds moves the whole selection only when dragging a selected item in select mode', () => {
-    assert.deepEqual(resolveDragIds({ kind: 'char', id: 'b', selectMode: true, selectedIds: ['a', 'b'] }).sort(), ['a', 'b']);
-    assert.deepEqual(resolveDragIds({ kind: 'char', id: 'c', selectMode: true, selectedIds: ['a', 'b'] }), ['c']);
-    assert.deepEqual(resolveDragIds({ kind: 'char', id: 'b', selectMode: false, selectedIds: ['a', 'b'] }), ['b']);
-    assert.deepEqual(resolveDragIds({ kind: 'char', id: 'b', selectMode: true, selectedIds: ['b'] }), ['b']);
-    assert.deepEqual(resolveDragIds({ kind: 'group', id: 'g1', selectMode: true, selectedIds: ['a', 'b'] }), ['g1']);
-});
 
 // ── 渲染 ──────────────────────────────────────────────
 
@@ -242,8 +228,6 @@ test('user text is never interpreted as HTML', () => {
     assert.equal(view.groupButton('g1', 'rename').getAttribute('aria-label').includes(evil), true);
     assert.equal(view.cardOf('c1').querySelector('[data-drag-char]').getAttribute('aria-label'), `拖动排序 ${evil}`);
     assert.equal(view.cardOf('c1').querySelector('.lwb-cl-card-group option[value="g1"]').textContent, evil);
-    // 批量栏的目标分组下拉同样走 textContent
-    assert.equal(view.$('[data-role="batch-target"] option[value="g1"]').textContent, evil);
     assert.equal(globalThis.__pwned, undefined);
 });
 
@@ -408,7 +392,7 @@ test('a closed group looks closed, labels its cards and still lets each characte
     assert.equal(view.ui.getGroups().find(group => group.id === 'g1').enabled, undefined);
 });
 
-test('the note text is set with textContent and group switch state survives rename, move, delete of another group and batch enable', () => {
+test('the note text is set with textContent and group switch state survives rename, move, delete of another group', () => {
     const library = sampleLibrary();
     library.groups[0] = { ...library.groups[0], enabled: false };
     const view = mount({ library, prompts: ['改名后'] });
@@ -416,16 +400,6 @@ test('the note text is set with textContent and group switch state survives rena
     assert.deepEqual(view.ui.getGroups()[0], { id: 'g1', name: '改名后', enabled: false });
     view.fire(view.sectionOf('g2').querySelector('[data-drag-group]'), 'keydown', { key: 'ArrowUp' });
     assert.deepEqual(view.ui.getGroups().map(group => [group.id, group.enabled]), [['g2', undefined], ['g1', false]]);
-    // 批量启用 / 停用是角色级：不碰分组开关
-    view.ui.render(view.ui.getLibrary());
-    view.click(view.$('[data-role="select-toggle"]'));
-    view.select('c2', 'c3');
-    view.batch('enable');
-    assert.deepEqual(view.ui.getLibrary().characters.filter(item => ['c2', 'c3'].includes(item.id)).map(item => item.enabled), [true, true]);
-    assert.equal(view.ui.getGroups().find(group => group.id === 'g1').enabled, false);
-    view.batch('disable');
-    assert.deepEqual(view.ui.getLibrary().characters.filter(item => ['c2', 'c3'].includes(item.id)).map(item => item.enabled), [false, false]);
-    assert.equal(view.ui.getGroups().find(group => group.id === 'g1').enabled, false);
     // 删除另一个分组
     view.click(view.groupButton('g2', 'delete'));
     assert.deepEqual(view.ui.getGroups(), [{ id: 'g1', name: '改名后', enabled: false }]);
@@ -435,9 +409,7 @@ test('exporting from the draft never writes the group switch into the file', () 
     const library = sampleLibrary();
     library.groups[0] = { ...library.groups[0], enabled: false };
     const view = mount({ library });
-    view.click(view.$('[data-role="select-toggle"]'));
-    view.select('c2', 'c4');
-    view.batch('export');
+    view.ui.openExportDialog().element.querySelector('[data-role="confirm"]').click();
     const file = view.log.downloads.at(-1).data;
     assert.ok(file.groups.length >= 1);
     assert.equal(JSON.stringify(file.groups).includes('enabled'), false);
@@ -461,7 +433,7 @@ test('library operations keep unsaved edits, blank new cards and the original ar
             groups: [{ id: 'g1', name: '主线' }, { id: 'g2', name: '宠物' }],
             characters: [char('c1', '小猫', { groupId: 'g2' }), char('c2', '芙蕾雅', { groupId: 'g1' }), char('c3', '阿璃')],
         },
-        prompts: ['改名后', '新分组'],
+        prompts: ['改名后'],
     });
     assert.deepEqual(view.ui.getLibrary().characters.map(item => item.id), ['c1', 'c2', 'c3'], '未改动时读回的顺序与载入时一致');
 
@@ -474,15 +446,14 @@ test('library operations keep unsaved edits, blank new cards and the original ar
     const blankId = view.ui.addCharacter({ groupId: 'g1' });
     assert.ok(blankId);
 
-    // 再做一串库操作：重命名、上移分组（手柄 ↑）、新建分组、批量启用
+    // 再做一串库操作：重命名、上移分组（手柄 ↑）、切换分组开关
     view.click(view.groupButton('g1', 'rename'));
     view.fire(view.sectionOf('g2').querySelector('[data-drag-group]'), 'keydown', { key: 'ArrowUp' });
-    view.click(view.$('[data-role="group-add"]'));
     view.click(view.groupButton('g2', 'toggle-enabled')); // 切换分组开关：不动任何角色
 
     const library = view.ui.getLibrary();
-    assert.deepEqual(library.groups.map(group => group.name), ['宠物', '改名后', '新分组']);
-    assert.deepEqual(library.groups.map(group => group.enabled), [false, undefined, undefined], '宠物组被切换为关闭');
+    assert.deepEqual(library.groups.map(group => group.name), ['宠物', '改名后']);
+    assert.deepEqual(library.groups.map(group => group.enabled), [false, undefined], '宠物组被切换为关闭');
     assert.equal(library.characters.find(item => item.id === 'c1').name, '小猫（已编辑）');
     assert.equal(library.characters.find(item => item.id === 'c3').appearance, 'silver hair, edited');
     assert.equal(library.characters.find(item => item.id === 'c2').enabled, false);
@@ -546,9 +517,6 @@ test('group actions: add in group, rename, move, delete (dissolve or with member
     view.click(view.groupButton('g1', 'rename'));
     assert.match(view.log.error.at(-1), /已存在/);
     assert.equal(view.sectionOf('g1').querySelector('.lwb-cl-group-name').textContent, '主线');
-    // 新建分组
-    view.click(view.$('[data-role="group-add"]'));
-    assert.deepEqual(view.ui.getGroups().map(group => group.name), ['主线', '宠物', '科幻']);
 
     // 在本组添加：折叠的分组会被展开，并新增一张空卡片
     view.click(view.groupButton('g2', 'collapse'));
@@ -585,107 +553,7 @@ test('group actions: add in group, rename, move, delete (dissolve or with member
 
 // ── 批量与复制 ────────────────────────────────────────
 
-test('select mode: checkboxes, group select-all, partial state and the batch bar', () => {
-    const view = mount({ library: sampleLibrary() });
-    assert.equal(view.$('[data-role="batch-bar"]').hasAttribute('hidden'), true);
-    assert.equal(view.$('.lwb-cl-select'), null);
-    view.click(view.$('[data-role="select-toggle"]'));
-    assert.equal(view.$('[data-role="batch-bar"]').hasAttribute('hidden'), false);
-    assert.equal(view.$$('.lwb-cl-select').length, 4);
-    assert.equal(view.$('[data-batch="enable"]').hasAttribute('disabled'), true);
-    assert.equal(view.$('[data-batch="select-all"]').hasAttribute('disabled'), false);
 
-    view.select('c2');
-    const groupBox = view.sectionOf('g1').querySelector('.lwb-cl-group-select');
-    assert.equal(groupBox.indeterminate, true);
-    assert.equal(view.$('[data-role="batch-count"]').textContent, '已选 1 个');
-    assert.equal(view.$('[data-batch="enable"]').hasAttribute('disabled'), false);
-
-    groupBox.checked = true;
-    view.fire(groupBox, 'change');
-    assert.deepEqual(view.ui.getSelectedIds().sort(), ['c2', 'c3']);
-    assert.equal(groupBox.indeterminate, false);
-
-    groupBox.checked = false;
-    view.fire(groupBox, 'change');
-    assert.deepEqual(view.ui.getSelectedIds(), []);
-
-    view.batch('select-all');
-    assert.equal(view.ui.getSelectedIds().length, 4);
-    // 重绘后选中状态保留，并回写到复选框
-    view.ui.rerender();
-    assert.equal(view.$$('.lwb-cl-select').every(box => box.checked), true);
-
-    view.batch('exit');
-    assert.equal(view.ui.isSelectMode(), false);
-    assert.deepEqual(view.ui.getSelectedIds(), []);
-    assert.equal(view.$('.lwb-cl-select'), null);
-});
-
-test('batch actions: enable/disable, move, copy-to, copy in place, delete, export selection', () => {
-    const view = mount({ library: sampleLibrary(), confirms: [true] });
-    view.click(view.$('[data-role="select-toggle"]'));
-    view.type('c1', 'name', '阿璃（未保存）');
-
-    view.select('c1', 'c3');
-    view.batch('enable');
-    assert.equal(view.ui.getLibrary().characters.find(item => item.id === 'c3').enabled, true);
-    view.batch('disable');
-    const disabled = view.ui.getLibrary().characters;
-    assert.equal(disabled.find(item => item.id === 'c1').enabled, false);
-    assert.equal(disabled.find(item => item.id === 'c3').enabled, false);
-    assert.equal(disabled.find(item => item.id === 'c1').name, '阿璃（未保存）', '批量操作不丢未保存编辑');
-    assert.deepEqual(view.ui.getSelectedIds().sort(), ['c1', 'c3'], '批量启停后保持选中');
-
-    // 移到 g2
-    const target = view.$('[data-role="batch-target"]');
-    Array.from(target.querySelectorAll('option')).find(option => option.value === 'g2').selected = true;
-    view.batch('move');
-    assert.deepEqual(view.idsInGroup('g2'), ['c4', 'c1', 'c3']);
-
-    // 重绘后批量栏仍记得目标分组；改回“未分组”再复制到：副本成为新的选中项
-    const retarget = view.$('[data-role="batch-target"]');
-    assert.equal(Array.from(retarget.querySelectorAll('option')).find(option => option.selected).value, 'g2');
-    Array.from(retarget.querySelectorAll('option')).find(option => option.value === '').selected = true;
-    view.batch('copy-to');
-    const afterCopyTo = view.ui.getLibrary();
-    assert.equal(afterCopyTo.characters.length, 6);
-    const copies = view.ui.getSelectedIds();
-    assert.equal(copies.length, 2);
-    assert.equal(copies.every(id => !['c1', 'c3'].includes(id)), true);
-    assert.deepEqual(view.idsInGroup('').slice(-2), copies);
-    assert.equal(afterCopyTo.characters.find(item => item.id === copies[0]).name, '阿璃（未保存） 副本');
-
-    // 就地复制：副本紧跟在原件后
-    view.batch('copy');
-    assert.equal(view.ui.getLibrary().characters.length, 8);
-
-    // 删除所选（需确认）
-    const before = view.allIds().length;
-    view.batch('delete');
-    assert.match(view.log.confirmMessages.at(-1), /确定删除选中的 2 个角色/);
-    assert.equal(view.allIds().length, before - 2);
-    assert.deepEqual(view.ui.getSelectedIds(), []);
-
-    // 取消确认：不删除
-    const keep = mount({ library: sampleLibrary(), confirms: [false] });
-    keep.click(keep.$('[data-role="select-toggle"]'));
-    keep.select('c1');
-    keep.batch('delete');
-    assert.equal(keep.allIds().length, 4);
-
-    // 导出所选（可跨组）：文件内容基于草稿，文件名与 NovelAI 一致
-    const exporter = mount({ library: sampleLibrary() });
-    exporter.click(exporter.$('[data-role="select-toggle"]'));
-    exporter.type('c4', 'name', '小猫（草稿）');
-    exporter.select('c4', 'c1');
-    exporter.batch('export');
-    assert.equal(exporter.log.downloads.length, 1);
-    assert.equal(exporter.log.downloads[0].fileName, 'character-tags-selection.json');
-    assert.equal(exporter.log.downloads[0].data.type, CHARACTER_EXPORT_TYPE);
-    assert.deepEqual(exporter.log.downloads[0].data.characters.map(item => item.id), ['c1', 'c4']);
-    assert.equal(exporter.log.downloads[0].data.characters[1].name, '小猫（草稿）');
-});
 
 test('card duplicate button copies the draft in place with the NovelAI copy naming', () => {
     const view = mount({ library: sampleLibrary() });
@@ -723,7 +591,7 @@ test('export entry opens a scope dialog instead of downloading, and cancelling e
     // 无多选：默认“全部”，“当前已选”不可选
     assert.equal(dq(view, 'scope-all').checked, true);
     assert.match(dq(view, 'scope-all-label').textContent, /全部（4 个角色）/);
-    assert.equal(dq(view, 'scope-selection').disabled, true);
+    assert.equal(dq(view, 'scope-selection'), null);
     view.click(dq(view, 'cancel'));
     assert.equal(dialogOf(view), null);
     assert.equal(view.log.downloads.length, 0, '取消不导出');
@@ -780,26 +648,6 @@ test('export dialog: a group scope exports only that group and lists per-group c
     assert.equal(loose.log.downloads[0].fileName, 'character-tags-未分组.json');
 });
 
-test('export dialog: with a multi-selection it defaults to the selection and exports exactly those cards', () => {
-    const view = mount({ library: sampleLibrary() });
-    view.click(view.$('[data-role="select-toggle"]'));
-    view.select('c4', 'c1');
-    view.ui.openExportDialog();
-    assert.equal(dq(view, 'scope-selection').checked, true, '有多选时默认“当前已选”');
-    assert.equal(dq(view, 'scope-selection').disabled, false);
-    assert.match(dq(view, 'scope-selection-label').textContent, /当前已选（2 个）/);
-    view.click(dq(view, 'confirm'));
-    const [{ fileName, data }] = view.log.downloads;
-    assert.equal(fileName, 'character-tags-selection.json');
-    assert.equal(data.scope, 'selection');
-    assert.deepEqual(data.characters.map(item => item.id), ['c1', 'c4']);
-
-    // 改选“全部”也可以
-    view.ui.openExportDialog();
-    chooseScope(view, 'all');
-    view.click(dq(view, 'confirm'));
-    assert.equal(view.log.downloads.at(-1).data.characters.length, 4);
-});
 
 test('export dialog: an empty library only warns, and blank new cards never reach the file or the counts', () => {
     const empty = mount({ library: { characters: [], groups: [] } });
@@ -830,7 +678,7 @@ test('deleting characters and clearing keep groups and unsaved edits of the surv
     view.ui.deleteCharacters(['c1']);
     assert.deepEqual(view.allIds(), ['c2', 'c3', 'c4']);
     assert.equal(view.ui.getLibrary().characters.find(item => item.id === 'c4').name, '小猫（草稿）');
-    view.ui.clearCharacters();
+    view.ui.deleteCharacters(view.allIds());
     assert.deepEqual(view.allIds(), []);
     assert.deepEqual(view.ui.getGroups().map(group => group.id), ['g1', 'g2']);
     assert.ok(view.sectionOf('g1').textContent.includes('本组暂无角色'));
@@ -948,22 +796,6 @@ test('hovering the dragged card itself or a tiny movement does not change anythi
     assert.equal(view.document.body.classList.contains('lwb-cl-is-dragging'), false);
 });
 
-test('dragging a selected card in select mode moves the whole selection; an unselected one moves alone', () => {
-    const view = mount({ library: sampleLibrary() });
-    view.click(view.$('[data-role="select-toggle"]'));
-    view.select('c1', 'c4');
-    layout(view);
-    const c3 = view.cardOf('c3');
-    dragFrom(view, view.cardOf('c4').querySelector('[data-drag-char]'), [{ hit: c3, y: topOf(view, c3) + 10 }]);
-    assert.deepEqual(view.idsInGroup('g1'), ['c2', 'c1', 'c4', 'c3'], '已选项保持相对顺序整体移动');
-    assert.deepEqual(view.ui.getSelectedIds().sort(), ['c1', 'c4']);
-
-    layout(view);
-    const header = view.sectionOf('g2').querySelector('.lwb-cl-group-header');
-    dragFrom(view, view.cardOf('c2').querySelector('[data-drag-char]'), [{ hit: header, y: 40 }]);
-    assert.deepEqual(view.idsInGroup('g2'), ['c2']);
-    assert.deepEqual(view.idsInGroup('g1'), ['c1', 'c4', 'c3']);
-});
 
 test('dragging a group handle reorders groups; it cannot be dropped as a card', () => {
     const view = mount({ library: sampleLibrary() });
@@ -1176,7 +1008,7 @@ test('narrow screens let character card rows wrap and let containers shrink inst
     ]) {
         const html = readFileSync(new URL(file, import.meta.url), 'utf8');
         const narrow = html.match(/@media \(max-width: 768px\) \{([\s\S]*?)\n\}/)[1];
-        assert.match(narrow, /\.char-management-layout \{ grid-template-columns: minmax\(0, 1fr\); \}/, `${file}: 单栏网格必须能收缩`);
+        assert.match(narrow, /\.char-list-card, \.char-list-body, \.char-grid \{ min-width: 0; \}/, `${file}: 列表必须能收缩`);
     }
 
 });
@@ -1366,26 +1198,4 @@ test('the group header keeps a minimum name width and wraps the buttons instead 
     view.click(view.groupButton('g1', 'toggle-enabled'));
     assert.equal(count('g1').textContent, '1/2', '分组开关不改变“自己开着数”');
     assert.equal(count('g1').getAttribute('title'), '组内自己开着的角色 1 个，共 2 个；分组已关闭，组内角色当前都不参与出图');
-});
-
-test('syncGroupEnabled turns the given group switches to the latest values and keeps every other draft edit', () => {
-    const view = mount({ library: sampleLibrary() });
-    view.type('c1', 'name', '改过的名字'); // 未保存的草稿编辑
-    view.click(view.groupButton('g2', 'toggle-enabled')); // 用户在草稿里自己关掉了 g2（未保存）
-    assert.equal(view.ui.getGroups().find(group => group.id === 'g2').enabled, false);
-
-    // 预设在面板外把 g1 关掉：只同步 g1，g2 的草稿开关不动
-    const changed = view.ui.syncGroupEnabled([{ id: 'g1', name: '主线', enabled: false }, { id: 'g2', name: '宠物' }], ['g1']);
-    assert.equal(changed, true);
-    assert.deepEqual(view.ui.getGroups(), [{ id: 'g1', name: '主线', enabled: false }, { id: 'g2', name: '宠物', enabled: false }]);
-    assert.ok(view.sectionOf('g1').classList.contains('lwb-cl-group-disabled'), 'group header redrawn');
-    const draft = view.ui.getLibrary().characters;
-    assert.equal(draft.find(item => item.id === 'c1').name, '改过的名字', 'draft edit survives');
-    assert.equal(view.allIds().length, 4, 'no card is lost');
-
-    // 没有实际变化：返回 false，也不重绘
-    assert.equal(view.ui.syncGroupEnabled([{ id: 'g1', name: '主线', enabled: false }], ['g1']), false);
-    // 缺省同步全部同 id 分组
-    assert.equal(view.ui.syncGroupEnabled([{ id: 'g1', name: '主线' }, { id: 'g2', name: '宠物' }]), true);
-    assert.deepEqual(view.ui.getGroups(), [{ id: 'g1', name: '主线' }, { id: 'g2', name: '宠物' }]);
 });

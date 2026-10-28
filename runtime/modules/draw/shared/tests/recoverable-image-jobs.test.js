@@ -9,6 +9,17 @@ import {
 } from '../recoverable-image-jobs.js';
 import { PendingImageJobLostError, PendingJobState } from '../pending-image-jobs.js';
 import { holdDrawCancellation } from '../draw-work-cancellation.js';
+import { subscribeDrawRunActivity } from '../draw-run-activity.js';
+
+test('a recovery monitor failure keeps the schedulers backoff instead of immediately waking itself',async()=>{
+ const journal=createFakeJournal();let wakes=0;
+ const stop=subscribeDrawRunActivity(detail=>{if(detail.wakeRecovery)wakes++;});
+ try{
+  const record=await journal.record({jobId:'recovery-backoff',provider:'comfyui',items:[{index:0,slotId:'slot-one',imgId:'img-one'}]});
+  await assert.rejects(reattachRecoverableImageJob({record,journal,client:{attachJob:async()=>{throw Object.assign(new Error('offline'),{detached:true});}}}),/offline/);
+  assert.equal(record.leaseExpiresAt,0);assert.equal(wakes,0);
+ }finally{stop();}
+});
 
 // 假交付日志：只保留状态机与所有权，不碰 IndexedDB。
 // 被测对象是「什么必须发生在什么之前」，存储实现不在证明范围内。

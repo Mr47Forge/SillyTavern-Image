@@ -151,6 +151,12 @@ async function redrawFloorFailed(provider, container, messageId, floor = { claim
             const target = captureImageCardTarget(card);
             const record = await readImageCardTarget(target);
             target.assertCurrent();
+            // An unknown/interrupted request can look like a failed card.
+            // Whole-floor retry must not resubmit these potentially active inputs.
+            if (['pending', 'unknown'].includes(record?.status)
+                || ['pending', 'unknown'].includes(message.extra?.sti_comfy_slots?.[slotId]?.status)) {
+                claims.delete(slotId); skipped += 1; continue;
+            }
             const tags = record?.tags ?? card.dataset.tags;
             if (!tags?.trim()) { claims.delete(slotId); skipped += 1; continue; }
             slotIds.push(slotId);

@@ -37,8 +37,6 @@
       }
     ],
     "characterGroups": [],
-    "characterGroupPresets": [],
-    "characterGroupPresetApplied": null,
     "messageFilterRules": [
       {
         "start": "<think>",

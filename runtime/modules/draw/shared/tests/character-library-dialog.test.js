@@ -4,7 +4,6 @@ import { parseHTML } from 'linkedom';
 
 import {
     buildCharacterExportFileName,
-    defaultGroupNameFromFileName,
     describeExportScopes,
     openCharacterExportDialog,
     openCharacterImportDialog,
@@ -76,24 +75,19 @@ function mount(overrides = {}) {
         Array.from(select.querySelectorAll('option')).find(option => option.value === value).selected = true;
         fire(select, 'change');
     };
-    const typeName = (value) => {
-        const input = q('new-group-name');
-        input.value = value;
-        fire(input, 'input');
-    };
     const toggleDisabledBox = (checked) => {
         const box = q('import-disabled');
         box.checked = checked;
         fire(box, 'change');
     };
-    return { document, window, handle, calls, library, q, fire, chooseMode, summaryText, setSelect, typeName, toggleDisabledBox };
+    return { document, window, handle, calls, library, q, fire, chooseMode, summaryText, setSelect, toggleDisabledBox };
 }
 
 test('默认选中自动模式并显示文件信息与预览摘要', () => {
     const ui = mount();
     assert.equal(ui.q('mode-auto').checked, true);
     assert.equal(ui.q('mode-existing-group').checked, false);
-    assert.equal(ui.q('mode-new-group').checked, false);
+    assert.equal(ui.q('mode-new-group'), null);
     assert.equal(ui.document.querySelector('[data-meta="file"]').textContent, 'character-tags-test.json');
     assert.equal(ui.document.querySelector('[data-meta="version"]').textContent, 'v4');
     assert.equal(ui.document.querySelector('[data-meta="characters"]').textContent, '3');
@@ -112,7 +106,6 @@ test('默认选中自动模式并显示文件信息与预览摘要', () => {
     assert.ok(!ui.q('import-disabled').checked);
     assert.equal(ui.q('confirm').disabled, false);
     assert.match(ui.document.body.textContent, /建议先导出全部再导入/);
-    assert.equal(ui.q('new-group-name').value, 'character-tags-test');
     assert.equal(ui.q('dialog').getAttribute('aria-modal'), 'true');
 });
 
@@ -135,9 +128,6 @@ test('切换目标位置和相同 id 策略后预览摘要随之变化', () => {
     assert.equal(ui.summaryText('skipped'), '跳过 1');
     assert.equal(ui.summaryText('keptBoth'), null);
 
-    ui.chooseMode('new-group');
-    assert.equal(ui.summaryText('groupsCreated'), '新建分组 1');
-
     ui.chooseMode('auto');
     assert.equal(ui.q('policy-select').disabled, true);
     assert.equal(ui.summaryText('replaced'), '替换 1');
@@ -148,8 +138,6 @@ test('操作子控件会自动选中对应模式', () => {
     ui.setSelect(ui.q('group-select'), 'g2');
     assert.equal(ui.q('mode-existing-group').checked, true);
     assert.equal(ui.q('mode-auto').checked, false);
-    ui.typeName('冒险团');
-    assert.equal(ui.q('mode-new-group').checked, true);
 });
 
 test('导入到已有分组时点击导入得到落入该分组的结果', () => {
@@ -173,35 +161,6 @@ test('导入到已有分组时点击导入得到落入该分组的结果', () =>
     assert.equal(ui.document.querySelector('[data-role="overlay"]'), null);
 });
 
-test('新分组名称与现有分组重名时在对话框内报错并禁用导入', () => {
-    const ui = mount();
-    ui.chooseMode('new-group');
-    assert.equal(ui.q('confirm').disabled, false);
-
-    ui.typeName('主线');
-    assert.equal(ui.q('confirm').disabled, true);
-    assert.equal(ui.q('error').hasAttribute('hidden'), false);
-    assert.match(ui.q('error').textContent, /已存在/);
-    assert.equal(ui.q('new-group-name').getAttribute('aria-invalid'), 'true');
-    assert.equal(ui.summaryText('added'), null);
-
-    // 点击被禁用的按钮不会触发回调，对话框也不会关闭
-    ui.q('confirm').click();
-    assert.equal(ui.calls.confirm.length, 0);
-    assert.ok(ui.document.querySelector('[data-role="overlay"]'));
-
-    ui.typeName('   ');
-    assert.match(ui.q('error').textContent, /不能为空/);
-    assert.equal(ui.q('confirm').disabled, true);
-
-    ui.typeName('未分组');
-    assert.match(ui.q('error').textContent, /保留名称/);
-
-    ui.typeName('新的分组');
-    assert.equal(ui.q('error').hasAttribute('hidden'), true);
-    assert.equal(ui.q('confirm').disabled, false);
-    assert.equal(ui.q('new-group-name').getAttribute('aria-invalid'), 'false');
-});
 
 test('没有任何分组时禁用“导入到已有分组”', () => {
     const ui = mount({ library: { groups: [], characters: [char('c1', '阿璃')] } });
@@ -371,10 +330,6 @@ test('用户文本（文件名、分组名、角色名、警告文案）不会�
     // 分组下拉里的名字是文本
     const option = ui.q('group-select').querySelector('option');
     assert.equal(option.textContent, evil);
-    // 新分组默认名来自文件名，同样只是 input 的 value
-    ui.chooseMode('new-group');
-    assert.equal(ui.document.querySelectorAll('img').length, 0);
-    assert.equal(ui.q('new-group-name').value.includes('<img'), true);
     // 与现有启用角色同名的警告会带上角色名，仍然是文本
     assert.equal(ui.document.querySelectorAll('img').length, 0);
     const conflict = ui.document.querySelector('[data-warning="name-conflict"]');
@@ -397,9 +352,8 @@ test('缺少 document 或解析结果时抛 TypeError', () => {
     assert.throws(() => openCharacterImportDialog({ document, library: localLibrary() }), TypeError);
 });
 
-test('导出文件名：三种范围与分组名的安全处理', () => {
+test('导出文件名：两种范围与分组名的安全处理', () => {
     assert.equal(buildCharacterExportFileName({ scope: 'all' }), 'character-tags.json');
-    assert.equal(buildCharacterExportFileName({ scope: 'selection' }), 'character-tags-selection.json');
     assert.equal(buildCharacterExportFileName({ scope: 'group', groupName: '主线角色' }), 'character-tags-主线角色.json');
     assert.equal(buildCharacterExportFileName({ scope: 'group', groupName: 'a/b\\c:d*e?f"g<h>i|j' }), 'character-tags-abcdefghij.json');
     assert.equal(buildCharacterExportFileName({ scope: 'group', groupName: 'x\u0000y\u001fz\u007f' }), 'character-tags-xyz.json');
@@ -410,14 +364,6 @@ test('导出文件名：三种范围与分组名的安全处理', () => {
     assert.ok(buildCharacterExportFileName({ scope: 'group', groupName: 'a'.repeat(200) }).length < 100);
 });
 
-test('新分组默认名：去扩展名、截断、空则回退', () => {
-    assert.equal(defaultGroupNameFromFileName('character-tags-主线.json'), 'character-tags-主线');
-    assert.equal(defaultGroupNameFromFileName('备份.JSON'), '备份');
-    assert.equal(defaultGroupNameFromFileName('无扩展名'), '无扩展名');
-    assert.equal(defaultGroupNameFromFileName('.json'), '导入的角色');
-    assert.equal(defaultGroupNameFromFileName(''), '导入的角色');
-    assert.equal(Array.from(defaultGroupNameFromFileName(`${'长'.repeat(50)}.json`)).length, 32);
-});
 
 // ── 导出对话框 ─────────────────────────────────────────
 
@@ -433,7 +379,7 @@ function exportLibrary() {
     };
 }
 
-function mountExport({ library = exportLibrary(), selectedIds, onConfirm } = {}) {
+function mountExport({ library = exportLibrary(), onConfirm } = {}) {
     const { document, window } = parseHTML('<!doctype html><html><body><button id="opener">导出</button></body></html>');
     const calls = { confirm: [], closed: 0 };
     // linkedom 的 focus() 是空操作、没有 activeElement：补一个最小实现，才能验证焦点管理。
@@ -444,7 +390,6 @@ function mountExport({ library = exportLibrary(), selectedIds, onConfirm } = {})
     const handle = openCharacterExportDialog({
         document,
         library,
-        selectedIds,
         onConfirm: onConfirm ?? ((choice) => { calls.confirm.push(choice); }),
         onClose: () => { calls.closed += 1; },
     });
@@ -469,44 +414,14 @@ function mountExport({ library = exportLibrary(), selectedIds, onConfirm } = {})
     return { document, window, handle, calls, q, fire, choose, pickGroup, optionTexts };
 }
 
-test('导出对话框：没有多选时默认“全部”，“当前已选”禁用并给出原因', () => {
-    const ui = mountExport();
-    assert.equal(ui.q('scope-all').checked, true);
-    assert.equal(ui.q('scope-group').checked, false);
-    assert.equal(ui.q('scope-selection').checked, false);
-    assert.equal(ui.q('scope-selection').disabled, true);
-    assert.equal(ui.q('scope-all-label').textContent, '全部（4 个角色）');
-    assert.equal(ui.q('scope-selection-label').textContent, '当前已选（0 个）');
-    assert.equal(ui.q('scope-selection-hint').hasAttribute('hidden'), false);
-    assert.equal(ui.q('scope-all-hint').hasAttribute('hidden'), true);
-    assert.equal(ui.q('confirm').disabled, false);
-    assert.equal(ui.q('dialog').getAttribute('role'), 'dialog');
-    assert.equal(ui.q('dialog').getAttribute('aria-modal'), 'true');
-});
 
-test('导出对话框：有多选时默认“当前已选”，数量只算库里存在的 id 并去重', () => {
-    const ui = mountExport({ selectedIds: ['c1', 'c4', 'c4', 'ghost'] });
-    assert.equal(ui.q('scope-selection').checked, true);
-    assert.equal(ui.q('scope-all').checked, false);
-    assert.equal(ui.q('scope-selection').disabled, false);
-    assert.equal(ui.q('scope-selection-label').textContent, '当前已选（2 个）');
-    ui.q('confirm').click();
-    assert.equal(ui.calls.confirm.length, 1);
-    assert.deepEqual(ui.calls.confirm[0].request, { scope: 'selection', ids: ['c1', 'c4'] });
-    assert.equal(ui.calls.confirm[0].scope, 'selection');
-    assert.equal(ui.calls.confirm[0].count, 2);
-    assert.equal(ui.calls.closed, 1, '确认后关闭');
-    assert.equal(ui.document.querySelector('[data-role="overlay"]'), null);
-});
 
-test('导出对话框：selectedIds 和 library 都可以传函数，并在打开时读取', () => {
+test('导出对话框：library 可以传函数，并在打开时读取', () => {
     let reads = 0;
     const ui = mountExport({
         library: () => { reads += 1; return exportLibrary(); },
-        selectedIds: () => ['c2'],
     });
     assert.equal(reads, 1);
-    assert.equal(ui.q('scope-selection-label').textContent, '当前已选（1 个）');
 });
 
 test('导出对话框：“全部”提交 { scope: all }', () => {
@@ -577,14 +492,6 @@ test('导出对话框：没有分组（或所有分组都是空的）时“某�
     assert.equal(onlyEmptyGroups.calls.confirm.length, 0);
 });
 
-test('导出对话框：被禁用的单选框不能被强行选中', () => {
-    const ui = mountExport();
-    ui.choose('selection');
-    assert.equal(ui.q('scope-selection').checked, false, '无多选时点“当前已选”被恢复');
-    assert.equal(ui.q('scope-all').checked, true);
-    ui.q('confirm').click();
-    assert.deepEqual(ui.calls.confirm[0].request, { scope: 'all' });
-});
 
 test('导出对话框：取消、Esc、点遮罩都不会触发导出，且只关闭一次', () => {
     const cancel = mountExport();
@@ -660,7 +567,6 @@ test('导出对话框：缺少 document 时抛 TypeError；重复打开互不影
 test('describeExportScopes：各范围的数量', () => {
     const info = describeExportScopes(exportLibrary(), ['c1', 'c1', 'nope', 'c3']);
     assert.equal(info.total, 4);
-    assert.deepEqual(info.selected, ['c1', 'c3']);
     assert.deepEqual(info.groups, [
         { id: '', name: '未分组', count: 1 },
         { id: 'g1', name: '主线', count: 2 },
@@ -670,7 +576,7 @@ test('describeExportScopes：各范围的数量', () => {
     // 指向不存在分组的角色按未分组统计（与 getGroupedView 一致）
     const orphan = describeExportScopes({ groups: [], characters: [char('x', '孤儿', { groupId: 'gone' })] });
     assert.deepEqual(orphan.groups, [{ id: '', name: '未分组', count: 1 }]);
-    assert.deepEqual(describeExportScopes(null), { total: 0, groups: [], selected: [] });
+    assert.deepEqual(describeExportScopes(null), { total: 0, groups: [] });
 });
 
 test('导入预览里的“已启用”和 500 警告按有效启用计：已关闭分组里的角色不计入', () => {

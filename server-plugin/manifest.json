@@ -1,6 +1,6 @@
 {
   "id": "sillytavern-image-server",
   "name": "SillyTavern Image Server",
-  "version": "0.3.1",
-  "description": "独立定制绘图：ComfyUI 任务、剧情规划、角色参考、图库与任务恢复。"
+  "version": "0.3.2",
+  "description": "独立定制绘图：ComfyUI 任务、剧情直出、角色参考、图库与任务恢复。"
 }

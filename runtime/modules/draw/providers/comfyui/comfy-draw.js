@@ -10,13 +10,11 @@ import {
     clearExpiredCache,
     clearAllCache,
     deletePreview,
-    updatePreviewSavedUrl,
     getPreviewDisplayUrl,
     preloadPreviewDisplayUrl,
     warmSlotPreviewNeighbors,
 } from "../../shared/gallery-cache.js";
 import { getContext } from "/scripts/extensions.js";
-import { saveBase64AsFile } from "/scripts/utils.js";
 import { getRequestHeaders, syncMesToSwipe, saveChatConditional, substituteParams } from "/script.js";
 import { extensionFolderPath } from "../../../../core/constants.js";
 import { mountServerPluginGuide } from '../../../../shared/server-plugin/installation-guide.js';
@@ -26,12 +24,13 @@ import { expandScenePromptText, loadScenePromptRuntime } from "../../shared/scen
 import { createSceneSource, normalizeMessageSceneSourceText } from "../../shared/scene-source.js";
 import { resolveSettingsViewport } from './settings-viewport.js';
 import { readDirectDrawDirectives, rememberDirectDrawDirectives, buildDirectDrawTasks, buildDirectDrawInstruction, stripDirectDrawSource, getDirectDrawWorldbook, getDirectDrawReplyState } from '../../shared/direct-draw.js';
+import { readHostVisibleNarrative } from '../../shared/host-visible-scene.js';
 import { buildWardrobeLedger, formatWardrobeLedger } from '../../shared/wardrobe-continuity.js';
 import { renderDirectDrawFields } from '../../shared/direct-draw-preview.js';
 import { isSceneSlotAlive } from "../../shared/scene-placement.js";
 import { getSlotActivity, setSlotActivity, clearSlotActivity } from "../../shared/slot-activity.js";
 import { getPendingImageJobSlots } from "../../shared/pending-image-jobs.js";
-import { stripDrawImageSlots, parseDrawImageDirectives, stripDrawImageDirectives } from "../../shared/image-marker-syntax.js";
+import { stripDrawImageSlots, stripUnownedDrawImageSlots, parseDrawImageDirectives, stripDrawImageDirectives } from "../../shared/image-marker-syntax.js";
 import { assertSceneSourceUnchanged } from "../../shared/scene-placement.js";
 import {
     loadSharedDrawSettings,
@@ -39,9 +38,8 @@ import {
     updateSharedDrawSettingsPersistent,
     normalizeSharedCacheDays,
 } from "../../shared/draw-settings.js";
-import { resolveCharacterHelperContext } from "../../shared/host-character-adapter.js";
 import { saveComfyImageToServer } from "../../shared/server-image-autosave.js";
-import { characterLibraryFromSettings, selectEnabledCharacters, hasCharacterLibraryDraftChanges } from "../../shared/character-library.js";
+import { characterLibraryFromSettings, selectEnabledCharacters } from "../../shared/character-library.js";
 import { createSerialImageRequestQueue } from "../../shared/serial-image-request-queue.js";
 import { applyRolePhotoReference } from './role-photo-reference.js';
 import { workflowPromptTrace, openImageDiagnostics, readImageErrors, clearImageErrors, writeImageError } from '../../shared/image-diagnostics.js';
@@ -69,22 +67,9 @@ import { submitRecoverableImageJob } from "../../shared/recoverable-image-jobs.j
 import { cancelFloorDrawWork, captureDrawCancellationTarget } from "../../shared/draw-run-controls.js";
 import { createCharacterEnabledControl, getCharacterEnabledFromCard } from "../../shared/character-enabled-control.js";
 import { createCharacterLibraryUi } from "../../shared/character-library-ui.js";
-import { parseImportedCharacters, mergeImportedCharacters, collectChatCharacterSource } from "./character-import.js";
-import { buildAiPromptCharacters, resolveAiOutputBudgets } from "./prompt-import.js";
-import { openPromptImportDialog } from "./prompt-import-ui.js";
 import { buildCharacterTestPrompt } from "./character-test-prompt.js";
-import { buildStoryIndexInstruction, parseStoryIndex, selectCharacterStoryEvidence, buildStoryDetailInstruction } from "./text-story-detail.js";
 import { namedTagsChineseText, reconcileChineseNamedLines } from "./chinese-named-tags.js";
 import { describeCharacterSaveError } from "./character-save-errors.js";
-import { bindGroupPresetPanel } from "../../shared/character-group-presets-draft-binding.js";
-import {
-    applyGroupPresetForCurrentChat,
-    getActiveCharacterAvatars,
-    listHostCharacters,
-    onGroupPresetApplied,
-    onGroupPresetContextChanged,
-    saveGroupPresets,
-} from "../../shared/character-group-presets-runtime.js";
 import { hashStableValue } from "../../shared/generation-fingerprint.js";
 import {
     createScenePlannerDefaultPresets,
@@ -114,7 +99,7 @@ import {
     pullOneRemoteImage,
     pullCurrentChatImages,
 } from "../../shared/draw-common.js";
-import { IMAGE_SAVE_BUTTON_HTML, IMAGE_SAVING_INDICATOR_HTML } from '../../shared/image-save-ui.js';
+import { IMAGE_SAVING_INDICATOR_HTML } from '../../shared/image-save-ui.js';
 import { parseFieldDescriptions } from '../../shared/scene-plan-descriptions.js';
 import {
     DEFAULT_PROMPT_CONFIG,
@@ -129,7 +114,9 @@ import { prepareImageInput } from '../../shared/prepared-image-input.js';
 import { acquireFloorImageJob, getFloorImageJob, getFloorImageJobs, getFloorImagePhase, getFloorImageState, releaseFloorImageJob, observeFloorImageJob, failFloorImageJob, clearFloorImageJobs, resolveFloorImageJobTarget, rebaseFloorImageJobsAfterSwipeDeletion } from '../../shared/floor-image-job.js';
 import { createImageRequestAttempt, imageHttpFailure, withImageRequestOutcome, ImageRequestOutcome } from '../../shared/image-request-outcome.js';
 import { createImageCardRedrawProvider } from "../../shared/image-card-redraw-provider.js";
-import { redrawImageCard, removeChatImageSlot, restoreImageCard, retryFloorFailedImageCards } from "../../shared/image-card-actions.js";
+import { redrawImageCard, removeChatImageSlot, restoreImageCard, retryFloorFailedImageCards, redrawFloorFailedImageCards } from "../../shared/image-card-actions.js";
+import { setActiveMessageText } from '../../shared/scene-placement.js';
+import { syncRenderedMessageFromState } from '../../shared/draw-common.js';
 import { persistCardTagEdits, readCardTagEditor } from "../../shared/card-tag-editor.js";
 import { getCurrentUserHandle } from "/scripts/user.js";
 import { hasPreviewImage, DRAW_SLOT_COPY } from "../../shared/image-record.js";
@@ -240,7 +227,6 @@ function updateComfyCharacterCardTitle(card) {
     if (secondary) secondary.textContent = types[type] || type || '未分类';
 }
 
-let groupPresetBinding = null;
 let promptChainPreviewFrame = 0;
 let ensureComfyDrawPanelRef = null;
 let destroyComfyDrawPanelsRef = null;
@@ -600,7 +586,7 @@ export function getGenerationSnapshot() {
 async function persistSettings(nextSettings, okText = '已保存', { notify = true, silent = false } = {}) {
     if (!settingsLoaded) {
         console.error('[ComfyDraw] 设置尚未成功加载，拒绝保存');
-        if (notify) toastr.error('配置尚未成功加载，已禁止保存', 'ComfyUI');
+        if (notify) showSettingsNotice('配置尚未成功加载，已禁止保存', 'error');
         return false;
     }
     const next = normalizeSettings(nextSettings);
@@ -610,19 +596,19 @@ async function persistSettings(nextSettings, okText = '已保存', { notify = tr
         const ok = await ComfyDrawStorage.setAndSave(SERVER_FILE_KEY, next, { silent });
         if (ok !== false) {
             if (notify) {
-                toastr.success(okText, 'ComfyUI');
+                showSettingsNotice(okText, 'success');
             }
             return true;
         }
         if (notify) {
-            toastr.error('保存失败', 'ComfyUI');
+            showSettingsNotice('保存失败，请重试', 'error');
         }
         settingsCache = previous;
         return false;
     } catch (error) {
         settingsCache = previous;
         if (notify) {
-            toastr.error(error?.message || '保存失败', 'ComfyUI');
+            showSettingsNotice(error?.message || '保存失败，请重试', 'error');
         }
         return false;
     }
@@ -1100,8 +1086,8 @@ async function fetchComfyDirectImageFromWorkflow(workflow, {
                 ?.filter(it => it[0] === 'execution_error')
                 .map(it => it[1])
                 .map(it => `${it.node_type} [${it.node_id}] ${it.exception_type}: ${it.exception_message}`)
-                .join('\n') || '';
-            throw withImageRequestOutcome(new Error(`ComfyUI 生成失败${errorMessages ? `\n\n${errorMessages}` : ''}`), ImageRequestOutcome.REJECTED);
+                .join('\r\n') || '';
+            throw withImageRequestOutcome(new Error(`ComfyUI 生成失败${errorMessages ? `\r\n\r\n${errorMessages}` : ''}`), ImageRequestOutcome.REJECTED);
         }
 
         const imgInfo = resolveComfyDirectOutputImage(item, workflow, preferredSaveImageNodeId);
@@ -1549,6 +1535,27 @@ function querySettingsAll(selector) {
     return Array.from(getSettingsDocument()?.querySelectorAll(selector) || []);
 }
 
+function showSettingsNotice(message, level = 'success') {
+    if (!document.getElementById('sti-save-notice-style')) {
+        const style = document.createElement('style');
+        style.id = 'sti-save-notice-style';
+        style.textContent = `
+            #sti-save-notices { position:fixed; z-index:2147483007; top:calc(env(safe-area-inset-top, 0px) + 64px); left:50%; transform:translateX(-50%); width:min(420px, calc(100% - 32px)); pointer-events:none; }
+            #sti-save-notices > .toast { width:100%; box-sizing:border-box; padding:12px 16px; margin:0 0 8px; border:1px solid #46515f; border-radius:10px; background:#202832; background-image:none !important; box-shadow:0 6px 20px #0004; color:#e6edf3; font-size:14px; line-height:1.5; opacity:1; pointer-events:auto; overflow-wrap:anywhere; }
+            #sti-save-notices > .toast-success { border-color:#557564; }
+            #sti-save-notices > .toast-error { border-color:#a55d5d; }
+        `;
+        document.head.appendChild(style);
+    }
+    const show = toastr[level] || toastr.info;
+    show.call(toastr, String(message || ''), undefined, {
+        containerId: 'sti-save-notices', positionClass: '',
+        timeOut: level === 'error' ? 4500 : 2000, extendedTimeOut: 0,
+        closeButton: false, tapToDismiss: true, escapeHtml: true,
+        preventDuplicates: true, progressBar: false, showDuration: 120, hideDuration: 180,
+    });
+}
+
 // 自定义输入对话框：替代原生 await askInputDialog()。移动端原生 prompt 会强制页面缩放/重排，导致整个 UI 上移。
 function askInputDialog(title, defaultValue = '') {
     return new Promise((resolve) => {
@@ -1818,7 +1825,7 @@ function bindOverlayEvents() {
     });
     querySettings('#comfy-draw-test')?.addEventListener('click', async () => {
         const saved = await saveAllSettings({ notify: false });
-        if (!saved) { toastr.error('配置没有保存成功，已停止连接测试；请先处理保存报错'); return; }
+        if (!saved) { showSettingsNotice('配置没有保存成功，已停止连接测试；请先处理保存报错', 'error'); return; }
         await testConnection();
     });
     querySettings('#comfy-draw-size-preset')?.addEventListener('change', async () => {
@@ -2079,17 +2086,8 @@ function bindOverlayEvents() {
         updateStatusText(statusElementId, '', `${label}保存中...`);
         const ok = await withSaveTimeout(updateSettingsPersistent(mutator, `${label}已保存`, { notify: false, silent: false }));
         const successText = `${label}已保存`;
-        updateStatusText(
-            statusElementId,
-            ok ? 'success' : 'error',
-            ok ? successText : `${label}保存失败，请重试`,
-        );
-        if (ok) {
-            setTimeout(() => {
-                const el = getSettingsElement(statusElementId);
-                if (el?.textContent === successText) updateStatusText(statusElementId, '', '');
-            }, 1800);
-        }
+        updateStatusText(statusElementId, '', '');
+        showSettingsNotice(ok ? successText : `${label}保存失败，请重试`, ok ? 'success' : 'error');
         if (ok) fillForm(getSettings());
         return ok;
     };
@@ -2172,7 +2170,6 @@ function bindOverlayEvents() {
         });
         if (ok) fillForm(getSettings());
     });
-    querySettings('#comfy-import-from-chat')?.addEventListener('click', async (event) => { void importCharactersFromCurrentTavern(event.currentTarget); });
     querySettings('#comfy-shared-char-add')?.addEventListener('click', async () => {
         addCharacterTagDraft();
     });
@@ -2405,16 +2402,6 @@ function bindOverlayEvents() {
     });
     querySettings('#comfy-role-collapse-all')?.addEventListener('click', () => setAllComfyCharacterCardsExpanded(false));
     querySettings('#comfy-role-expand-all')?.addEventListener('click', () => setAllComfyCharacterCardsExpanded(true));
-    querySettings('#comfy-shared-character-list')?.addEventListener('input', async (event) => {
-        if (event.target?.matches?.('input, textarea, select')) {
-            updateStatusText('comfy-role-save-status', '', '角色资料有未保存修改；点击「保存角色」保存中文资料。');
-        }
-    });
-    querySettings('#comfy-shared-character-list')?.addEventListener('change', async (event) => {
-        if (event.target?.matches?.('input, textarea, select')) {
-            updateStatusText('comfy-role-save-status', '', '角色资料有未保存修改；请点击「保存角色」。');
-        }
-    });
     querySettings('#comfy-shared-character-list')?.addEventListener('input', async (event) => {
         if (!event.target?.matches?.('[data-sd-char-field="name"], [data-sd-char-field="type"]')) return;
         updateComfyCharacterCardTitle(event.target.closest('.sd-char-card'));
@@ -3013,70 +3000,28 @@ function getSharedCharacterGroupsFromForm() {
 function ensureCharacterLibraryUi() {
     const doc = getSettingsDocument();
     const list = querySettings('#comfy-shared-character-list');
-    const toolbar = querySettings('#comfy-shared-character-toolbar');
-    if (!doc || !list || !toolbar) return null;
+    if (!doc || !list) return null;
     if (characterLibraryUi?.document === doc) return characterLibraryUi;
     characterLibraryUi?.destroy();
     characterLibraryUi = createCharacterLibraryUi({
         document: doc,
         listElement: list,
-        toolbarElement: toolbar,
         readCharacters: readCharacterCardsFromForm,
         renderCard: renderCharacterCard,
         renderEmpty: createCharacterEmptyState,
         onChange: () => refreshSettingsSummary(),
         notify: {
-            success: (message) => toastr.success(message),
-            warning: (message) => toastr.warning(message),
-            error: (message) => toastr.error(message),
+            success: (message) => showSettingsNotice(message, 'success'),
+            warning: (message) => showSettingsNotice(message, 'warning'),
+            error: (message) => showSettingsNotice(message, 'error'),
         },
     });
     return characterLibraryUi;
 }
 
 function destroyCharacterLibraryUi() {
-    destroyGroupPresetBinding();
     characterLibraryUi?.destroy();
     characterLibraryUi = null;
-}
-
-// 分组预设卡片：预设不属于角色草稿，修改立即持久化；展示用的分组 / 角色取自角色库草稿（用户所见）。
-// 预设自动应用后，把草稿里受影响分组的开关同步成最新值，避免之后“保存角色”写回旧值。
-function ensureGroupPresetBinding() {
-    const doc = getSettingsDocument();
-    const container = querySettings('#comfy-group-preset-root');
-    const ui = characterLibraryUi;
-    if (!doc || !container || !ui) return null;
-    if (groupPresetBinding?.document === doc) {
-        groupPresetBinding.render();
-        return groupPresetBinding;
-    }
-    groupPresetBinding?.destroy();
-    groupPresetBinding = bindGroupPresetPanel({
-        document: doc,
-        container,
-        getLibrary: () => ui.getLibrary(),
-        syncGroupEnabled: (groups, ids) => ui.syncGroupEnabled(groups, ids),
-        runtime: {
-            applyGroupPresetForCurrentChat,
-            getActiveCharacterAvatars,
-            listHostCharacters,
-            onGroupPresetApplied,
-            onGroupPresetContextChanged,
-            saveGroupPresets,
-        },
-        settings: { get: getSharedDrawSettings },
-        toast: (message, level) => {
-            const show = toastr[level] || toastr.info;
-            show.call(toastr, message);
-        },
-    });
-    return groupPresetBinding;
-}
-
-function destroyGroupPresetBinding() {
-    groupPresetBinding?.destroy();
-    groupPresetBinding = null;
 }
 
 // 用 tags / groups 重绘整个角色列表（丢弃当前草稿）；groups 缺省时沿用当前草稿的分组。
@@ -3309,7 +3254,7 @@ async function uploadComfyRolePhoto(card, photoButton, file) {
     photo.src = '/' + photoUrl;
     photoButton.replaceChildren(photo);
     photoButton.title = '点击更换角色照片（保存在 H28K）';
-    toastr.success('角色照片已保存在 H28K，重新打开仍会显示');
+    showSettingsNotice('角色照片已保存在 H28K，重新打开仍会显示', 'success');
 }
 
 
@@ -3376,9 +3321,9 @@ function openComfyRolePhotoViewer(card, photoButton) {
             icon.className = 'fa-solid fa-camera';
             photoButton.replaceChildren(icon);
             photoButton.title = '添加角色照片';
-            close();toastr.success('已清除照片关联');
+            close();showSettingsNotice('已清除照片关联', 'success');
         } catch(error) {
-            toastr.error('清除失败：'+String(error?.message||error));
+            showSettingsNotice('清除失败：'+String(error?.message||error), 'error');
         } finally { unlink.disabled=false; }
     });
     const done = button('关闭',close);
@@ -3402,7 +3347,7 @@ function chooseComfyRolePhoto(card, photoButton) {
             await uploadComfyRolePhoto(card, photoButton, file);
         } catch (error) {
             console.error('[SillyTavernImage] 照片上传失败:', error);
-            toastr.error(error?.message || '角色照片上传失败');
+            showSettingsNotice(error?.message || '角色照片上传失败', 'error');
         } finally {
             photoButton.disabled = false;
         }
@@ -3487,12 +3432,11 @@ function renderCharacterCard({ character: tag, ordinal }) {
         event.stopPropagation();
         void runSaveButtonTask(saveButton,
             () => saveSingleComfyCharacterCard(card.dataset.characterId), {
-                statusElementId: 'comfy-role-save-status',
                 pendingText: '正在保存当前角色...',
                 successText: '当前角色已保存。',
                 errorText: '当前角色保存失败',
                 showErrorDetails: true,
-                notify: false,
+                notify: true,
             });
     });
     testButton.addEventListener('click', async (event) => {
@@ -3683,7 +3627,7 @@ async function handleWorldbookFiles(files) {
             const message = container.ownerDocument.createElement('p');
             message.className = 'form-hint';
             message.style.color = 'var(--danger)';
-            message.textContent = errors.join('\n');
+            message.textContent = errors.join('\r\n');
             container.replaceChildren(message);
         }
     }
@@ -3830,7 +3774,6 @@ function fillSharedDrawForm() {
     renderUploadedBooks(sharedDrawSettings.worldbooks?.uploadedBooks || []);
     renderFilterRules(sharedDrawSettings.messageFilterRules || []);
     renderCharacterTagList(sharedDrawSettings.characterTags || [], sharedDrawSettings.characterGroups || []);
-    ensureGroupPresetBinding();
 }
 
 async function saveSharedDrawSettings({ notify = false } = {}) {
@@ -3911,11 +3854,10 @@ async function saveAllSettings({ notify = false, triggerButton = null, statusEle
             statusElementId,
             pendingText: '正在保存...',
             successText: '已保存到独立绘图服务端配置',
-            errorText: '保存失败，请重试',
+            errorText: () => lastSaveFailure || '保存失败，请重试',
             notify,
         });
         if (ok) await runPostSaveHooks();
-        if (!ok && lastSaveFailure) toastr.error(lastSaveFailure);
         return ok;
     }
 
@@ -3931,15 +3873,15 @@ async function saveAllSettings({ notify = false, triggerButton = null, statusEle
     if (statusElementId) {
         updateStatusText(
             statusElementId,
-            ok ? 'success' : 'error',
-            ok ? '已保存到独立绘图服务端配置' : '保存失败，请重试',
+            '',
+            '',
         );
     }
 
     if (ok && notify) {
-        toastr.success('绘图参数与角色资料已保存');
-    } else if (!ok && (notify || lastSaveFailure)) {
-        toastr.error(lastSaveFailure || '绘图参数或角色资料保存失败');
+        showSettingsNotice('绘图参数与角色资料已保存', 'success');
+    } else if (!ok && notify) {
+        showSettingsNotice(lastSaveFailure || '绘图参数或角色资料保存失败', 'error');
     }
     refreshSettingsSummary();
     return ok;
@@ -3949,146 +3891,6 @@ async function saveAllSettings({ notify = false, triggerButton = null, statusEle
 
 
 
-
-async function savePastedCharacterPrompts(reviewed, onProgress = () => {}) {
-    const ui = ensureCharacterLibraryUi();
-    if (!ui) throw new Error('角色列表尚未就绪');
-    const before = ui.getLibrary();
-    // Importing a reviewed role must not silently commit another role's unsaved draft.
-    if (hasCharacterLibraryDraftChanges(before, characterLibraryFromSettings(getSharedDrawSettings())))
-        throw new Error('角色库确实有未保存修改，请先点击「保存角色」，再保存提取结果。');
-    const corrected = reviewed.map(item => ({ ...item }));
-    const entries = buildAiPromptCharacters(corrected).map((entry,i) =>
-        ({ ...entry, aliases: corrected[i].aliases || [], basis: corrected[i].basis }));
-    const rawMerged = mergeImportedCharacters(ui.getLibrary(), entries);
-    const merged = { ...rawMerged, created: rawMerged.created.length,
-        updated: rawMerged.filled.length, skipped: rawMerged.skipped.length };
-    if (!merged.changed) throw new Error('\u6ca1\u6709\u65b0\u5185\u5bb9\u53ef\u4fdd\u5b58');
-    onProgress('\u6b63\u5728\u4fdd\u5b58\u5267\u60c5\u89d2\u8272\u8d44\u6599...');
-    ui.render({ characters: merged.characters, groups: merged.groups });
-    try {
-        const ok = await saveSharedDrawSettings({ notify: false });
-        if (!ok) throw new Error('角色库保存失败，已经恢复原角色资料');
-    } catch (error) {
-        // Restore the original editing state rather than leaving a misleading unsaved replacement.
-        ui.render(before);
-        throw error;
-    }
-    refreshSettingsSummary();
-    return '保存成功：新增 ' + merged.created + ' 名，替换或补充 ' + merged.updated
-        + ' 名，跳过 ' + merged.skipped + ' 名。现在可继续粘贴下一批。';
-}
-
-async function importCharactersFromCurrentTavern(button) {
-    if (button?.disabled) return;
-    if (button) button.disabled = true;
-    const oldText = button?.textContent || '';
-    if (button) button.textContent = '正在读取当前剧情...';
-    try {
-        const ctx = getContext();
-        const messages = Array.isArray(ctx?.chat) ? ctx.chat : [];
-        const source = collectChatCharacterSource(messages, { maxMessages: 120, maxChars: 50000 });
-        if (!source.messages.length) throw new Error('当前聊天没有可分析的剧情消息');
-        if (button) button.textContent = 'AI 正在识别人物...';
-        const libraryPreview = ensureCharacterLibraryUi()?.getLibrary();
-        const existingProfiles = (libraryPreview?.characters || [])
-            .filter(role => role?.name && (role.appearanceZh || role.appearance) && source.messages.some(message => message.text.includes(role.name)))
-            .slice(0, 35)
-            .map(role => ({
-                name: role.name,
-                aliases: Array.isArray(role.aliases) ? role.aliases : [],
-                ...(role.appearanceZh ? { appearanceZh: role.appearanceZh } : { legacyAppearance: role.appearance }),
-            }));
-        const { agentCore, providerConfig } = await resolveCharacterHelperContext();
-        const adapter = agentCore.createAgentAdapter(providerConfig);
-        // Stage 1: identify only named characters. Do not generate 20 full faces in one reply.
-        const indexReply = await adapter.chat({
-            systemPrompt: buildStoryIndexInstruction(),
-            messages: [{ role: 'user', content: JSON.stringify({
-                source: 'current_chat_story',
-                messages: source.messages,
-            }) }],
-            temperature: 0.05,
-            maxTokens: Math.min(3072, resolveAiOutputBudgets(providerConfig).initial),
-            reasoning: { ...providerConfig.reasoning, mode: 'off', output: 'hide' },
-            toolChoice: 'none',
-        });
-        const indexed = parseStoryIndex(indexReply?.text || '', source.messages, { max: 20 });
-        if (!indexed.length) throw new Error('当前剧情没有识别到有明确姓名的角色，未创建空白人物');
-        const detailInstruction = buildStoryDetailInstruction();
-        const candidates = [];
-        const seen = new Set();
-        // Stage 2: detailed dossiers for two identified people at a time.
-        // Recent direct quotes and neighboring narration support correct coreference.
-        const collectBatch = async (targets, additional = false) => {
-            const evidence = selectCharacterStoryEvidence(source.messages, targets, {
-                maxChars: targets.length === 1 ? 13500 : 18000,
-                maxMessages: targets.length === 1 ? 32 : 42,
-            });
-            if (!evidence.length) return [];
-            const knownProfiles = existingProfiles.filter(profile => targets.some(character =>
-                character.name === profile.name || character.aliases?.includes(profile.name)
-                    || profile.aliases?.includes(character.name)));
-            const answer = await adapter.chat({
-                systemPrompt: detailInstruction,
-                messages: [{ role: 'user', content: JSON.stringify({
-                    source: 'current_chat_story', targetCharacters: targets,
-                    evidence, existingProfiles: knownProfiles,
-                    instruction: additional ? '逐项核对剧中已明确的面部、头发、身体和衣着线索；不可补造原文未给出的细节。' : undefined,
-                }) }],
-                temperature: 0.15,
-                maxTokens: resolveAiOutputBudgets(providerConfig).initial,
-                reasoning: { ...providerConfig.reasoning, mode: 'off', output: 'hide' },
-                toolChoice: 'none',
-            });
-            const parsed = parseImportedCharacters(answer?.text || '');
-            return parsed.filter(role => targets.some(target => role.name === target.name));
-        };
-        for (let i = 0; i < indexed.length; i += 2) {
-            const targets = indexed.slice(i, i + 2);
-            if (button) button.textContent = '提取人物 ' + (i + 1) + ' / ' + indexed.length + '...';
-            const initial = await collectBatch(targets);
-            for (const person of initial) {
-                const key = person.name.toLocaleLowerCase();
-                if (!seen.has(key)) { candidates.push(person); seen.add(key); }
-            }
-            // A brief second chance only for missing named characters; do not inflate all dossiers.
-            const missing = targets.filter(target => !seen.has(target.name.toLocaleLowerCase()));
-            for (const target of missing) {
-                try {
-                    const recovered = await collectBatch([target], true);
-                    for (const person of recovered) {
-                        const key = person.name.toLocaleLowerCase();
-                        if (!seen.has(key)) { candidates.push(person); seen.add(key); }
-                    }
-                } catch (retryError) {
-                    console.warn('[ComfyDraw] Missing story role could not be completed:', target.name, retryError);
-                }
-            }
-        }
-        if (!candidates.length) throw new Error('剧情人物已经定位，但 AI 没有生成可保存的中文外貌资料');
-        if (document.getElementById('lwb-comfy-ai-prompt-dialog')) {
-            throw new Error('请先关闭其他角色导入预览，再分析当前剧情');
-        }
-        openPromptImportDialog({
-            initialResults: candidates.map(candidate => ({
-                ...candidate,
-                negativeTags: '',
-                excluded: [],
-                outfits: candidate.outfits || [],
-                dynamicStates: candidate.dynamicStates || [],
-            })),
-            save: (reviewed, onProgress) =>
-                savePastedCharacterPrompts(reviewed, onProgress),
-        });
-        toastr.info('已定位 ' + indexed.length + ' 名具名人物，其中 ' + candidates.length + ' 名生成了待核对的外貌档案');
-    } catch (error) {
-        toastr.error(error?.message || '剧情角色提取失败');
-        console.warn('[ComfyDraw] Current story character extraction failed:', error);
-    } finally {
-        if (button) { button.disabled = false; button.textContent = oldText; }
-    }
-}
 
 function addCharacterTagDraft() {
     ensureCharacterLibraryUi()?.addCharacter();
@@ -4113,17 +3915,11 @@ function deleteCharacterTagDraft(characterId = '') {
 }
 
 function refreshSettingsSummary() {
-    const settings = getSettings();
-    const activePreset = getActivePreset(settings);
     const characterCount = characterLibraryUi?.isRendered()
         ? characterLibraryUi.getCardCount()
         : (getSharedDrawSettings().characterTags?.length || 0);
-    const presetEl = querySettings('#comfy-draw-summary-preset');
-    const charSideEl = querySettings('#comfy-draw-summary-characters-side');
     const charResultEl = querySettings('#comfy-draw-character-result-count');
-    if (presetEl) presetEl.textContent = activePreset?.name || '默认';
-    if (charSideEl) charSideEl.textContent = String(characterCount);
-    if (charResultEl) charResultEl.textContent = `${characterCount} / ${characterCount}`;
+    if (charResultEl) charResultEl.textContent = `共 ${characterCount} 名角色`;
 }
 
 
@@ -4326,8 +4122,9 @@ async function runSaveButtonTask(button, task, {
     successText = '已保存',
     errorText = '保存失败，请重试',
     showErrorDetails = false,
-    notify = false,
+    notify = true,
 } = {}) {
+    if (button && saveBtnStates.has(button)) return false;
     if (statusElementId) updateStatusText(statusElementId, '', pendingText);
     setSavingState(button);
     let ok = false;
@@ -4339,14 +4136,14 @@ async function runSaveButtonTask(button, task, {
         if (showErrorDetails) failureDetail = describeCharacterSaveError(error);
         ok = false;
     }
+    const failureText = typeof errorText === 'function' ? errorText() : errorText;
     const shownError = showErrorDetails
-        ? errorText + '：' + (failureDetail || '存储服务未确认保存成功')
-        : errorText;
+        ? failureText + '：' + (failureDetail || '存储服务未确认保存成功')
+        : failureText;
     handleSaveResult(ok, button);
-    if (statusElementId) updateStatusText(statusElementId, ok ? 'success' : 'error', ok ? successText : shownError);
+    if (statusElementId) updateStatusText(statusElementId, '', '');
     if (notify) {
-        if (ok) toastr.success(successText, 'ComfyUI');
-        else toastr.error(shownError, 'ComfyUI');
+        showSettingsNotice(ok ? successText : shownError, ok ? 'success' : 'error');
     }
     refreshSettingsSummary();
     return ok;
@@ -4486,6 +4283,20 @@ async function autoGenerateForLastAI() {
     }
 }
 
+// A chat opened after GENERATION_ENDED can contain complete directives that
+// were never recognized. Resume only in explicit auto mode, without asking
+// the LLM to regenerate the reply or submitting already owned slots.
+function resumeMissedAutomaticDraw(generation = moduleLifecycleGeneration) {
+    setTimeout(() => {
+        if (!moduleInitialized || generation !== moduleLifecycleGeneration || getSettings().mode !== 'auto') return;
+        const ctx = getContext();
+        if (ctx.streamingProcessor?.isStopped === false) return;
+        const last = ctx.chat?.at(-1);
+        if (!last || last.is_user || last.is_system || getDirectDrawReplyState(last).state !== 'ready') return;
+        void autoGenerateForLastAI().catch(error => console.error('[ComfyDraw] resume missed draw', error));
+    }, 400);
+}
+
 async function generateAutomaticTarget(target) {
     const settings = getSettings();
     if (!moduleInitialized || target.lifecycle !== moduleLifecycleGeneration || settings.mode !== 'auto') return;
@@ -4513,7 +4324,7 @@ async function generateAutomaticTarget(target) {
             const signature=String(lastMessage.swipe_id??0)+':'+String(lastMessage.mes||'');
             if(autoDrawDiagnostics.get(lastMessage)!==signature){
                 autoDrawDiagnostics.set(lastMessage,signature);
-                const errorMessage='本轮剧情回复没有可解析的绘图指令，未提交 ComfyUI。请检查本轮模型响应及绘图提示注入；插件不会自动补调模型。';
+                const errorMessage='本轮模型回复未包含可识别的绘图指令（支持 <image>...</image> 和 [image]...[/image]），因此没有提交 ComfyUI。请核对模型实际回复正文或工具的剧情字段；不会复制提示词凑图。';
                 await writeImageError({stage:'剧情回复绘图指令检查',errorType:'DRAW_DIRECTIVES_MISSING',
                     errorMessage,provider:'ComfyUI'});
                 globalThis.toastr?.warning?.(errorMessage,'自动绘图未启动');
@@ -4571,8 +4382,8 @@ async function getActiveDrawingWorldbook(chat,shared){
         const native = await getWorldInfoPrompt(scan, 8192, true, { trigger: 'normal' });
         const nativeText = [native.worldInfoBefore,
             ...(native.worldInfoDepth || []).flatMap(item => item.entries || []), native.worldInfoAfter]
-            .filter(Boolean).join('\n');
-        worldbook = [nativeText, worldbook].filter(Boolean).join('\n\n');
+            .filter(Boolean).join('\r\n');
+        worldbook = [nativeText, worldbook].filter(Boolean).join('\r\n\r\n');
     }
     return worldbook;
 }
@@ -4621,16 +4432,32 @@ async function buildTasksFromMessage({ message, signal, promptOverride = '', tas
         :useInjectedFacts&&injectedWorldbook===undefined&&injectedDrawingFacts?.chatId===String(ctx.chatId)
         &&injectedDrawingFacts.messageId===ctx.chat.indexOf(message)?injectedDrawingFacts.worldbook
         :await getActiveDrawingWorldbook(ctx.chat||[],shared);
-    const tasks = buildDirectDrawTasks(readDirectDrawDirectives(message), getActivePreset(settings), {
+    // Every warning shown to the user must also reach the persistent diagnostics.
+    // Collect synchronously; flush before returning (or rethrowing) so a partial
+    // valid batch never silently loses the rejected image's actual reason.
+    const validationNotices = [];
+    let tasks;
+    try {
+        tasks = buildDirectDrawTasks(readDirectDrawDirectives(message), getActivePreset(settings), {
         sourceText: message.mes,
+        // SillyTavern already ran its regex/Markdown/extension display pipeline.
+        // Only that rendered message may authorize a narrative insertion point.
+        hostVisibleText: readHostVisibleNarrative(globalThis.document?.querySelector?.(
+            `.mes[mesid="${ctx.chat?.indexOf(message)}"] .mes_text`)),
         knownCharacters,
         requireFemaleImage:true,
         skipInvalidImages:true,
         appearanceSources:{worldbook},
-        onCountMismatch:({expected,received})=>globalThis.toastr?.warning?.('当前设置 '+expected+' 张，模型本轮提供 '+received+' 条绘图指令；按设置上限和实际有效指令生成，不会复制或补调模型。','绘图数量不符'),
+        onCountMismatch:({expected,received})=>{
+            const warning = '当前设置 '+expected+' 张，模型本轮提供 '+received+' 条绘图指令；按设置上限和实际有效指令生成，不会复制或补调模型。';
+            validationNotices.push({stage:'绘图数量校验',errorType:'DRAW_IMAGE_COUNT_MISMATCH',errorMessage:warning});
+            globalThis.toastr?.warning?.(warning,'绘图数量不符');
+        },
         onImageRejected:({image,message}) => {
-            console.warn('[ComfyDraw] 第 '+image+' 张图已拦截：'+message);
-            globalThis.toastr?.warning?.('第 '+image+' 张图已跳过：'+message,'绘图过滤');
+            const detail = '第 '+image+' 张绘图被跳过：'+message;
+            validationNotices.push({stage:'第 '+image+' 张绘图指令校验',errorType:'DRAW_IMAGE_REJECTED',errorMessage:detail});
+            console.warn('[ComfyDraw] '+detail);
+            globalThis.toastr?.warning?.(detail,'绘图过滤');
         },
         wardrobeLedger:buildWardrobeLedger(getContext().chat||[],{
             readDirectives:readDirectDrawDirectives,knownCharacters,excludeMessage:message,
@@ -4641,6 +4468,22 @@ async function buildTasksFromMessage({ message, signal, promptOverride = '', tas
         filterRules: shared.messageFilterRules?.length ? shared.messageFilterRules : DEFAULT_MESSAGE_FILTER_RULES,
         // Missing story anchors reject only their picture; no scattering.
     });
+    } finally {
+        if (validationNotices.length) {
+            const results = await Promise.allSettled(validationNotices.map(notice => writeImageError({
+                ...notice,
+                provider: 'ComfyUI',
+                source: 'draw-validation',
+                chatId: String(ctx.chatId || ''),
+                messageId: String(ctx.chat?.indexOf(message) ?? ''),
+            })));
+            for (const result of results) {
+                if (result.status === 'rejected') {
+                    console.error('[ComfyDraw] failed to persist drawing validation warning', result.reason);
+                }
+            }
+        }
+    }
     signal?.throwIfAborted();
     return { tasks, sceneSource: null };
 }
@@ -4826,17 +4669,6 @@ function setImageState(container, state) {
         menuWrap.style.opacity = isBusy ? '0.3' : '';
     }
     container.style.border = state === ImageState.PREVIEW ? '1px dashed rgba(255,152,0,0.35)' : 'none';
-    const dropdown = container.querySelector('.sti-nd-dropdown');
-    if (dropdown) {
-        const saveItem = dropdown.querySelector('[data-action="save-image"]');
-        if (state === ImageState.PREVIEW && !saveItem) {
-            // Static draw-owned markup, without user input.
-            // eslint-disable-next-line no-unsanitized/method
-            dropdown.insertAdjacentHTML('afterbegin', IMAGE_SAVE_BUTTON_HTML);
-        } else if (state !== ImageState.PREVIEW && saveItem) {
-            saveItem.remove();
-        }
-    }
     container.querySelector('.sti-nd-indicator')?.remove();
     // Static draw-owned markup, without user input.
     // eslint-disable-next-line no-unsanitized/method
@@ -4953,25 +4785,6 @@ async function navigateToImage(container, targetIndex) {
 
 function buildSharedGalleryCallbacks(slotId, messageId) {
     return {
-        onUse: (sid, msgId, selected, historyCount) => {
-            const cont = document.querySelector(`.sti-nd-img[data-slot-id="${sid}"]`);
-            if (cont) syncContainerToPreview(cont, selected, historyCount, 0);
-            if (selected?.savedUrl) {
-                void syncDrawSavedFromPreview(msgId, selected, { slotId: sid }).catch(() => {});
-            } else {
-                void clearDrawSavedEntry(msgId, sid).catch(() => {});
-            }
-        },
-        onSave: async (imgId, url) => {
-            const cont = document.querySelector(`.sti-nd-img[data-img-id="${imgId}"]`);
-            if (cont) {
-                const img = cont.querySelector('img');
-                if (img) img.src = getPreviewDisplayUrl(await getPreview(imgId) || { savedUrl: url });
-                setImageState(cont, ImageState.SAVED);
-            }
-            const preview = await getPreview(imgId).catch(() => null);
-            if (preview) await syncDrawSavedFromPreview(messageId, preview, { slotId, savedUrl: url }).catch(() => {});
-        },
         onDelete: async (sid, deletedImgId, remainingPreviews) => {
             const cont = document.querySelector(`.sti-nd-img[data-slot-id="${sid}"]`);
             if (cont && cont.dataset.imgId === deletedImgId && remainingPreviews.length > 0) {
@@ -5065,7 +4878,14 @@ async function handleImageDelegatedClick(event) {
     if (action === 'view-prompt-log') {
         container.querySelector('.sti-nd-menu-wrap')?.classList.remove('open');
         const id=container.dataset.imgId;
-        const record=id ? await getPreview(id).catch(()=>null) : null;
+        const slotId=container.dataset.slotId;
+        let record=id ? await getPreview(id).catch(()=>null) : null;
+        // A restored image can have slot history even if its direct ID lookup
+        // missed the cache. Never show another image's prompt under this ID.
+        if (!record && slotId) {
+            const bySlot=await getPreviewsBySlot(slotId).catch(()=>[]);
+            record=id ? bySlot.find(item=>item.imgId===id) : bySlot[0];
+        }
         openImageDiagnostics(record || {
             imgId:id||'',timestamp:Date.now(),
             positive:container.dataset.positive||'',negativePrompt:'',
@@ -5114,7 +4934,6 @@ async function handleImageDelegatedClick(event) {
     if (action === 'cancel-edit') { toggleEditPanel(container, false); return; }
     if (action === 'save-tags') { await saveEditedTags(container); return; }
     if (action === 'save-tags-retry') { await saveTagsAndRetry(container); return; }
-    if (action === 'save-image') { container.querySelector('.sti-nd-menu-wrap')?.classList.remove('open'); await saveCurrentImage(container); return; }
     if (action === 'remove-placeholder') { await removePlaceholder(container); }
 }
 
@@ -5199,11 +5018,11 @@ async function saveEditedTags(container) {
             return { positive: data.positive, negativePrompt: data.negative ?? record?.negativePrompt ?? '' };
         });
         toggleEditPanel(container, false);
-        toastr.success(DRAW_SLOT_COPY.tagSaved);
+        showSettingsNotice(DRAW_SLOT_COPY.tagSaved, 'success');
         return true;
     } catch (error) {
         console.error(DRAW_SLOT_COPY.tagSaveFailed, error);
-        toastr.error(error.message);
+        showSettingsNotice(error.message, 'error');
         return false;
     }
 }
@@ -5264,32 +5083,6 @@ async function deleteCurrentImage(container) {
     container.remove();
     toastr.success('图片已删除');
 }
-
-async function saveCurrentImage(container) {
-    const imgId = container.dataset.imgId;
-    const slotId = container.dataset.slotId;
-    if (!imgId || !slotId) return;
-    try {
-        const previews = await getPreviewsBySlot(slotId);
-        const preview = previews.find(item => item.imgId === imgId) || previews[0];
-        if (!preview?.base64 && !preview?.savedUrl) throw new Error('图片缓存不存在');
-        if (preview.savedUrl) { toastr.info('这张图已经保存到服务器'); return; }
-        const ctx = getContext();
-        const charName = ctx.groupId
-            ? String(ctx.groups?.[ctx.groupId]?.id ?? 'group')
-            : String(ctx.characters?.[ctx.characterId]?.name || 'character');
-        const url = await saveBase64AsFile(preview.base64, charName, `comfy_${imgId}`, 'png');
-        await updatePreviewSavedUrl(imgId, url);
-        await syncDrawSavedFromPreview(Number(container.dataset.mesid), preview, { slotId, savedUrl: url }).catch(() => {});
-        const img = container.querySelector('img');
-        if (img) img.src = getPreviewDisplayUrl(await getPreview(imgId) || { savedUrl: url });
-        container.dataset.state = 'saved';
-        toastr.success('图片已保存到服务器');
-    } catch (error) {
-        toastr.error(error?.message || '保存失败');
-    }
-}
-
 
 function setupImageDelegation() {
     if (imageDelegationBound) return;
@@ -5368,11 +5161,43 @@ export async function generateAndInsertImages({
 
         const comfySettings = cloneSettingsObject(getSettings());
         const sharedSettingsSnapshot = cloneSettingsObject(getSharedDrawSettings());
-        const capturedText = message.mes, capturedSwipe = message.swipe_id ?? 0;
+        let capturedText = message.mes;
+        const capturedSwipe = message.swipe_id ?? 0;
         const directives = promptOverride.trim() ? [] : readDirectDrawDirectives(message);
+        // Model-authored [image:slot-*] tokens are not actual Draw jobs.
+        // Preserve previously owned image slots, but never persist invented IDs
+        // next to the four real slots about to be created.
+        const ownedBefore = directives.length ? await getOwnedImageSlotIds(message) : null;
+        // Display cleanup is independent of compilation/transport success.
+        // Keep the original inputs in metadata and synchronize the active swipe.
+        const cleanText = directives.length
+            ? stripUnownedDrawImageSlots(stripDirectDrawSource(capturedText), ownedBefore)
+            : capturedText;
+        if (cleanText !== capturedText) {
+            rememberDirectDrawDirectives(message, directives);
+            setActiveMessageText(message, cleanText);
+            capturedText = cleanText;
+            await syncRenderedMessageFromState(liveId, { chatId: ctx.chatId, expectedMessage: message });
+            const displayedTarget = resolveFloorImageJobTarget(job, getContext());
+            if (displayedTarget.message !== message || message.mes !== capturedText || (message.swipe_id ?? 0) !== capturedSwipe
+                || isMessageBeingEdited(displayedTarget.messageId)) throw new Error('剧情或回复分支已经变化，请在当前回复重新绘图');
+            await saveChatConditional();
+        }
         // Do not append an additional full batch to already placed image slots.
         // Explicit single-slot rerolls use the existing-slot path instead.
-        if (!promptOverride.trim() && (await getOwnedImageSlotIds(message)).size) {
+        if (!promptOverride.trim() && (ownedBefore || await getOwnedImageSlotIds(message)).size) {
+            const current = resolveFloorImageJobTarget(job, getContext());
+            if (current.message !== message || message.mes !== capturedText || (message.swipe_id ?? 0) !== capturedSwipe)
+                throw new Error('剧情或回复分支已经变化，请在当前回复重新绘图');
+            await syncRenderedMessageFromState(current.messageId, { chatId: ctx.chatId, expectedMessage: message });
+            const renderedTarget = resolveFloorImageJobTarget(job, getContext());
+            if (renderedTarget.message !== message || message.mes !== capturedText || (message.swipe_id ?? 0) !== capturedSwipe
+                || isMessageBeingEdited(renderedTarget.messageId)) throw new Error('剧情或回复分支已经变化，请在当前回复重新绘图');
+            const failedCard = document.querySelector(`.mes[mesid="${current.messageId}"] .sti-nd-img[data-state="failed"]`);
+            if (!automatic && failedCard) {
+                const retry = await redrawFloorFailedImageCards('comfyui', failedCard);
+                if (retry?.submitted > 0) return retry;
+            }
             const error = new Error('这条回复已有图片槽位，请等待任务恢复或对指定图片重新生成，不能重复提交整批图片。');
             error.code='DUPLICATE_IMAGE_BATCH';
             throw error;
@@ -5385,14 +5210,9 @@ export async function generateAndInsertImages({
         const current = resolveFloorImageJobTarget(job, getContext());
         if (current.message !== message || message.mes !== capturedText || (message.swipe_id ?? 0) !== capturedSwipe
             || isMessageBeingEdited(current.messageId)) throw new Error('剧情或回复分支已经变化，请在当前回复重新绘图');
-        if (directives.length) {
-            rememberDirectDrawDirectives(message, directives);
-            message.mes = stripDirectDrawSource(message.mes);
-            await saveChatConditional();
-        }
         signal.throwIfAborted();
         const savedTarget = resolveFloorImageJobTarget(job, getContext());
-        const expectedText = directives.length ? stripDirectDrawSource(capturedText) : capturedText;
+        const expectedText = capturedText;
         if (savedTarget.message !== message || message.mes !== expectedText || (message.swipe_id ?? 0) !== capturedSwipe
             || isMessageBeingEdited(savedTarget.messageId)) throw new Error('保存期间剧情或回复分支已变化，请在当前回复重新绘图');
         return await runPreparedComfySlots({ ctx, message, messageId: savedTarget.messageId, swipeIndex: capturedSwipe,
@@ -5404,7 +5224,7 @@ export async function generateAndInsertImages({
         // Covers manual image requests and failures occurring before a backend
         // Draw Run is accepted. The backend reports its own later failures.
         if (!signal.aborted && error?.name !== 'AbortError') {
-            await writeImageError({
+            void writeImageError({
                 stage: '直出指令解析与生图交付',
                 errorType: error?.code || 'DRAW_REQUEST_FAILED',
                 errorMessage: error?.message || '绘图任务失败',
@@ -5468,6 +5288,7 @@ export async function initComfyDraw() {
     events.on(event_types.CHAT_CHANGED, () => {
         floatingPanel.refreshDrawRunUiState?.();
         setTimeout(renderExistingPanels, 150);
+        resumeMissedAutomaticDraw(initGeneration);
     });
     events.on(event_types.MESSAGE_SWIPED, () => {
         floatingPanel.refreshDrawRunUiState?.();
@@ -5488,6 +5309,7 @@ export async function initComfyDraw() {
 
     setTimeout(() => {
         renderExistingPanels();
+        resumeMissedAutomaticDraw(initGeneration);
     }, 300);
 
     preparedImageDispose?.();

@@ -5,7 +5,6 @@
 
 import {
     BACKEND_ENABLED_CHARACTER_LIMIT,
-    MAX_GROUP_NAME_LENGTH,
     UNGROUPED_ID,
     UNGROUPED_NAME,
     planCharacterImport,
@@ -17,22 +16,13 @@ const SAME_ID_POLICIES = Object.freeze([
     { value: 'skip', label: '跳过', hint: '不导入这些角色，本地保持不变。' },
 ]);
 const AUTO_POLICY_HINT = '替换，保留本地的启用状态、分组和位置。';
-const FILE_NAME_FALLBACK = '导入的角色';
 const EXPORT_NAME_MAX_CHARS = 64;
 
 let dialogSeq = 0;
 
-/** 去掉扩展名后作为“导入到新分组”的默认名，并截到分组名长度上限。 */
-export function defaultGroupNameFromFileName(fileName) {
-    const base = String(fileName ?? '').replace(/\.[A-Za-z0-9]{1,8}$/, '').trim();
-    const name = Array.from(base).slice(0, MAX_GROUP_NAME_LENGTH).join('').trim();
-    return name || FILE_NAME_FALLBACK;
-}
-
-/** 导出文件名：去掉 \ / : * ? " < > | 与控制字符，空则回退。scope 为 all / selection / group。 */
+/** 导出文件名：去掉 \ / : * ? " < > | 与控制字符，空则回退。scope 为 all / group。 */
 export function buildCharacterExportFileName({ scope = 'all', groupName = '' } = {}) {
     if (scope === 'all') return 'character-tags.json';
-    if (scope === 'selection') return 'character-tags-selection.json';
     const safe = Array.from(String(groupName ?? '')
         // eslint-disable-next-line no-control-regex
         .replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, '')
@@ -99,7 +89,6 @@ export function openCharacterImportDialog({ document, library, parsed, fileName 
     const state = {
         mode: 'auto',
         groupId: groups[0]?.id || '',
-        newGroupName: defaultGroupNameFromFileName(fileName),
         policy: 'replace',
         importNewAsDisabled: false,
         plan: null,
@@ -168,18 +157,10 @@ export function openCharacterImportDialog({ document, library, parsed, fileName 
     existingRow.appendChild(groupSelect);
     const existingHint = create(document, 'p', {
         className: 'lwb-cid-hint',
-        text: '当前没有任何分组，请先新建分组或选择其他方式。',
+        text: '当前没有分组，请选择自动合并导入。',
         attrs: { 'data-role': 'existing-empty-hint' },
     });
     existingRow.appendChild(existingHint);
-
-    const newRow = makeRadioRow('new-group', '导入到新分组');
-    const nameInput = create(document, 'input', {
-        className: 'lwb-cid-input',
-        attrs: { type: 'text', 'aria-label': '新分组名称', 'data-role': 'new-group-name', placeholder: '新分组名称', autocomplete: 'off' },
-    });
-    nameInput.value = state.newGroupName;
-    newRow.appendChild(nameInput);
 
     body.appendChild(modeSection);
 
@@ -230,7 +211,6 @@ export function openCharacterImportDialog({ document, library, parsed, fileName 
     const buildOptions = () => ({
         mode: state.mode,
         groupId: state.groupId,
-        newGroupName: state.newGroupName,
         sameIdPolicy: state.policy,
         importNewAsDisabled: state.importNewAsDisabled,
     });
@@ -272,7 +252,6 @@ export function openCharacterImportDialog({ document, library, parsed, fileName 
         const result = computePlan();
         state.plan = result.plan;
         state.error = result.error;
-        nameInput.setAttribute('aria-invalid', state.mode === 'new-group' && result.error ? 'true' : 'false');
 
         clearNode(chips);
         clearNode(warningList);
@@ -336,10 +315,6 @@ export function openCharacterImportDialog({ document, library, parsed, fileName 
     groupSelect.addEventListener('change', () => {
         state.groupId = readSelectValue(groupSelect);
         selectMode('existing-group');
-    });
-    nameInput.addEventListener('input', () => {
-        state.newGroupName = nameInput.value;
-        selectMode('new-group');
     });
     policySelect.addEventListener('change', () => {
         state.policy = readSelectValue(policySelect);
@@ -430,7 +405,7 @@ export function openCharacterImportDialog({ document, library, parsed, fileName 
  * 导出范围的统计：全部 / 各分组（含未分组，仅当其中有角色）/ 当前已选（只算库里真实存在的 id，去重）。
  * 对话框的可选项以此为准；单独导出以便测试。
  */
-export function describeExportScopes(library, selectedIds = []) {
+export function describeExportScopes(library) {
     const characters = Array.isArray(library?.characters) ? library.characters : [];
     const groups = Array.isArray(library?.groups) ? library.groups : [];
     const known = new Set(groups.map(group => group.id));
@@ -442,28 +417,25 @@ export function describeExportScopes(library, selectedIds = []) {
     const options = [];
     if (counts.get(UNGROUPED_ID)) options.push({ id: UNGROUPED_ID, name: UNGROUPED_NAME, count: counts.get(UNGROUPED_ID) });
     for (const group of groups) options.push({ id: group.id, name: group.name, count: counts.get(group.id) || 0 });
-    const existing = new Set(characters.map(character => character.id));
-    const selected = [...new Set(Array.isArray(selectedIds) ? selectedIds : [])].filter(id => existing.has(id));
-    return { total: characters.length, groups: options, selected };
+    return { total: characters.length, groups: options };
 }
 
 /**
- * 打开导出对话框：选择导出范围（全部 / 某个分组 / 当前已选），确认后调用 onConfirm，由调用方负责真正导出。
+ * 打开导出对话框：选择导出范围（全部 / 某个分组），确认后调用 onConfirm，由调用方负责真正导出。
  * 默认范围：有已选角色时为“当前已选”，否则“全部”。取消、Esc、点遮罩都不会导出。
  * @param {object} params
  * @param {Document} params.document 宿主页面 document
  * @param {object|function} params.library 当前角色库，或返回它的函数（打开时读取）
- * @param {string[]|function} [params.selectedIds] 当前已选的角色 id，或返回它们的函数（打开时读取）
  * @param {function} params.onConfirm 点击“导出”时以 { scope, groupId, groupName, ids, count, request } 调用；
  *        request 可直接传给 exportCharacters；抛错则对话框保持打开并显示错误
  * @param {function} [params.onClose] 对话框关闭（含取消、Esc、点遮罩、导出完成）时调用
  * @returns {{ element: Element, close: function, getChoice: function }}
  */
-export function openCharacterExportDialog({ document, library, selectedIds, onConfirm, onClose } = {}) {
+export function openCharacterExportDialog({ document, library, onConfirm, onClose } = {}) {
     if (!document?.body) throw new TypeError('缺少 document');
     const read = value => (typeof value === 'function' ? value() : value);
     const seq = (dialogSeq += 1);
-    const info = describeExportScopes(read(library), read(selectedIds));
+    const info = describeExportScopes(read(library));
     const groupChoices = info.groups.filter(group => group.count > 0);
 
     const available = {
@@ -471,10 +443,9 @@ export function openCharacterExportDialog({ document, library, selectedIds, onCo
         // 可选（含角色）的分组里至少要有一个真正的分组；只剩“未分组”一项时它与“全部”等价，不单独开放。
         // 空分组不可选，所以“只有未分组有角色、另有空分组”同样算只剩“未分组”。
         group: groupChoices.some(group => group.id !== UNGROUPED_ID),
-        selection: info.selected.length > 0,
     };
     const state = {
-        mode: info.selected.length > 0 ? 'selection' : (available.all ? 'all' : ''),
+        mode: available.all ? 'all' : '',
         groupId: groupChoices[0]?.id ?? UNGROUPED_ID,
         closed: false,
     };
@@ -528,7 +499,6 @@ export function openCharacterExportDialog({ document, library, selectedIds, onCo
     }
     groupRow.insertBefore(groupSelect, rows.group.hintNode);
 
-    makeRow('selection', `当前已选（${info.selected.length} 个）`, '没有多选的角色：先进入“多选”并勾选角色。');
     body.appendChild(section);
 
     const errorBox = create(document, 'p', { className: 'lwb-cid-alert', attrs: { role: 'alert', 'data-role': 'error', hidden: '' } });
@@ -577,8 +547,7 @@ export function openCharacterExportDialog({ document, library, selectedIds, onCo
                 request: { scope: 'group', groupId: state.groupId },
             };
         }
-        const ids = [...info.selected];
-        return { scope: 'selection', groupId: '', groupName: '', ids, count: ids.length, request: { scope: 'selection', ids } };
+        return null;
     };
 
     const selectMode = (mode) => {

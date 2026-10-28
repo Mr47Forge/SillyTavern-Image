@@ -6,7 +6,7 @@ import { build } from 'esbuild';
 import { indexedDB } from 'fake-indexeddb';
 import { parseHTML } from 'linkedom';
 import { buildDirectDrawTasks, buildDirectDrawInstruction, readDirectDrawDirectives } from '../direct-draw.js';
-import { parseDrawImageDirectives } from '../image-marker-syntax.js';
+import { parseDrawImageDirectives, stripUnownedDrawImageSlots } from '../image-marker-syntax.js';
 import { mountImageCardAtVisibleAnchor } from '../visible-image-anchor.js';
 import { buildRecentAppearanceLedger, pinImageCharacterAppearances } from '../character-appearance-ledger.js';
 import { getDirectDrawReplyState } from '../direct-draw.js';
@@ -39,6 +39,28 @@ const result=await build({stdin:{resolveDir:fileURLToPath(new URL('..',import.me
  b.onLoad({filter:/[\\/]draw-common\.js$/},({path})=>({contents:fs.readFileSync(path,'utf8')+'\nexport {mountImageSlotShells};',loader:'js'}));
  }}]});
 const api=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text+'\n//# sourceURL=drawing-chain-local.mjs').toString('base64'));
+
+test('real DOM removes direct instructions before a save failure without deleting narrative or slot identity',async()=>{
+ const raw='画家打开画室。\n<image>\nprompt: adult woman painting\nafter: 画家打开画室。\n</image>';
+ const h=setup(raw);h.root.innerHTML=raw;
+ const moduleSource=fs.readFileSync(new URL('../../providers/comfyui/comfy-draw.js',import.meta.url),'utf8');
+ const code=moduleSource.slice(moduleSource.indexOf('export async function generateAndInsertImages('),moduleSource.indexOf('export async function initComfyDraw(')).replace('export async','async');
+ const {rememberDirectDrawDirectives,stripDirectDrawSource}=await import('../direct-draw.js');
+ const {setActiveMessageText}=await import('../scene-placement.js');
+ const env={console,readDirectDrawDirectives,rememberDirectDrawDirectives,stripDirectDrawSource,stripUnownedDrawImageSlots,setActiveMessageText,
+  getOwnedImageSlotIds:api.getOwnedImageSlotIds,
+  syncRenderedMessageFromState:api.syncRenderedMessageFromState,createGenerationJob:()=>({controller:new AbortController()}),
+  observeFloorImageJob:()=>()=>{},classifyError(){},ensureDrawImageStyles(){},openDB:api.openDB,
+  loadSettings:async()=>{},loadSharedDrawSettings:async()=>{},cloneSettingsObject:structuredClone,
+  getSettings:()=>({}),getSharedDrawSettings:()=>({}),resolveFloorImageJobTarget:()=>({ctx:h.ctx,message:h.message,messageId:0}),
+  isMessageBeingEdited:()=>false,saveChatConditional:async()=>{throw new Error('fixture save rejected');},failFloorImageJob(){},
+  writeImageError:async()=>{},releaseGenerationJob(){},getContext:()=>h.ctx};
+ const generate=new Function(...Object.keys(env),code+';return generateAndInsertImages;')(...Object.values(env));
+ await assert.rejects(generate({messageId:0}),/fixture save rejected/);
+ assert.equal(h.root.textContent.trim(),'画家打开画室。');
+ assert.equal(h.message.extra.sti_comfy_direct.directives.length,1);
+ assert.ok(!h.message.mes.includes('prompt:'));
+});
 const sentences=['画家在窗边摆好画架。','画家把蓝色画笔放好。','画家拿出新的画纸。','画家在画布上画出山峰。'];
 const narrative=sentences.join('\n\n');
 const directives=()=>sentences.map((after,i)=>({prompt:`adult woman artist in studio, unique scene ${i}`,after,

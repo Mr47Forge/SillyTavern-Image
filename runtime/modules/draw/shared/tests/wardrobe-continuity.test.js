@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { buildDirectDrawTasks, readDirectDrawDirectives, rememberDirectDrawDirectives, buildDirectDrawInstruction } from '../direct-draw.js';
 import { buildWardrobeLedger, formatWardrobeLedger } from '../wardrobe-continuity.js';
 import { compile as compileComfy, compileComfyPromptForTask } from '../../providers/comfyui/compiler.js';
-import { createRequire } from 'node:module';
 
 const alice={name:'Alice',enabled:true,aliases:['\u5c0f\u827e'],type:'woman',appearance:'brown eyes'};
 const bob={name:'Bob',enabled:true,type:'man'};
@@ -158,7 +157,7 @@ test('saved ongoing state travels with the active outfit ledger, not global memo
     assert.equal(ledger[0].state,'scar on left hand');
     assert.match(formatWardrobeLedger(ledger),/scar on left hand/);
 });
-test('frontend and backend ComfyUI compilers receive equal frozen temporary-state tags',()=>{
+test('current ComfyUI compiler retains frozen temporary-state tags',()=>{
     const narrative='Alice stands by a window.';
     const tasks=built(narrative,[image(narrative,[{name:'Alice',costume:'other top',state:''}])],{
         wardrobeLedger:[{name:'Alice',costume:fingerprint,state:'bandaged arm'}],
@@ -167,9 +166,5 @@ test('frontend and backend ComfyUI compilers receive equal frozen temporary-stat
         workflowMode:'simple',params:{model:'fixture',width:512,height:768,steps:8,cfg:4},
         positivePrefix:'photo',negativePrefix:'blur',timeout:1000,delayMs:0};
     const frontend=compileComfy(tasks,recipe);
-    const require=createRequire(import.meta.url);
-    const backend=require(new URL('../../../../../server-plugin/runtime/draw-runs/vendor/draw-run-runtime.cjs',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1'));
-    const server=backend.compileDrawRunImages('comfyui',tasks,recipe);
-    assert.equal(JSON.stringify(frontend),JSON.stringify(server));
     assert.match(frontend.artifacts[0].promptData.positive,/bandaged arm/);
 });

@@ -14,5 +14,6 @@ if(exists){
  await rename(target,backup);
  console.log('旧后端已完整保留到备份目录：'+backup);
 }
-await cp(source,target,{recursive:true,errorOnExist:true,force:false});
+await cp(source,target,{recursive:true,errorOnExist:true,force:false,
+ filter:path=>!['sillytavern-image-server.zip','SHA256SUMS','data','backups','node_modules','.git'].includes(path.split(/[\\/]/).at(-1))});
 console.log('当前后端已安装，请重新启动酒馆。未修改设置或其他插件。');

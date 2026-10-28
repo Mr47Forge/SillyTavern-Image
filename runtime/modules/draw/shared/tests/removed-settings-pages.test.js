@@ -31,14 +31,15 @@ test('settings now open on drawing parameters and invalid old tabs fall back saf
 
 test('removed AI import, automatic learning and destructive role-clear controls stay absent',()=>{
     for(const id of ['comfy-import-prompts','comfy-import-image','comfy-auto-learn',
-        'comfy-auto-learn-update','comfy-shared-char-clear']) {
+        'comfy-auto-learn-update','comfy-shared-char-clear','comfy-import-from-chat']) {
         assert.ok(!html.includes('id="' + id + '"'),id);
     }
     for(const name of ['openComfyPromptImport','openComfyImageCharacterImport','recognizeImageCharacter',
-        'maybeComfyAutoLearn','applyComfyDrawRunAutoLearn','clearCharacterTagsDraft']) {
+        'maybeComfyAutoLearn','applyComfyDrawRunAutoLearn','clearCharacterTagsDraft',
+        'importCharactersFromCurrentTavern','savePastedCharacterPrompts','resolveCharacterHelperContext']) {
         assert.ok(!main.includes(name),name);
     }
-    for(const id of ['comfy-import-from-chat','comfy-shared-char-add',
+    for(const id of ['comfy-shared-char-add',
         'comfy-shared-char-export','comfy-shared-char-import','comfy-gallery-refresh']) {
         assert.ok(html.includes('id="' + id + '"'),id);
     }

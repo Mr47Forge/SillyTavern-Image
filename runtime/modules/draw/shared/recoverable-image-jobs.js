@@ -14,6 +14,7 @@ import {
 import { registerDrawCancellationJob, waitForDrawCancellation } from './draw-work-cancellation.js';
 import { DRAW_SLOT_ERRORS } from './image-record.js';
 import { ImageRequestOutcome, withImageRequestOutcome } from './image-request-outcome.js';
+import { publishDrawRunActivity } from './draw-run-activity.js';
 
 // 可恢复的后台批量生图：提交顺序的唯一所有者。
 //
@@ -287,6 +288,7 @@ export async function submitRecoverableImageJob({
         // 保留日志和槽位：它还在跑，图还会出来，交给下一次 reconcile 接回。
         if (error?.detached === true) {
             await releaseStoppedFlowLease(journal, jobId, leaseId);
+            publishDrawRunActivity({ wakeRecovery: true, jobId });
             throw error;
         }
         await finishRecoverableImageJob({

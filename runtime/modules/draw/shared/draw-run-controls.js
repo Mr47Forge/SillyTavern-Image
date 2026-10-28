@@ -111,7 +111,7 @@ export async function getPendingDrawWorkState(messageId, ctx = getContext()) {
         provider: children[0]?.provider || '',
         runId: children[0]?.originRunId || '',
         swipeIndex,
-        backendAccepted: children.length > 0,
+        backendAccepted: children.some(record => record.backendAccepted === true),
     };
 }
 

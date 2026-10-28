@@ -1,9 +1,11 @@
+import { openImageDatabase, runImageDatabaseOperation } from '../../../shared/common/indexed-db.js';
 // Image diagnostics for SillyTavernImage ComfyUI. No API keys, host URLs,
 // character images or raw entire workflow files are included in these records.
 const ERROR_DB = 'sti_comfy_draw_error_logs';
 const ERROR_STORE = 'errors';
 const ERROR_LIMIT = 300;
 let errorDatabase = null;
+let errorOpening = null;
 
 // 弹层贴住键盘上方的可见区：安卓键盘弹出时 innerHeight 不变，只有 visualViewport 会变。
 function followVisibleViewport(overlay) {
@@ -15,6 +17,8 @@ function followVisibleViewport(overlay) {
         const top = Math.round((vv && vv.offsetTop) || 0);
         overlay.style.setProperty('top', top + 'px', 'important');
         overlay.style.setProperty('height', height + 'px', 'important');
+        // Use the actual visual viewport, not the settings panel's stale --vvh.
+        overlay.style.setProperty('--sti-diagnostics-vvh', height + 'px');
         overlay.style.setProperty('bottom', 'auto', 'important');
     };
     apply();
@@ -41,23 +45,25 @@ function errorMetadata(entry) {
         provider: entry.provider, model: entry.model, source: entry.source,
     };
 }
-function dbOpen() {
-    if (errorDatabase) return Promise.resolve(errorDatabase);
-    if (typeof indexedDB === 'undefined') return Promise.resolve(null);
-    return new Promise((resolve,reject) => {
-        const request = indexedDB.open(ERROR_DB,1);
-        request.onupgradeneeded = () => {
-            if (!request.result.objectStoreNames.contains(ERROR_STORE)) {
-                request.result.createObjectStore(ERROR_STORE, { keyPath:'id', autoIncrement:true });
-            }
-        };
-        request.onsuccess = () => {
-            errorDatabase=request.result;
-            errorDatabase.onversionchange = () => { errorDatabase.close(); errorDatabase=null; };
-            resolve(errorDatabase);
-        };
-        request.onerror=() => reject(request.error);
+async function dbOpen() {
+    const { getImageCacheOwner, imageCacheDatabaseName, assertImageCacheOwner } = await import('./image-cache-owner.js');
+    const owner = getImageCacheOwner();
+    if (typeof indexedDB === 'undefined') return null;
+    const name = imageCacheDatabaseName(ERROR_DB, owner);
+    if (errorDatabase?.name === name) return errorDatabase;
+    if (errorOpening?.name === name) return errorOpening.promise;
+    if (errorDatabase) { errorDatabase.close(); errorDatabase = null; }
+    const promise = openImageDatabase(name, 1, database => {
+        if (!database.objectStoreNames.contains(ERROR_STORE)) database.createObjectStore(ERROR_STORE, { keyPath: 'id', autoIncrement: true });
+    }).then(database => {
+        try { assertImageCacheOwner(owner); } catch (error) { database.close(); throw error; }
+        errorDatabase = database;
+        database.onclose = () => { if (errorDatabase === database) errorDatabase = null; };
+        database.onversionchange = () => { database.close(); if (errorDatabase === database) errorDatabase = null; };
+        return database;
     });
+    errorOpening = {name, promise};
+    try { return await promise; } finally { if (errorOpening?.promise === promise) errorOpening = null; }
 }
 function safeText(input,max=8000) { return String(input??'').slice(0,max); }
 export function workflowPromptTrace(request = {}, fallback = {}) {
@@ -86,7 +92,9 @@ export function workflowPromptTrace(request = {}, fallback = {}) {
     };
 }
 export async function writeImageError(info={}) {
-    const entry={
+    const { getImageCacheOwner, assertImageCacheOwner } = await import('./image-cache-owner.js');
+    const owner=getImageCacheOwner();
+    const entry={owner,
         time:Date.now(), provider:safeText(info.provider || 'ComfyUI',65), model:safeText(info.model || '',95), source:safeText(info.source || 'frontend',40),
         slotId:safeText(info.slotId,140),imgId:safeText(info.imgId,140),
         chatId:safeText(info.chatId,140), messageId:safeText(info.messageId,100),
@@ -102,17 +110,19 @@ export async function writeImageError(info={}) {
         console.error('[SillyTavernImage] Error log was NOT saved on H28K', error);
         globalThis.toastr?.error?.('H28K 错误日志保存失败：' + String(error?.message || error), '独立绘图');
     }
+    assertImageCacheOwner(owner);
+    try {
     const db=await dbOpen();
     if (!db) return entry;
-    await new Promise((resolve,reject)=>{
-        const tx=db.transaction(ERROR_STORE,'readwrite');
+    await runImageDatabaseOperation((resolve,reject,transaction)=>{
+        const tx=transaction(db,ERROR_STORE,'readwrite');
         tx.objectStore(ERROR_STORE).add(entry);
         tx.oncomplete=resolve;
         tx.onerror=tx.onabort=()=>reject(tx.error);
     });
     // Keep only the latest 300 errors without affecting any gallery images.
-    await new Promise((resolve,reject)=>{
-        const tx=db.transaction(ERROR_STORE,'readwrite');
+    await runImageDatabaseOperation((resolve,reject,transaction)=>{
+        const tx=transaction(db,ERROR_STORE,'readwrite');
         const store=tx.objectStore(ERROR_STORE);
         let kept=0;
         store.openCursor(null,'prev').onsuccess=e=>{
@@ -124,17 +134,24 @@ export async function writeImageError(info={}) {
         tx.oncomplete=resolve;
         tx.onerror=tx.onabort=()=>reject(tx.error);
     });
+    } catch (error) {
+        console.warn('[SillyTavernImage] 本地错误日志未保存，服务端记录不受影响:', error);
+    }
     return entry;
 }
 export async function readImageErrors(limit=100) {
+    const { getImageCacheOwner, assertImageCacheOwner } = await import('./image-cache-owner.js');
+    const owner=getImageCacheOwner();
     const max=Math.min(300,Math.max(1,Number(limit)||100));
     // Never pretend logs are empty if the server cannot be reached.
     const persistent=(await serverDiagnosticRequest('GET')).items || [];
-    const db=await dbOpen();
+    assertImageCacheOwner(owner);
+    const db=await dbOpen().catch(error=>{console.warn('[SillyTavernImage] 本地日志不可读，继续显示服务端日志:',error);return null;});
+    assertImageCacheOwner(owner);
     if (!db) return persistent.slice(0,max);
-    const local=await new Promise((resolve,reject)=>{
+    const local=await runImageDatabaseOperation((resolve,reject,transaction)=>{
         const rows=[];
-        const tx=db.transaction(ERROR_STORE,'readonly');
+        const tx=transaction(db,ERROR_STORE,'readonly');
         const cursor=tx.objectStore(ERROR_STORE).openCursor(null,'prev');
         cursor.onsuccess=e=>{
             if (e.target.result && rows.length<max) {
@@ -148,16 +165,21 @@ export async function readImageErrors(limit=100) {
         console.warn('[SillyTavernImage] Previous browser logs unreadable',error);
         return [];
     });
+    assertImageCacheOwner(owner);
     const seen=new Set(persistent.map(e=>[e.time,e.stage,e.message].join('|')));
     return [...persistent,...local.filter(e=>!seen.has([e.time,e.stage,e.message].join('|')))]
         .sort((a,b)=>Number(b.time||0)-Number(a.time||0)).slice(0,max);
 }
 export async function clearImageErrors() {
+    const { getImageCacheOwner, assertImageCacheOwner } = await import('./image-cache-owner.js');
+    const owner=getImageCacheOwner();
     await serverDiagnosticRequest('DELETE');
+    assertImageCacheOwner(owner);
     const db=await dbOpen();
+    assertImageCacheOwner(owner);
     if (!db) return;
-    return new Promise((resolve,reject)=>{
-        const tx=db.transaction(ERROR_STORE,'readwrite');
+    return runImageDatabaseOperation((resolve,reject,transaction)=>{
+        const tx=transaction(db,ERROR_STORE,'readwrite');
         tx.objectStore(ERROR_STORE).clear();
         tx.oncomplete=resolve;tx.onerror=tx.onabort=()=>reject(tx.error);
     });
@@ -168,7 +190,7 @@ function addLabeledSection(container,label,text,doc) {
     heading.style.cssText='font-size:12px;color:#55e6b0;margin:10px 0 6px';
     heading.textContent=label;
     const detail=doc.createElement('pre');
-    detail.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 Consolas,monospace;margin:0 0 10px;background:#252a35;border-radius:7px;padding:10px;color:#f4f4f5';
+    detail.style.cssText='display:block;box-sizing:border-box;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font:12px/1.65 Consolas,monospace;margin:0 0 12px;background:#252a35;border-radius:7px;padding:12px;color:#f4f4f5';
     detail.textContent=String(text);
     container.append(heading,detail);
 }
@@ -198,26 +220,29 @@ export function openImageDiagnostics(record={},opts={}) {
     Object.assign(overlay.style,{
         position:'fixed',top:'0',left:'0',right:'0',height:'100%',zIndex:'100012',
         background:'rgba(0,0,0,.77)',display:'flex',alignItems:'center',
-        justifyContent:'center',padding:'16px',
+        justifyContent:'center',padding:'12px',boxSizing:'border-box',
     });
     const card=doc.createElement('div');
     Object.assign(card.style,{
         background:'#191d26',color:'#f4f4f5',border:'1px solid #444b5a',
-        borderRadius:'12px',width:'min(760px,100%)',maxWidth:'100%',
-        maxHeight:'calc(var(--vvh, 100vh) - 40px)',
+        borderRadius:'12px',width:'min(820px,100%)',maxWidth:'100%',minWidth:'0',
+        // A flex column with only max-height lets flex:1 1 0 collapse the log body.
+        // Reserve a real height so positive/negative prompts stay scrollable.
+        height:'min(760px, calc(var(--sti-diagnostics-vvh, 100dvh) - 24px))',
+        maxHeight:'calc(var(--sti-diagnostics-vvh, 100dvh) - 24px)',
+        minHeight:'0',boxSizing:'border-box',
         display:'flex',flexDirection:'column',overflow:'hidden',
     });
-    card.style.maxHeight='calc(var(--vvh, 100vh) - 40px)';
     const header=doc.createElement('div');
-    Object.assign(header.style,{display:'flex',padding:'15px 18px',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid #444b5a'});
+    Object.assign(header.style,{display:'flex',padding:'14px 16px',alignItems:'center',justifyContent:'space-between',gap:'12px',flexShrink:'0',borderBottom:'1px solid #444b5a'});
     const title=doc.createElement('strong');
     title.textContent=opts.errors?'独立绘图 · 错误日志':'本张图片 · 提示词日志';
     const close=doc.createElement('button');
     close.textContent='关闭';close.type='button';
-    Object.assign(close.style,{background:'#293140',color:'#f4f4f5',border:'1px solid #444b5a',borderRadius:'7px',padding:'6px 12px',cursor:'pointer'});
+    Object.assign(close.style,{background:'#293140',color:'#f4f4f5',border:'1px solid #444b5a',borderRadius:'7px',padding:'6px 12px',cursor:'pointer',flexShrink:'0'});
     header.append(title,close);
     const body=doc.createElement('div');
-    Object.assign(body.style,{overflowY:'auto',padding:'15px 18px',lineHeight:'1.5',fontSize:'13px',whiteSpace:'normal',flex:'1 1 0',minHeight:'0'});
+    Object.assign(body.style,{overflowY:'auto',overflowX:'hidden',padding:'14px 16px',lineHeight:'1.6',fontSize:'13px',whiteSpace:'normal',flex:'1 1 auto',minHeight:'0',minWidth:'0',boxSizing:'border-box',overscrollBehavior:'contain',WebkitOverflowScrolling:'touch'});
     const raw=record||{};
     if (opts.errors) {
         if (!opts.items?.length) body.textContent='暂无错误记录。';
@@ -236,6 +261,10 @@ export function openImageDiagnostics(record={},opts={}) {
         addLabeledSection(body,'图片 / 时间 / 状态',info.id+' · '+info.time+' · '+info.status,doc);
         addLabeledSection(body,'最终正向提示词',info.positive,doc);
         addLabeledSection(body,'最终负向提示词',info.negative,doc);
+        if (!info.positive && !info.negative && !info.traceNodes.length) {
+            if (raw.tags) addLabeledSection(body,'原始绘图提示词（非最终 ComfyUI 提示词）',raw.tags,doc);
+            addLabeledSection(body,'提示词记录状态','此图片没有可读取的完整提示词记录。图片仍可查看；本地历史缓存缺失时无法凭图片还原最终提示词。',doc);
+        }
         for(const node of info.traceNodes) addLabeledSection(body,'工作流节点 '+node.id+'（'+node.type+'）',node.text,doc);
         const params=['Seed: '+(info.seed??'无记录'),'Steps: '+(info.steps??'无记录'),'CFG: '+(info.cfg??'无记录'),info.sampler,info.scheduler].filter(Boolean).join(' · ');
         addLabeledSection(body,'生成参数',params,doc);

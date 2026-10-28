@@ -30,3 +30,20 @@ test('Chinese authority survives normalization and replacing the same imported r
  assert.equal(result.library.characters[0].appearanceSource,'chinese');assert.equal(result.library.characters[0].appearance,role.appearance);
 });
 
+test('Chinese description stays visible but never replaces the English drawing prompt', async () => {
+    const { normalizeCharacter, exportCharacters, parseCharacterImport } = await import('../../../shared/character-library.js');
+    const original = {
+        id: 'alice-1', name: 'Alice', type: 'woman',
+        appearance: 'short brown hair, softly rounded face',
+        appearanceZh: '\u68d5\u8272\u77ed\u53d1\uff0c\u5706\u6da6\u7684\u8138\u578b',
+        negativeTags: '', aliases: [], outfits: [], dynamicStates: [],
+    };
+    const normalized = normalizeCharacter(original);
+    assert.equal(normalized.appearance, original.appearance);
+    assert.equal(normalized.appearanceZh, original.appearanceZh);
+    const exported = exportCharacters({characters:[normalized],groups:[]});
+    const imported = parseCharacterImport(exported);
+    assert.equal(imported.entries[0].character.appearance, original.appearance);
+    assert.equal(imported.entries[0].character.appearanceZh, original.appearanceZh);
+});
+

@@ -9,7 +9,6 @@ import { build } from 'esbuild';
 import { indexedDB, IDBObjectStore } from 'fake-indexeddb';
 import { parseHTML } from 'linkedom';
 import showdown from 'showdown';
-import { prepareTauriTavernDrawBranches } from '../../../../integrations/tauritavern/features/draw/chat-branches.js';
 
 // Real markup, gallery transactions, chat save/readback, executor and UI. Only
 // SillyTavern boundaries and image-provider responses are simulated; no paid API.
@@ -184,6 +183,28 @@ function setup(t, source, { legacy = false } = {}) {
         set stateHook(value) { stateHook = value; },
     };
 }
+
+test('streamed direct image code is hidden by an immediate provisional card without creating jobs', async t => {
+    const h = setup(t, 'Opening story.\n\n<image>\nprompt: first scene in progress');
+    h.ctx.streamingProcessor = { messageId: 0, isStopped: false, isFinished: false };
+    api.initChatMessageImages();
+    await until(() => h.root.querySelectorAll('[data-sti-direct-draft]').length === 1);
+    assert.doesNotMatch(h.root.textContent, /prompt:|scene in progress/);
+    assert.match(h.root.textContent, /Opening story/);
+    assert.equal(h.requests, 0);
+    h.message.mes += '\n</image>\n\nMore story.\n\n<image>\nprompt: second scene';
+    h.format();
+    await host.emit('MESSAGE_UPDATED', 0);
+    await until(() => h.root.querySelectorAll('[data-sti-direct-draft]').length === 2);
+    assert.doesNotMatch(h.root.textContent, /prompt:|second scene/);
+    assert.match(h.root.textContent, /More story/);
+    assert.equal(h.requests, 0);
+    h.message.mes = 'Opening story. More story.';
+    h.format();
+    await host.emit('MESSAGE_UPDATED', 0);
+    await until(() => h.root.querySelectorAll('[data-sti-direct-draft]').length === 0);
+    assert.equal(h.requests, 0);
+});
 
 test('received tags batch once without visibility, update swipe, and survive duplicate events and remount', async t => {
     const h = setup(t, 'before [img: same] middle [img: other] end [img: same]');
@@ -2071,55 +2092,6 @@ test('cancelled recovery preserves a saved-only version before selecting the int
     assert.equal(await api.restoreImageCard(h.root.querySelector('.sti-nd-img')), true);
     assert.equal(await api.getSlotSelection(job.slotId), job.oldId);
     assert.equal(h.requests, 0);
-});
-
-const coldSwipeFixture = JSON.parse(await readFile(new URL(
-    '../../../../integrations/tauritavern/tests/fixtures/cold-swipes-2.3.json', import.meta.url,
-), 'utf8'));
-
-function setupColdChat(t) {
-    const h = setup(t, 'current body', { legacy: true });
-    const original = structuredClone(coldSwipeFixture.original);
-    original.swipes[0] += ' [img: historic image]';
-    Object.assign(h.message, original, structuredClone(coldSwipeFixture.projection));
-    return { h, original };
-}
-
-test('Tauri cold historical branch is migrated before version commit and never auto-generated on first opening', async t => {
-    const { h, original } = setupColdChat(t);
-    let hydrationCalls = 0;
-    api.configureChatImageTagMigration({ prepareBranches: ctx => prepareTauriTavernDrawBranches(ctx, async () => ({
-        hydrateMessageSwipes: async message => {
-            hydrationCalls++;
-            for (const key of ['swipes', 'swipe_info']) original[key].forEach((value, i) => { message[key][i] ??= value; });
-            delete message.tt_swipe_cold;
-        },
-    })) });
-    await api.ensureChatImageTagFormat(h.ctx);
-    assert.equal(hydrationCalls, 1);
-    assert.equal(h.message.mes, original.mes);
-    const slots = api.extractSlotIds(h.message.swipes[0]);
-    assert.equal(slots.size, 1);
-    const preview = (await api.getPreviewsBySlot([...slots][0]))[0];
-    assert.equal(preview.tags, 'historic image');
-    assert.equal(preview.status, 'failed');
-    assert.equal(h.persisted[0].chat_metadata[api.CHAT_IMAGE_TAG_FORMAT_KEY], api.CHAT_IMAGE_TAG_FORMAT_VERSION);
-    assert.equal(h.persisted[1].swipes[0], h.message.swipes[0]);
-    h.message.swipe_id = 0; h.message.mes = h.message.swipes[0]; h.format();
-    api.initChatMessageImages(); await tick(); await tick();
-    assert.equal(h.observed.size, 0);
-    assert.equal(h.requests, 0);
-});
-
-test('cold swipe read failure leaves migration and requests uncommitted', async t => {
-    const { h } = setupColdChat(t);
-    api.configureChatImageTagMigration({ prepareBranches: ctx => prepareTauriTavernDrawBranches(ctx, async () => ({
-        hydrateMessageSwipes: async () => { throw new Error('cold source unavailable'); },
-    })) });
-    await assert.rejects(api.ensureChatImageTagFormat(h.ctx));
-    assert.equal(h.ctx.chatMetadata[api.CHAT_IMAGE_TAG_FORMAT_KEY], undefined);
-    assert.equal(h.message.swipes[0], null);
-    assert.equal(h.saves, 0); assert.equal(h.requests, 0);
 });
 
 test('navigating while hydrating old branches never marks the next chat migrated', async t => {

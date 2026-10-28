@@ -5,8 +5,7 @@ const crypto = require('node:crypto');
 const { getCurrentUser } = require('./user-context');
 
 const FILES = new Set([
-  'Tasks', 'StoryOutline', 'NovelDraw', 'SdDraw', 'ComfyDraw', 'Assistant',
-  'TTS', 'EnaPlanner', 'CommonSettings', 'Vectors',
+  'NovelDraw', 'ComfyDraw',
 ].map(name => `SillyTavernImage_${name}.json`));
 const pending = new Map();
 const conflictMessage = '设置已在其他设备或页面更新，本次未保存。请先保留当前输入，再刷新页面重新加载后修改。';

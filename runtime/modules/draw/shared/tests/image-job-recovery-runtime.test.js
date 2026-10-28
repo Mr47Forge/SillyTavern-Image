@@ -4,6 +4,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { indexedDB } from 'fake-indexeddb';
+import { setImmediate } from 'node:timers/promises';
 
 import { deriveDrawRunChildJobId, deriveDrawRunItemIds } from '../draw-run-identifiers.js';
 import { hashSceneSource, normalizeMessageSceneSourceText } from '../scene-source.js';
@@ -29,7 +30,7 @@ const stubs = {
     'draw-common.js': `
         export const isMessageBeingEdited = () => false;
         export const isAnyMessageBeingEdited = () => false;
-        export const renderPreviewsForMessage = async () => {};export const syncDrawSavedFromPreview=async()=>{};
+        export const renderPreviewsForMessage = async () => {};export const syncDrawSavedFromPreview=async()=>globalThis.__drawRecoveryTest.saveFixture===true;
         export const materializeDrawSavedPreview = async () => null;export const clearDrawSavedEntry=async()=>false;
         export const ErrorType = { JOB_EXPIRED: { code: 'expired', label: 'expired', desc: 'expired' } };
         export const classifyError = () => ErrorType.JOB_EXPIRED;
@@ -37,10 +38,14 @@ const stubs = {
     'gallery-cache.js': `
         const host = globalThis.__drawRecoveryTest;
         export const getPreview = async id => host.previews.get(id);
-        export const storePreview = async value => host.previews.set(value.imgId, value);
+        export const storePreview = async value => host.previews.set(value.imgId, {status:'success',...value});
         export const storeFailedPlaceholder = async value => storePreview({ ...value, status: 'failed' });
         export const deletePreview = async id => host.previews.delete(id);
-        export const savePreviewImage = async () => null;
+        export const savePreviewImage = async id => {
+            if(!host.saveFixture)return null;
+            const record=host.previews.get(id);if(record)record.savedUrl='/user/images/fixture.png';
+            return '/user/images/fixture.png';
+        };
         export const setSlotSelection = async (slot, id) => host.selections.set(slot, id);
         export const clearSlotSelection = async slot => host.selections.delete(slot);
     `,
@@ -54,6 +59,7 @@ const bundle = await build({
             export * from './draw-cancellation-journal.js';
             export * from './draw-work-cancellation.js';
             export * from './backend-image-jobs.js';
+            export * from './recoverable-image-jobs.js';
         `,
         resolveDir: fileURLToPath(new URL('..', import.meta.url)),
     },
@@ -339,3 +345,62 @@ for (const mode of ['complete', 'fail', 'discard']) {
         });
     }
 }
+test('a newly detached job wakes the idle recovery worker and delivers without external lifecycle events',async t=>{
+ host.saveFixture=true;t.after(()=>{host.saveFixture=false;});
+ t.mock.timers.enable({apis:['setTimeout']});
+ const flush=async()=>{for(let i=0;i<40;i++)await setImmediate();};
+ const message={mes:'[image:audit-handoff-slot]',name:'Alice',swipe_id:0,extra:{}};
+ let persisted=structuredClone([message]);
+ host.ctx={chatId:'audit-handoff',groupId:'audit',chat:[message],getRequestHeaders:()=>({}),saveChat:async()=>{persisted=structuredClone([message]);}};
+ host.previews.clear();host.selections.clear();
+ globalThis.fetch=async()=>({ok:true,json:async()=>structuredClone(persisted)});
+ let jobId='',listCalls=0,attachments=0;
+ const backend={
+  async listJobs(){listCalls++;return jobId?[{id:jobId,state:'completed',total:1,items:[{index:0,state:'ready'}]}]:[];},
+  async attachJob(id,callbacks){attachments++;await callbacks.onItemReady({index:0,response:new Response('fixture')});return {job:{id,state:'completed'},preserved:new Set(),deliveryErrors:new Map()};},
+ };
+ api.startImageJobRecovery({client:backend,decoders:{comfyui:async()=> 'YWJj'}});
+ t.after(()=>api.stopImageJobRecovery());
+ t.mock.timers.tick(1);await flush();await api.reconcilePendingImageJobs();
+ assert.equal(listCalls,0);
+ await assert.rejects(api.submitRecoverableImageJob({provider:'comfyui',request:{},
+  plan:{delivery:{mode:'slots',chatId:'audit-handoff',messageId:'0',swipeIndex:0},
+   gallery:{chatId:'audit-handoff',messageId:'0'},items:[{index:0,slotId:'audit-handoff-slot',imgId:'audit-handoff-image',previewMetadata:{tags:'portrait'}}]},
+  commitPlacements:async details=>{jobId=details.jobId;message.extra.sti_comfy_slots={'audit-handoff-slot':{jobId,jobIndex:0,imgId:'audit-handoff-image',status:'pending',input:{tags:'portrait'}}};persisted=structuredClone([message]);return true;},
+  client:{async runJob(_request,callbacks){await callbacks.onStateChange('created');throw Object.assign(new Error('controlled lost response'),{detached:true});}},
+ }),error=>error.detached===true);
+ await flush();t.mock.timers.tick(180000);await flush();
+ assert.ok(attachments>0,'handoff must wake recovery without online/chat-change events');
+ await api.reconcilePendingImageJobs();
+ const after={backendQueries:listCalls,attachments,pendingRecords:(await api.listPendingImageJobs()).length,
+  recoveredImage:host.previews.get('audit-handoff-image')?.status};
+ assert.equal(after.pendingRecords,0);assert.equal(after.recoveredImage,'success');
+});
+
+test('an account switch cannot settle or forget another accounts recoverable job',async t=>{
+ api.configurePendingImageJobOwner?.(()=>host.owner);
+ t.after(()=>{api.stopImageJobRecovery();api.configurePendingImageJobOwner?.(null);host.owner='fixture';});
+ host.owner='alice';host.ctx={chatId:'alice',chat:[{mes:'Alice gallery'}]};
+ const record=await api.recordPendingImageJob({jobId:'owner-protected',provider:'comfyui',delivery:{mode:'gallery'},gallery:{chatId:'alice'},items:[{index:0,slotId:'owner-slot',imgId:'owner-img'}]});
+ await api.markPendingImageJobActive(record.jobId,record.leaseId);await api.releasePendingImageJobLease(record.jobId,record.leaseId);
+ host.owner='bob';host.ctx={chatId:'bob',chat:[{mes:'Bob gallery'}]};
+ api.startImageJobRecovery({client:{listJobs:async()=>[]}});await api.reconcilePendingImageJobs();
+ assert.deepEqual(await api.listPendingImageJobs(),[]);
+ await assert.rejects(api.forgetPendingImageJob(record.jobId,record.leaseId),e=>e.code==='PENDING_JOB_LEASE_LOST');
+ host.owner='alice';assert.ok(await api.getPendingImageJob(record.jobId));
+ await api.forgetPendingImageJob(record.jobId,record.leaseId);
+});
+
+test('legacy task ownership requires the authenticated backend job identity, not a guessed chat match',async t=>{
+ api.configurePendingImageJobOwner(null);host.owner='alice';
+ const legacy=await api.recordPendingImageJob({jobId:'legacy-owner-proof',provider:'comfyui',delivery:{mode:'gallery'},items:[{index:0,slotId:'legacy-proof-slot',imgId:'legacy-proof-img'}]});
+ api.configurePendingImageJobOwner(()=>host.owner);
+ t.after(()=>api.configurePendingImageJobOwner(null));
+ assert.equal(await api.pendingImageJobOwnerMigrationNeeded(),true);
+ await api.migratePendingImageJobOwners([],'alice');assert.equal(await api.getPendingImageJob(legacy.jobId),null);
+ await api.migratePendingImageJobOwners([{id:'another-account-job'}],'alice');assert.equal(await api.getPendingImageJob(legacy.jobId),null);
+ await api.migratePendingImageJobOwners([{id:legacy.jobId}],'alice');
+ const owned=await api.getPendingImageJob(legacy.jobId);assert.equal(owned.owner,'alice');assert.equal(owned.backendAccepted,true);
+ host.owner='bob';assert.equal(await api.getPendingImageJob(legacy.jobId),null);
+ host.owner='alice';await api.forgetPendingImageJob(owned.jobId,owned.leaseId);
+});

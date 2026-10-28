@@ -5,7 +5,6 @@ import { DRAW_WORK_CANCELLATION_CAPABILITY } from '../backend-image-jobs.js';
 import {
     createDrawRunClient as createClient,
     DRAW_RUNS_CAPABILITY,
-    DRAW_RUN_RUNTIME_CAPABILITY,
     DrawRunClientError,
     hasDrawRunsCapability,
 } from '../draw-run-client.js';
@@ -89,19 +88,19 @@ test('Draw Run ACK requires the protocol success envelope while keeping 404 idem
 test('Draw Run capability requires a ready backend that explicitly advertises the contract', () => {
     assert.equal(hasDrawRunsCapability({
         ready: true,
-        capabilities: [DRAW_RUNS_CAPABILITY, DRAW_RUN_RUNTIME_CAPABILITY, DRAW_WORK_CANCELLATION_CAPABILITY],
+        capabilities: [DRAW_RUNS_CAPABILITY, DRAW_WORK_CANCELLATION_CAPABILITY],
     }), true);
     assert.equal(hasDrawRunsCapability({ ready: true, capabilities: [DRAW_RUNS_CAPABILITY] }), false);
-    assert.equal(hasDrawRunsCapability({ ready: true, capabilities: [DRAW_RUNS_CAPABILITY, DRAW_RUN_RUNTIME_CAPABILITY] }), false);
+    assert.equal(hasDrawRunsCapability({ ready: true, capabilities: [DRAW_RUNS_CAPABILITY, 'draw-run-runtime-v4'] }), false);
     // Released 2.2.0 builds own the planning schema and cannot accept planner.tool.
     assert.equal(hasDrawRunsCapability({
         ready: true, version: '2.2.0', capabilities: [DRAW_RUNS_CAPABILITY, 'draw-run-runtime-v3'],
     }), false);
-    assert.equal(hasDrawRunsCapability({ ready: true, capabilities: [DRAW_RUN_RUNTIME_CAPABILITY] }), false);
+    assert.equal(hasDrawRunsCapability({ ready: true, capabilities: ['draw-run-runtime-v4'] }), false);
     assert.equal(hasDrawRunsCapability({ ready: true, capabilities: [] }), false);
     assert.equal(hasDrawRunsCapability({
         ready: false,
-        capabilities: [DRAW_RUNS_CAPABILITY, DRAW_RUN_RUNTIME_CAPABILITY],
+        capabilities: [DRAW_RUNS_CAPABILITY, DRAW_WORK_CANCELLATION_CAPABILITY],
     }), false);
 });
 
