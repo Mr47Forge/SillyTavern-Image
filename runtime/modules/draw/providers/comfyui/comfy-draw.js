@@ -24,6 +24,7 @@ import { expandScenePromptText, loadScenePromptRuntime } from "../../shared/scen
 import { createSceneSource, normalizeMessageSceneSourceText } from "../../shared/scene-source.js";
 import { resolveSettingsViewport } from './settings-viewport.js';
 import { readDirectDrawDirectives, rememberDirectDrawDirectives, buildDirectDrawTasks, buildDirectDrawInstruction, stripDirectDrawSource, getDirectDrawWorldbook, getDirectDrawReplyState } from '../../shared/direct-draw.js';
+import { readHostVisibleNarrative } from '../../shared/host-visible-scene.js';
 import { buildWardrobeLedger, formatWardrobeLedger } from '../../shared/wardrobe-continuity.js';
 import { renderDirectDrawFields } from '../../shared/direct-draw-preview.js';
 import { isSceneSlotAlive } from "../../shared/scene-placement.js";
@@ -4323,7 +4324,7 @@ async function generateAutomaticTarget(target) {
             const signature=String(lastMessage.swipe_id??0)+':'+String(lastMessage.mes||'');
             if(autoDrawDiagnostics.get(lastMessage)!==signature){
                 autoDrawDiagnostics.set(lastMessage,signature);
-                const errorMessage='本轮剧情回复没有可解析的绘图指令，未提交 ComfyUI。请检查本轮模型响应及绘图提示注入；插件不会自动补调模型。';
+                const errorMessage='本轮模型回复未包含可识别的绘图指令（支持 <image>...</image> 和 [image]...[/image]），因此没有提交 ComfyUI。请核对模型实际回复正文或工具的剧情字段；不会复制提示词凑图。';
                 await writeImageError({stage:'剧情回复绘图指令检查',errorType:'DRAW_DIRECTIVES_MISSING',
                     errorMessage,provider:'ComfyUI'});
                 globalThis.toastr?.warning?.(errorMessage,'自动绘图未启动');
@@ -4439,6 +4440,10 @@ async function buildTasksFromMessage({ message, signal, promptOverride = '', tas
     try {
         tasks = buildDirectDrawTasks(readDirectDrawDirectives(message), getActivePreset(settings), {
         sourceText: message.mes,
+        // SillyTavern already ran its regex/Markdown/extension display pipeline.
+        // Only that rendered message may authorize a narrative insertion point.
+        hostVisibleText: readHostVisibleNarrative(globalThis.document?.querySelector?.(
+            `.mes[mesid="${ctx.chat?.indexOf(message)}"] .mes_text`)),
         knownCharacters,
         requireFemaleImage:true,
         skipInvalidImages:true,

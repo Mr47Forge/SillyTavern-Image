@@ -340,6 +340,7 @@ for (const scenario of [{ backend: true }, { backend: false }, { backend: true, 
     const shared = { characterTags: [painter], characterGroups: [], messageFilterRules: [] };
     const host = { chatId: 'synthetic', chat: [message] };
     const ctx = { readDirectDrawDirectives, rememberDirectDrawDirectives, stripDirectDrawSource, stripUnownedDrawImageSlots, buildDirectDrawTasks,
+        readHostVisibleNarrative: () => null,
         characterLibraryFromSettings, selectEnabledCharacters, buildWardrobeLedger, buildRecentAppearanceLedger:()=>new Map(), structuredClone, AbortController, console,
         getSettings: () => settings, getSharedDrawSettings: () => shared,getOwnedImageSlotIds:async()=>new Set(),setActiveMessageText:(m,s)=>{m.mes=s;},syncRenderedMessageFromState:async()=>{},getActiveDrawingWorldbook:async()=>'',
         getActivePreset: s => s.presets[0], cloneSettingsObject: structuredClone, DEFAULT_MESSAGE_FILTER_RULES: [],

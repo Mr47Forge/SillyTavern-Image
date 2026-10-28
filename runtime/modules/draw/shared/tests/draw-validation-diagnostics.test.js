@@ -7,7 +7,7 @@ const source = readFileSync(new URL('../../providers/comfyui/comfy-draw.js', imp
 const code = source.slice(source.indexOf('async function buildTasksFromMessage('),
     source.indexOf('\nfunction buildTextSourceGalleryMeta('));
 
-function setup({ rejectAll = false, loggerFails = false, emitMismatch = true, emitRejection = true } = {}) {
+function setup({ rejectAll = false, loggerFails = false, emitMismatch = true, emitRejection = true, visibleText = null } = {}) {
     const message = { mes: 'Adult painter enters studio.', is_user: false };
     const ctx = { chatId: 'fixture-chat', chat: [message] };
     const logged = [], warnings = [], attempted = [];
@@ -18,6 +18,7 @@ function setup({ rejectAll = false, loggerFails = false, emitMismatch = true, em
         characterLibraryFromSettings: () => [],
         selectEnabledCharacters: () => [],
         getContext: () => ctx,
+        readHostVisibleNarrative: () => visibleText,
         getActiveDrawingWorldbook: async () => '',
         readDirectDrawDirectives: () => Array.from({ length: 4 }, (_, i) => ({ prompt: 'scene ' + i })),
         getActivePreset: () => ({ maxImages: 4 }),
@@ -33,6 +34,7 @@ function setup({ rejectAll = false, loggerFails = false, emitMismatch = true, em
         buildDirectDrawTasks: (_, __, options) => {
             assert.equal(options.skipInvalidImages, true);
             assert.equal(options.requireFemaleImage, true);
+            assert.equal(options.hostVisibleText,visibleText);
             if (emitRejection) options.onImageRejected({ image: 3, message: 'scene anchor not found' });
             if (emitMismatch) options.onCountMismatch({ expected: 4, received: 3 });
             if (rejectAll) throw new Error('no valid image instructions');
@@ -43,6 +45,13 @@ function setup({ rejectAll = false, loggerFails = false, emitMismatch = true, em
     const run = () => env.buildTasksFromMessage({ message, signal: new AbortController().signal });
     return { run, logged, attempted, warnings };
 }
+
+test('provider passes SillyTavern rendered visible text to image task placement', async () => {
+    const fixture=setup({visibleText:'reader-visible paragraph',emitMismatch:false,emitRejection:false});
+    const result=await fixture.run();
+    assert.equal(result.tasks.length,1);
+    assert.equal(fixture.logged.length,0);
+});
 
 test('partial image rejection logs the exact popup reason with image index and chat target', async () => {
     const f = setup();
