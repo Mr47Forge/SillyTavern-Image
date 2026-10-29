@@ -37,10 +37,10 @@ export function isMaleCharacter(character,known=[]) {
     const role=roleMatch(person,known);
     const declared=[person.gender,role?.gender,person.type,role?.type,
         person.danbooru,role?.danbooruTag].map(normalized).filter(Boolean);
-    if ([...declared,person.appear,role?.appearance].some(v=>prohibited.test(normalized(v)) || containsMaleAnatomy(v)))return true;
+    if ([...declared,person.appear,role?.appearanceZh].some(v=>prohibited.test(normalized(v)) || containsMaleAnatomy(v)))return true;
     if ([person.name,role?.name,...declared].some(v=>maleTitle.test(normalized(v))))return true;
     if(declared.some(v=>femaleEvidence(v)&&!male.test(v)))return false;
-    const values=[...declared,person.appear,role?.appearance].map(normalized).filter(Boolean);
+    const values=[...declared,person.appear,role?.appearanceZh].map(normalized).filter(Boolean);
     return values.some(v=>male.test(v));
 }
 
@@ -50,7 +50,7 @@ export function isFemaleImageCharacter(character,known=[]) {
     if(!person||typeof person!=='object')return false;
     const role=roleMatch(person,known);
     return [person.gender,person.type,person.danbooru,person.appear,person.name,
-        role?.gender,role?.type,role?.danbooruTag,role?.appearance,role?.name]
+        role?.gender,role?.type,role?.danbooruTag,role?.appearanceZh,role?.name]
         .some(femaleEvidence);
 }
 // Conservative evidence from this reply's real prose, not from the model's

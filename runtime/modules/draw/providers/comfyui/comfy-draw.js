@@ -2965,6 +2965,9 @@ function readCharacterCardsFromForm({ keepEmpty = false } = {}) {
         // 已保存记录里的 groupId 可能已过期（草稿里可能刚换过分组），一律丢弃，以卡片所在位置为准。
         const saved = { ...(existingById.get(String(card.dataset.characterId || '')) || {}) };
         delete saved.groupId;
+        delete saved.appearance;
+        delete saved.appearanceSource;
+        delete saved.tags;
         return {
             ...saved,
             id: card.dataset.characterId || `comfy-char-${Date.now()}-${index}`,
@@ -2978,14 +2981,10 @@ function readCharacterCardsFromForm({ keepEmpty = false } = {}) {
             appearanceZh: String(card.querySelector('[data-sd-char-field="appearanceZh"]')?.value || '').trim(),
             negativeTags: String(card.querySelector('[data-sd-char-field="negativeTags"]')?.value || '').trim(),
             danbooruTag: String(saved.danbooruTag || '').trim(),
-            outfits: reconcileChineseNamedLines(
-                card.querySelector('[data-sd-char-field="outfits"]')?.value || '',
-                JSON.parse(card.querySelector('[data-sd-char-field="outfits"]')?.dataset.originalTags || '[]')),
-            dynamicStates: reconcileChineseNamedLines(
-                card.querySelector('[data-sd-char-field="dynamicStates"]')?.value || '',
-                JSON.parse(card.querySelector('[data-sd-char-field="dynamicStates"]')?.dataset.originalTags || '[]')),
+            outfits: reconcileChineseNamedLines(card.querySelector('[data-sd-char-field="outfits"]')?.value || ''),
+            dynamicStates: reconcileChineseNamedLines(card.querySelector('[data-sd-char-field="dynamicStates"]')?.value || ''),
         };
-    }).filter((item) => keepEmpty || item.name || item.appearanceZh || item.appearance || item.danbooruTag || item.negativeTags || item.aliases.length || item.outfits?.length || item.dynamicStates?.length);
+    }).filter((item) => keepEmpty || item.name || item.appearanceZh || item.danbooruTag || item.negativeTags || item.aliases.length || item.outfits?.length || item.dynamicStates?.length);
 }
 
 // 当前草稿里的角色（含未保存的编辑与所属分组，已丢弃全空的新卡片），保存与导出用。
@@ -3064,8 +3063,7 @@ async function saveSingleComfyCharacterCard(characterId) {
             throw new Error('保存期间当前角色被修改，请重新保存');
         }
     };
-    const result = { ...structuredClone(before),
-        ...(String(before.appearanceZh || '').trim() ? { appearanceSource: 'chinese' } : {}) };
+    const result = structuredClone(before);
     assertCurrentDraft();
     const ok = await updateSharedDrawSettingsPersistent(draft => {
         assertCurrentDraft();
@@ -3087,11 +3085,6 @@ async function saveSingleComfyCharacterCard(characterId) {
     if (card) {
         const chinese = card.querySelector('[data-sd-char-field="appearanceZh"]');
         if (chinese) chinese.value = result.appearanceZh || '';
-        for (const key of ['outfits','dynamicStates']) {
-            const node = card.querySelector('[data-sd-char-field="' + key + '"]');
-            if (!node) continue;
-            node.dataset.originalTags = JSON.stringify(result[key] || []);
-        }
     }
     return true;
 }
@@ -3489,10 +3482,7 @@ function renderCharacterCard({ character: tag, ordinal }) {
 
 function createChineseNamedTagField(label, fieldName, original, placeholder) {
     const values = Array.isArray(original) ? original : [];
-    const field = createCharacterField(label, fieldName, namedTagsChineseText(values), placeholder, { multiline: true });
-    const input = field.querySelector('[data-sd-char-field="' + fieldName + '"]');
-    if (input) input.dataset.originalTags = JSON.stringify(values);
-    return field;
+    return createCharacterField(label, fieldName, namedTagsChineseText(values), placeholder, { multiline: true });
 }
 
 function createCharacterField(labelText, fieldName, value, placeholder, options = {}) {
@@ -3788,8 +3778,7 @@ async function saveSharedDrawSettings({ notify = false } = {}) {
             throw new Error('保存期间角色列表已修改，请重新保存');
         }
     };
-    const characterTags = structuredClone(draft).map(person => ({ ...person,
-        ...(String(person.appearanceZh || '').trim() ? { appearanceSource: 'chinese' } : {}) }));
+    const characterTags = structuredClone(draft);
     assertCurrentDraft();
     const characterGroups = getSharedCharacterGroupsFromForm();
     const saved = await updateSharedDrawSettingsPersistent((settings) => {
@@ -3818,11 +3807,6 @@ async function saveSharedDrawSettings({ notify = false } = {}) {
             if (!current || characterDraftSignature(current) !== characterDraftSignature(person)) return;
             const chinese = card.querySelector('[data-sd-char-field="appearanceZh"]');
             if (chinese) chinese.value = person.appearanceZh || '';
-            for (const category of ['outfits', 'dynamicStates']) {
-                const box = card.querySelector('[data-sd-char-field="' + category + '"]');
-                if (!box) continue;
-                box.dataset.originalTags = JSON.stringify(person[category] || []);
-            }
         });
     }
     return saved;

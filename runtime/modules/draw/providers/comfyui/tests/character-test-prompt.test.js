@@ -6,26 +6,26 @@ import { buildCharacterTestPrompt } from '../character-test-prompt.js';
 const src=fs.readFileSync(new URL('../comfy-draw.js',import.meta.url),'utf8');
 test('role test builds single-person prompt without using story/worldbook or other roles',()=>{
  const out=buildCharacterTestPrompt({
-  id:'one',name:'单人',type:'woman',appearance:'oval face, dark straight long hair, clear eyes',
+  id:'one',name:'单人',type:'woman',appearanceZh:'椭圆脸，黑色长直发，眼神清澈',
   negativeTags:'bad hands',
   outfits:[{name:'蓝色毛衣',tags:'blue wool sweater'}],
  });
  assert.match(out.positive,/one female person, solo/);
- assert.match(out.positive,/oval face/);
- assert.match(out.positive,/blue wool sweater/);
+ assert.match(out.positive,/椭圆脸/);
+ assert.match(out.positive,/蓝色毛衣/);
  assert.match(out.positive,/full length standing photograph/);
  assert.match(out.negative,/bad hands/);
  assert.match(out.negative,/multiple people/);
  assert.equal(out.framing,'full');
 });
 test('test uses body framing requested and preserves already specified hair without overriding it',()=>{
- const out=buildCharacterTestPrompt({name:'someone',type:'man',appearance:'medium brown hair, square jaw',outfits:[]},{framing:'full'});
- assert.match(out.positive,/medium brown hair/);
+ const out=buildCharacterTestPrompt({name:'someone',type:'man',appearanceZh:'棕色中长发，方形下颌',outfits:[]},{framing:'full'});
+ assert.match(out.positive,/棕色中长发/);
  assert.doesNotMatch(out.positive,/natural black long hair/);
  assert.match(out.positive,/full length standing photograph/);
 });
 test('test requires a saved appearance when both Chinese and legacy English are empty',()=>{
- assert.throws(()=>buildCharacterTestPrompt({name:'blank',appearance:''}),/外貌/);
+ assert.throws(()=>buildCharacterTestPrompt({name:'blank',appearanceZh:''}),/外貌/);
 });
 test('role card binds per-card save and test, and hides Danbooru input and button',()=>{
  const card=src.slice(src.indexOf('function renderCharacterCard('),src.indexOf('function createChineseNamedTagField('));

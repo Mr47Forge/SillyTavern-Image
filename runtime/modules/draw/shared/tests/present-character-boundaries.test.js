@@ -39,6 +39,6 @@ test('nonmatching cards absent and metadata preserved',()=>{
  assert.deepEqual(names('下雨了',lib),[]);
  const hits=detectPresentCharacters('小猫来了',lib);
  assert.equal(hits.length,1);
- assert.deepEqual(hits[0].outfits,[{name:'常服',tags:'coat'}]);
- assert.deepEqual(hits[0].dynamicStates,[{name:'injured',tags:'bandage'}]);
+ assert.deepEqual(hits[0].outfits,[{name:'常服'}]);
+ assert.deepEqual(hits[0].dynamicStates,[{name:'injured'}]);
 });

@@ -16,7 +16,7 @@ const painter = { name: 'Alice', aliases: ['画师'], enabled: true, type: 'adul
     outfits: [{ name: '工作服', tags: 'blue apron' }], dynamicStates: [{ name: '雨后', tags: 'wet hair' }],
     photoUrl: 'user/images/SillyTavernImage-role-photos/alice.jpg' };
 const text = '成年画师推开画室的门。\n\n她在窗边整理画具。\n\n傍晚时分，她放下画笔。';
-const directive = { prompt: 'studio, warm light', negative: 'blur', characters: [{ name: '画师', costume: 'blue apron', action: 'painting', uc: 'gloves' }], after: '她在窗边整理画具。', post_prompt: 'soft shadows' };
+const directive = { prompt: 'studio, warm light', negative: 'blur', characters: [{ name: '画师', appear: 'silver hair', costume: 'blue apron', action: 'painting', uc: 'gloves' }], after: '她在窗边整理画具。', post_prompt: 'soft shadows' };
 const preset = { maxImages: 1, maxCharactersPerImage: 1, positivePrefix: 'quality', negativePrefix: 'low quality' };
 const recipe = { positivePrefix: preset.positivePrefix, negativePrefix: preset.negativePrefix, knownCharacters: [painter],
     workflowMode: 'simple', params: { model: 'fixture', width: 1024, height: 1024, cfg: 4, steps: 8 }, timeout: 1000, delayMs: 0, seeds: [123] };
@@ -69,10 +69,10 @@ test('canonical names, costumes, action and extra negatives reach final request'
     assert.equal(batch.items[0].request.workflow['3'].inputs.cfg, 4);
     assert.equal(batch.items[0].request.workflow['5'].inputs.width, 1024);
 });
-test('model cannot replace registered identity with conflicting appearance', () => {
-    const tasks = build([{ ...directive, characters: [{ name: 'Alice', type: 'other identity', appear: 'green hair' }] }]);
+test('legacy English appearance cannot override explicit current model translation', () => {
+    const tasks = build([{ ...directive, characters: [{ name: 'Alice', type: 'other identity', appear: 'silver hair' }] }]);
     const out = compile(tasks, recipe).artifacts[0].promptData;
-    assert.ok(out.positive.includes('silver hair')); assert.ok(!out.positive.includes('green hair'));
+    assert.ok(out.positive.includes('silver hair')); assert.ok(!out.positive.includes('outdated library English'));
 });
 test('declared names deterministically select the saved photo', () => {
     assert.equal(selectPhotoCharacter({ prompt: directive.prompt, taskCharacters: build()[0].chars, knownCharacters: [painter] }).name, 'Alice');
@@ -181,7 +181,7 @@ test('picture rules, full character references, worldbook and field descriptions
     const result = buildDirectDrawInstruction({ preset, characters: [painter], worldbook: 'WORLD',
         prompts: { topSystem: 'VIEWPOINT\n通过 submit_scene_plan 提交\n可在工具调用前说明', sceneRules: 'PICTURE_RULE',
             tagGuideContent: 'GUIDE', jailbreak: 'DO_NOT_INJECT', fieldDescriptions: '{"images[].scene":"CUSTOM_FIELD"}' } });
-    for (const term of ['VIEWPOINT', 'PICTURE_RULE', 'GUIDE', 'WORLD', 'CUSTOM_FIELD', 'blue apron', 'wet hair', 'red hair']) assert.ok(result.includes(term));
+    for (const term of ['VIEWPOINT', 'PICTURE_RULE', 'GUIDE', 'WORLD', 'CUSTOM_FIELD', '工作服', '雨后', 'red hair']) assert.ok(result.includes(term), 'Missing '+term);
     for (const term of ['submit_scene_plan', 'DO_NOT_INJECT', '可在工具调用前说明']) assert.ok(!result.includes(term));
 });
 

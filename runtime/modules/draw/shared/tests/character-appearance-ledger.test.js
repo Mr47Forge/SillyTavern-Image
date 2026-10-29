@@ -17,7 +17,7 @@ test('different characters and unrelated chats cannot override a named identity'
     assert.equal(people[1].appear,'unique blonde hair');
 });
 test('user-registered role always has precedence over generated history',()=>{
-    const roles=[{name:'Alice',appearance:'configured silver hair',aliases:['Artist']}];
+    const roles=[{name:'Alice',appearanceZh:'银色长发',aliases:['Artist']}];
     const person=pinImageCharacterAppearances([{name:'Alice',appear:''}],new Map([['alice','random red hair']]),roles);
     assert.equal(person[0].appear,'');
 });

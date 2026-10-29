@@ -13,14 +13,15 @@ export function cleanCharacterAppearanceText(value, language = 'en') {
 }
 export function cleanImageCharacterProfile(profile) {
     const cleanNamed = entries => (Array.isArray(entries) ? entries : [])
-        .map(item => ({ ...item,
-            name: cleanCharacterAppearanceText(item.name, 'zh'),
-            tags: cleanCharacterAppearanceText(item.tags, 'en'),
-        })).filter(item => item.name || item.tags);
+        .map(item => ({ name: cleanCharacterAppearanceText(item?.name, 'zh') }))
+        .filter(item => item.name);
+    const current = { ...(profile || {}) };
+    delete current.appearance;
+    delete current.appearanceSource;
+    delete current.tags;
     return {
-        ...profile,
+        ...current,
         appearanceZh: cleanCharacterAppearanceText(profile?.appearanceZh, 'zh'),
-        appearance: cleanCharacterAppearanceText(profile?.appearance, 'en'),
         outfits: cleanNamed(profile?.outfits),
         dynamicStates: cleanNamed(profile?.dynamicStates),
     };

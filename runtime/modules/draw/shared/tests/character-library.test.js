@@ -66,8 +66,8 @@ test('legacy library without groups round-trips without adding group keys', () =
     });
     assert.deepEqual(normalized.groups, []);
     assert.equal(Object.hasOwn(normalized.characters[0], 'groupId'), false);
-    assert.equal(normalized.characters[0].appearance, 'silver hair');
-    assert.deepEqual(normalized.characters[0].outfits, [{ name: '常服', tags: 'dress' }]);
+    assert.equal(Object.hasOwn(normalized.characters[0], 'appearance'), false);
+    assert.deepEqual(normalized.characters[0].outfits, [{ name: '常服' }]);
     assert.deepEqual(normalized.repairs, { idFilled: 0, idDeduped: 0, groupCleared: 0 });
 });
 
@@ -368,7 +368,7 @@ test('duplicateCharacters deep-copies with new id, suffixed name, no aliases, al
     assert.deepEqual(copy.aliases, []);
     assert.equal(copy.groupId, 'g1');
     assert.equal(copy.enabled, true);
-    assert.deepEqual(copy.outfits, [{ name: '常服', tags: 'dress' }]);
+    assert.deepEqual(copy.outfits, [{ name: '常服' }]);
     assert.notEqual(copy.outfits, library.characters[0].outfits);
     const again = duplicateCharacters(copied, ['1'], { makeId: counterIds() });
     assert.equal(again.library.characters[1].name, '阿璃 副本 2');
@@ -446,8 +446,8 @@ test('parseCharacterImport skips nameless entries, flags duplicate ids, resolves
     assert.equal(parsed.entries[1].duplicate, true);
     assert.equal(parsed.entries[3].groupName, '');
     assert.equal(parsed.entries[2].groupName, '');
-    assert.deepEqual(parsed.entries[3].fields.sort(), ['appearance', 'name']);
-    assert.equal(parsed.entries[3].character.appearance, 'legacy');
+    assert.deepEqual(parsed.entries[3].fields.sort(), ['name']);
+    assert.equal(Object.hasOwn(parsed.entries[3].character, 'appearance'), false);
     assert.equal(Object.hasOwn(parsed.entries[3].character, 'evil'), false);
     assert.equal(Object.hasOwn(parsed.entries[0].character, 'groupId'), false);
     assert.ok(parsed.warnings.some(w => w.code === 'duplicate-id'));
@@ -474,7 +474,7 @@ test('auto mode replaces same-id characters in place across groups, keeping loca
         [{ id: 'g1', name: '甲' }, { id: 'g2', name: '乙' }],
     );
     const parsed = parsedOf([
-        char('2', '新B', { enabled: false, appearance: 'new b' }),
+        char('2', '新B', { enabled: false, appearanceZh: '新的外貌' }),
         char('1', '新A', { enabled: true, groupId: 'fg9' }),
     ]);
     const plan = planCharacterImport(library, parsed, { mode: 'auto' }, { makeId: counterIds() });
@@ -487,16 +487,16 @@ test('auto mode replaces same-id characters in place across groups, keeping loca
     assert.equal(two.name, '新B');
     assert.equal(two.groupId, 'g2');
     assert.equal(two.enabled, true);
-    assert.equal(two.appearance, 'new b');
+    assert.equal(two.appearanceZh, '新的外貌');
 });
 
 test('field-level overwrite: fields absent from the file keep local values', () => {
     const library = lib([char('1', 'A', { outfits: [{ name: '常服', tags: 'dress' }], negativeTags: 'bad' })]);
-    const parsed = parsedOf([{ id: '1', name: 'A', tags: 'from v3 file' }], [], 3);
+    const parsed = parsedOf([{ id: '1', name: 'A', appearanceZh: '新版中文外貌' }], [], 3);
     const plan = planCharacterImport(library, parsed, {}, { makeId: counterIds() });
     const result = plan.library.characters[0];
-    assert.equal(result.appearance, 'from v3 file');
-    assert.deepEqual(result.outfits, [{ name: '常服', tags: 'dress' }]);
+    assert.equal(result.appearanceZh, '新版中文外貌');
+    assert.deepEqual(result.outfits, [{ name: '常服' }]);
     assert.equal(result.negativeTags, 'bad');
 });
 
@@ -757,8 +757,8 @@ test('parseCharacterImport skips entries whose text fields are not strings or nu
         { name: true },
         char({ x: 1 }, 'IdObject'),
         char('t1', 'TypeArray', { type: ['girl'] }),
-        char('t2', 'Appearance', { appearance: { tags: 'x' } }),
-        char('t3', 'LegacyTags', { tags: false }),
+        char('t2', 'AppearanceZh', { appearanceZh: { tags: 'x' } }),
+        char('t3', 'ChineseAppearance', { appearanceZh: false }),
         char('t4', 'Negative', { negativeTags: [] }),
         char('t5', 'Danbooru', { danbooruTag: true }),
         char('t6', 'GroupObj', { groupId: {} }),
@@ -774,7 +774,7 @@ test('parseCharacterImport skips entries whose text fields are not strings or nu
     const good = [
         char('g1', 'Good', { type: 'girl', aliases: ['a', 7], outfits: [{ name: '常服', tags: 'dress' }], dynamicStates: [] }),
         char('g2', 'NullsAreMissing', { type: null, appearance: undefined, negativeTags: null, aliases: null, outfits: null, groupId: null }),
-        { name: 123, id: 456, appearance: 7 },
+        { name: 123, id: 456, appearanceZh: 7 },
     ];
     const parsed = parseCharacterImport(fileOf([...bad.slice(0, 5), good[0], ...bad.slice(5), good[1], good[2]]));
     assert.equal(parsed.skipped, bad.length);
@@ -788,7 +788,7 @@ test('parseCharacterImport skips entries whose text fields are not strings or nu
     // 数字按字符串处理。
     const numeric = parsed.entries[2].character;
     assert.equal(numeric.id, '456');
-    assert.equal(numeric.appearance, '7');
+    assert.equal(numeric.appearanceZh, '7');
     assert.deepEqual(parsed.entries[0].character.aliases, ['a', '7']);
     assert.deepEqual(parsed.entries[1].character.aliases, []);
 });
@@ -816,7 +816,7 @@ test('storage normalization keeps its lenient behavior; only the import path rej
     const stored = normalizeCharacter({ id: 'a', name: { x: 1 }, type: 5, appearance: ['x'], aliases: [1, null, ' b '] });
     assert.equal(stored.name, '[object Object]');
     assert.equal(stored.type, '5');
-    assert.equal(stored.appearance, 'x');
+    assert.equal(Object.hasOwn(stored,'appearance'), false);
     assert.deepEqual(stored.aliases, ['1', 'b']);
 });
 

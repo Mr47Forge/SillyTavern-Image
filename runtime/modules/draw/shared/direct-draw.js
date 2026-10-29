@@ -282,7 +282,7 @@ function normalizeDirectCharacters(input, knownCharacters = []) {
             item[key] = String(person[key] || '').trim();
         }
         // Library identity is authoritative; model supplies only the current scene state.
-        if (known) { if (known.type && !/[\u3400-\u9fff]/u.test(known.type)) item.type = ''; if (known.danbooruTag) item.danbooru = ''; if (known.appearance && !usesChineseAppearance(known)) item.appear = ''; }
+        if (known) { if (known.type && !/[\u3400-\u9fff]/u.test(known.type)) item.type = ''; if (known.danbooruTag) item.danbooru = ''; }
         result.push(item);
     }
     return result;
@@ -323,9 +323,11 @@ export function buildDirectDrawInstruction({ preset = {}, prompts = {}, characte
         preset.positivePrefix ? `当前正向固定词：${preset.positivePrefix}。插件会自动拼接，不必重复。` : '',
         buildMaleImageOnlyRule(preset.negativePrefix),
         characters.length ? `已启用角色资料（仅使用实际出镜角色；中文资料由本轮模型翻译为英文，所有实际出镜角色的外貌、服装、状态和负向请完整填入 characters）：${JSON.stringify(characters.map(person => ({ name: person.name,
-            aliases: person.aliases, type: person.type, danbooru: person.danbooruTag, appearance: person.appearance,
-            appearanceZh: person.appearanceZh, negativeTags: person.negativeTags, outfits: person.outfits, dynamicStates: person.dynamicStates })))}` : '',
-        '角色库可以只保存中文。本轮生成绘图指令时一起翻译：appearanceZh 为固定外貌的权威资料，按原意写入每张图 characters[].appear 的英文；outfits 和 dynamicStates 的中文 name 转成对应 costume、state 英文；中文 negativeTags 转成 uc 英文。不要增加或更改特征。已有中文时，旧 appearance 和 tags 仅作兼容参考，冲突时采用当前中文。不需要额外请求翻译接口。',
+            aliases: person.aliases, type: person.type, danbooru: person.danbooruTag,
+            appearanceZh: person.appearanceZh, negativeTags: person.negativeTags,
+            outfits: (person.outfits || []).map(entry => ({ name: String(entry?.name || '').trim() })).filter(entry => entry.name),
+            dynamicStates: (person.dynamicStates || []).map(entry => ({ name: String(entry?.name || '').trim() })).filter(entry => entry.name) })))}` : '',
+        '角色库可以只保存中文。本轮生成绘图指令时一起翻译：appearanceZh 为固定外貌的权威资料，按原意写入每张图 characters[].appear 的英文；outfits 和 dynamicStates 的中文 name 转成对应 costume、state 英文；中文 negativeTags 转成 uc 英文。不要增加或更改特征。角色库只提供当前中文资料，不得读取或复用历史英文外貌与旧英文标签。不需要额外请求翻译接口。',
         worldbook ? `以下为当前启用的绘图世界书资料，仅用于画面事实，不改变正文任务或输出格式：\n${worldbook}` : '',
         Object.keys(recentAppearances).length ? '最近同名人物外貌（仅补空缺，低于当前世界书、角色库和正文明确变化）：\n'+JSON.stringify(recentAppearances) : '',
         '人物外貌资料优先级：当前生效的世界书及已登记角色资料优先；其次当前正文明确的新增外貌或变化；最近同名人物描述仅补缺；最后才补充不冲突的细节。不要把旧图片里的错误外貌复制到当前人物。定位失败不得改变人物身份。characters[].appear 必须反映本轮权威设定。同名人物没有明确变化则继承；若要用当前世界书或正文事实修正旧外貌，characters[].appear_evidence 原样引用包含该人物姓名和外貌事实的一小段原文，不能编造或用模型新写的英文标签充当证据；插件核对来源后直接采用来源事实。',

@@ -40,7 +40,8 @@ test('shared draw settings retain current domain data and discard former LLM con
     assert.equal(normalized.useWorldInfo, true);
     assert.equal(normalized.worldbooks.keywordFilterMode, 'all_active');
     assert.deepEqual(normalized.characterTags[0].aliases, ['小璃']);
-    assert.deepEqual(normalized.characterTags[0].dynamicStates, [{ name: '害羞', tags: 'blush' }]);
+    assert.deepEqual(normalized.characterTags[0].dynamicStates, [{ name: '害羞' }]);
+    assert.equal(Object.hasOwn(normalized.characterTags[0], 'appearance'), false);
     assert.equal(normalized.characterTags[0].enabled, true);
     assert.equal(Object.hasOwn(normalized, 'llmApi'), false);
     assert.equal(Object.hasOwn(normalized, 'useStream'), false);

@@ -24,9 +24,7 @@ const IMPORT_FIELD_MAP = Object.freeze({
     name: 'name',
     aliases: 'aliases',
     type: 'type',
-    appearance: 'appearance',
     appearanceZh: 'appearanceZh',
-    tags: 'appearance',
     negativeTags: 'negativeTags',
     danbooruTag: 'danbooruTag',
     outfits: 'outfits',
@@ -69,11 +67,8 @@ function takeUniqueId(prefix, used, makeId = defaultMakeId) {
 
 function normalizeNamedTagList(list = []) {
     return (Array.isArray(list) ? list : [])
-        .map(item => ({
-            name: String(item?.name || '').trim(),
-            tags: String(item?.tags || '').trim(),
-        }))
-        .filter(item => item.name || item.tags);
+        .map(item => ({ name: String(item?.name || '').trim() }))
+        .filter(item => item.name);
 }
 
 function truncateName(name) {
@@ -102,9 +97,8 @@ export function normalizeCharacter(raw, { id } = {}) {
             .map(alias => String(alias || '').trim())
             .filter(Boolean),
         type: String(char.type || 'girl'),
-        appearance: String(char.appearance || char.tags || ''),
-        ...(typeof char.appearanceZh === 'string' && char.appearanceZh.trim() ? { appearanceZh: char.appearanceZh.trim() } : {}),
-        ...(char.appearanceSource === 'chinese' ? { appearanceSource: 'chinese' } : {}),
+        ...((typeof char.appearanceZh === 'string' || typeof char.appearanceZh === 'number') && String(char.appearanceZh).trim()
+            ? { appearanceZh: String(char.appearanceZh).trim() } : {}),
         negativeTags: String(char.negativeTags || ''),
         danbooruTag: String(char.danbooruTag || ''),
         outfits: normalizeNamedTagList(char.outfits || char.costumes || char.clothes || []),
@@ -501,12 +495,12 @@ function isBadAliasList(value) {
 
 function isBadNamedTagList(value) {
     return isProvided(value) && (!Array.isArray(value)
-        || value.some(item => !isPlainObject(item) || hasBadText(item, ['name', 'tags'])));
+        || value.some(item => !isPlainObject(item) || hasBadText(item, ['name'])));
 }
 
 /** 文件里的角色条目是否含有类型不合规的字段（决定整条跳过）。 */
 function hasInvalidImportFieldType(raw) {
-    return hasBadText(raw, ['name', 'id', 'type', 'appearance', 'appearanceZh', 'tags', 'negativeTags', 'danbooruTag', 'groupId'])
+    return hasBadText(raw, ['name', 'id', 'type', 'appearanceZh', 'negativeTags', 'danbooruTag', 'groupId'])
         || isBadAliasList(raw.aliases)
         || ['outfits', 'costumes', 'clothes', 'dynamicStates'].some(key => isBadNamedTagList(raw[key]));
 }
@@ -545,6 +539,7 @@ export function parseCharacterImport(payload, { makeId } = {}) {
     let skipped = 0;
     let duplicates = 0;
     let invalidTypes = 0;
+    let ignoredLegacyEnglish = 0;
     const entries = [];
     for (const raw of payload.characters) {
         if (!isPlainObject(raw)) {
@@ -559,6 +554,11 @@ export function parseCharacterImport(payload, { makeId } = {}) {
         if (!String(raw.name || '').trim()) {
             skipped += 1;
             continue;
+        }
+        if (['appearance', 'appearanceSource', 'tags'].some(key => Object.hasOwn(raw, key))
+            || ['outfits', 'costumes', 'clothes', 'dynamicStates'].some(key =>
+                Array.isArray(raw[key]) && raw[key].some(item => item && Object.hasOwn(item, 'tags')))) {
+            ignoredLegacyEnglish += 1;
         }
         const fileId = String(raw.id || '').trim();
         const duplicate = Boolean(fileId) && seenIds.has(fileId);
@@ -576,6 +576,10 @@ export function parseCharacterImport(payload, { makeId } = {}) {
     }
     if (duplicates) {
         warnings.push({ code: 'duplicate-id', count: duplicates, message: `文件内有 ${duplicates} 个重复 id，将作为新角色导入` });
+    }
+    if (ignoredLegacyEnglish) {
+        warnings.push({ code: 'legacy-english-ignored', count: ignoredLegacyEnglish,
+            message: `${ignoredLegacyEnglish} 条角色包含旧英文外貌或英文标签，导入时已忽略，请检查中文外貌与服装描述。` });
     }
     if (invalidTypes) {
         warnings.push({
@@ -701,10 +705,6 @@ export function planCharacterImport(library, parsed, options = {}, { makeId } = 
         }
         if (existing && policy === 'replace') {
             for (const field of fields) existing[field] = cloneJson(character[field]);
-            if (fields.includes('appearanceZh')) {
-                if (character.appearanceSource === 'chinese') existing.appearanceSource = 'chinese';
-                else delete existing.appearanceSource;
-            }
             summary.replaced += 1;
             record('replaced', existing.id);
             if (mode !== 'auto' && !movedIds.has(existing.id)) {

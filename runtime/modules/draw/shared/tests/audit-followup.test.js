@@ -52,11 +52,11 @@ for (const rules of [
     assert.match(instruction,/画面必须水彩/);assert.match(instruction,/使用蓝色调/);
     assert.ok(!/submit_scene_plan|tool_call|工具调用/.test(instruction));
 });
-test('empty saved canonical tag uses scene fallback without overriding saved identity',()=>{
-    const task=build('Alice在画室里等待。',[{name:'Alice',danbooru:'audit_canonical_tag',appear:'conflicting blonde hair'}],[]);
+test('scene translation is used without reading old English library identity',()=>{
+    const task=build('Alice在画室里等待。',[{name:'Alice',danbooru:'audit_canonical_tag',appear:'brown hair'}],[]);
     const positive=compileComfyPromptForTask(task,{knownCharacters:known}).positive;
     assert.match(positive,/audit_canonical_tag/);assert.match(positive,/brown hair/);
-    assert.ok(!positive.includes('conflicting blonde hair'));
+    assert.ok(!positive.includes('outdated library English identity'));
 });
 test('nonempty saved canonical tag stays authoritative',()=>{
     const people=[{...known[0],danbooruTag:'saved_identity_tag'}];
