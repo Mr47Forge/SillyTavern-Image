@@ -201,7 +201,13 @@ export function formatImageLog(record={}) {
         status:record.status==='failed'?'失败':'成功',
         positive:safeText(info.positive || record.positive || '',12000),
         negative:safeText(info.negative || record.negativePrompt || '',12000),
-        traceNodes:Array.isArray(info.nodes)?info.nodes:[],
+        // Final prompts and the actual workflow nodes are two views of the same text.
+        // Keep divergent node prompts for troubleshooting, not identical copies.
+        traceNodes:(Array.isArray(info.nodes)?info.nodes:[]).filter(node => {
+            const nodeText = String(node?.text || '').trim();
+            return nodeText && nodeText !== String(info.positive || record.positive || '').trim()
+                && nodeText !== String(info.negative || record.negativePrompt || '').trim();
+        }),
         sampler:info.sampler||'',
         scheduler:info.scheduler||'',
         steps:info.steps,seed:info.seed,cfg:info.cfg,
@@ -260,7 +266,7 @@ export function openImageDiagnostics(record={},opts={}) {
         const info=formatImageLog(raw);
         addLabeledSection(body,'图片 / 时间 / 状态',info.id+' · '+info.time+' · '+info.status,doc);
         addLabeledSection(body,'最终正向提示词',info.positive,doc);
-        addLabeledSection(body,'最终负向提示词',info.negative,doc);
+        addLabeledSection(body,Number(info.cfg)===1?'最终负向提示词（CFG=1：此轮不参与采样）':'最终负向提示词',info.negative,doc);
         if (!info.positive && !info.negative && !info.traceNodes.length) {
             if (raw.tags) addLabeledSection(body,'原始绘图提示词（非最终 ComfyUI 提示词）',raw.tags,doc);
             addLabeledSection(body,'提示词记录状态','此图片没有可读取的完整提示词记录。图片仍可查看；本地历史缓存缺失时无法凭图片还原最终提示词。',doc);

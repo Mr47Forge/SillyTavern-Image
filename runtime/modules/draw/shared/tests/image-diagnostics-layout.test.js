@@ -97,3 +97,24 @@ test('card prompt log recovery never substitutes a different image history recor
     assert.equal(opened[1].imgId,'missing-id');
     assert.notEqual(opened[1].positive,'incorrect');
 });
+
+test('identical 900/901 conditioning text is not shown twice, CFG=1 is labeled accurately', () => {
+    withDocument(660, document => {
+        const positive = 'one single woman, solo';
+        const negative = 'duplicate person, twins';
+        const overlay = openImageDiagnostics({
+            imgId:'solo-img', positive, negativePrompt:negative,
+            promptTrace:{ cfg:1, positive, negative, nodes:[
+                {id:'900',type:'CLIPTextEncode',text:positive},
+                {id:'901',type:'CLIPTextEncode',text:negative},
+            ] },
+        }, {document});
+        const body = overlay.lastElementChild;
+        assert.equal(body.textContent.split(positive).length - 1, 1);
+        assert.equal(body.textContent.split(negative).length - 1, 1);
+        assert.ok(body.textContent.includes('CFG=1：此轮不参与采样'));
+        assert.ok(!body.textContent.includes('工作流节点 900'));
+        assert.ok(!body.textContent.includes('工作流节点 901'));
+        overlay.remove();
+    });
+});
