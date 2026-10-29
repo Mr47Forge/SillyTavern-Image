@@ -168,7 +168,7 @@ test('female-labelled image role cannot contain male anatomy',()=>{
     assert.throws(()=>filterMaleImageDirective(
         {prompt:'1girl, soft light',characters:[role]},
         known,{requireFemale:true}),/\u6ca1\u6709\u53ef\u7528\u4eba\u7269/);
-    const library=[{name:'Alice',type:'1girl',appearance:'black hair, penile anatomy'}];
+    const library=[{name:'Alice',type:'1girl',appearanceZh:'黑发，男性生殖器'}];
     assert.equal(isMaleCharacter({name:'Alice',type:'1girl'},library),true);
 });
 test('same Gemini rule explicitly bans organ-only and off-screen genitalia',()=>{

@@ -18,15 +18,14 @@ function formatDanbooruTag(tag, options = {}) {
 }
 
 export function usesChineseAppearance(character = {}) {
-    return Boolean(String(character.appearanceZh || '').trim())
-        && (character.appearanceSource === 'chinese' || !String(character.appearance || '').trim());
+    return Boolean(String(character.appearanceZh || '').trim());
 }
 
 export function buildKnownCharacterPrompt(character = {}, options = {}) {
     const danbooruTag = character.danbooruTag ? formatDanbooruTag(character.danbooruTag, options) : '';
     // [K2] type 提到最前：type 是角色的自然语言身份短句（K2 下可携带画面方位），应当作为角色提示词的开头。
     // 上游同步时注意保留此顺序调整。
-    return joinTags(toSceneCharacterPromptTag(character.type), danbooruTag, character.appearance);
+    return joinTags(toSceneCharacterPromptTag(character.type), danbooruTag);
 }
 
 function normalizeCharacterCenter(center, { acceptGrid = true } = {}) {
@@ -50,8 +49,8 @@ export function assembleCharacterPrompts(sceneCharacters = [], knownCharacters =
         const known = findEnabledCharacterByName(character?.name, knownCharacters);
         const center = normalizeCharacterCenter(character?.center, options);
         if (known) {
-            const chineseAuthority = usesChineseAppearance(known) ? String(known.appearanceZh || '').trim() : '';
-            const identity = chineseAuthority ? (String(character?.appear || '').trim() || chineseAuthority) : known.appearance;
+            const chineseAuthority = String(known.appearanceZh || '').trim();
+            const identity = String(character?.appear || '').trim() || chineseAuthority;
             // [K2] 场景 type（可携带方位）非空时打头并顶替库 type；为空（原生合同会清空已录入
             // 角色的场景 type）时回落 buildKnownCharacterPrompt 内的库 type，原生行为不变。
             const sceneType = toSceneCharacterPromptTag(character?.type);
@@ -59,7 +58,8 @@ export function assembleCharacterPrompts(sceneCharacters = [], knownCharacters =
                 name: known.name || character.name,
                 prompt: joinTags(
                     sceneType,
-                    buildKnownCharacterPrompt(sceneType ? { ...known, type: '', appearance: identity } : { ...known, appearance: identity }, options),
+                    buildKnownCharacterPrompt(sceneType ? { ...known, type: '' } : known, options),
+                    identity,
                     !known.danbooruTag && character?.danbooru ? formatDanbooruTag(character.danbooru, options) : '',
                     identity ? '' : character?.appear,
                     character.costume,

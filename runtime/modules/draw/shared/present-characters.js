@@ -4,11 +4,8 @@ import { isCharacterEnabled } from './character-selection.js';
 
 function normalizeNamedTagList(list = []) {
     return (Array.isArray(list) ? list : [])
-        .map(item => ({
-            name: String(item?.name || '').trim(),
-            tags: String(item?.tags || '').trim(),
-        }))
-        .filter(item => item.name || item.tags);
+        .map(item => ({ name: String(item?.name || '').trim() }))
+        .filter(item => item.name);
 }
 
 function getWordBoundaries(text) {
@@ -87,7 +84,7 @@ export function detectPresentCharacters(messageText, characterLibrary) {
         name: char.name,
         aliases: char.aliases || [],
         type: char.type || 'girl',
-        appearance: char.appearance || '',
+        appearanceZh: char.appearanceZh || '',
         danbooruTag: char.danbooruTag || '',
         negativeTags: char.negativeTags || '',
         outfits: normalizeNamedTagList(char.outfits),

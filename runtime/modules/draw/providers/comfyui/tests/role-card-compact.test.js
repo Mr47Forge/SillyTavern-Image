@@ -64,7 +64,7 @@ const ctx={
  querySettingsAll:()=>cards,
  getSharedDrawSettings:()=>({characterTags:[tag]}),
  getCharacterEnabledFromCard:()=>true,
- reconcileChineseNamedLines:(_text,original)=>original,
+ reconcileChineseNamedLines:(value)=>String(value).split('\n').filter(Boolean).map(name=>({name})),
 };
 const functions=vm.runInNewContext(
  compact+'\n'+render+'\n'+fields+'\n'+read+'\n({renderCharacterCard,setComfyCharacterCardExpanded,updateComfyCharacterCardTitle,readCharacterCardsFromForm})',
@@ -80,10 +80,10 @@ test('saved named roles start collapsed with a compact header',()=>{
 test('collapsed cards preserve exact hidden fields for save and export',()=>{
  const result=functions.readCharacterCardsFromForm()[0];
  assert.equal(result.name,tag.name);
- assert.equal(result.appearance,tag.appearance);
+ assert.equal(Object.hasOwn(result,'appearance'),false);
  assert.equal(result.appearanceZh,tag.appearanceZh);
- assert.equal(JSON.stringify(result.outfits),JSON.stringify(tag.outfits));
- assert.equal(JSON.stringify(result.dynamicStates),JSON.stringify(tag.dynamicStates));
+ assert.deepEqual(result.outfits,tag.outfits.map(({name})=>({name})));
+ assert.deepEqual(result.dynamicStates,tag.dynamicStates.map(({name})=>({name})));
  assert.equal(result.aliases.join(','),'Xiya');
 });
 test('expand and collapse change display only, not the role data',()=>{
@@ -93,7 +93,7 @@ test('expand and collapse change display only, not the role data',()=>{
  assert.equal(card.querySelector('[data-comfy-role-toggle]').attributes['aria-expanded'],'true');
  functions.setComfyCharacterCardExpanded(card,false);
  assert.equal(card.querySelector('.comfy-role-card-body').hidden,true);
- assert.equal(functions.readCharacterCardsFromForm()[0].appearance,tag.appearance);
+ assert.equal(functions.readCharacterCardsFromForm()[0].appearanceZh,tag.appearanceZh);
 });
 test('role title reflects edits without wiping draft fields',()=>{
  const card=cards[0];

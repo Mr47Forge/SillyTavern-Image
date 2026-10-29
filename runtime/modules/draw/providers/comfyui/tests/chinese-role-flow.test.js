@@ -1,49 +1,84 @@
-import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
-import {buildDirectDrawInstruction,buildDirectDrawTasks} from '../../../shared/direct-draw.js';
-import {normalizeCharacter,parseCharacterImport,planCharacterImport} from '../../../shared/character-library.js';
-import {compile} from '../compiler.js';
-import {buildCharacterTestPrompt} from '../character-test-prompt.js';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { buildDirectDrawInstruction, buildDirectDrawTasks } from '../../../shared/direct-draw.js';
+import { normalizeCharacter, parseCharacterImport, planCharacterImport, exportCharacters } from '../../../shared/character-library.js';
+import { compile } from '../compiler.js';
+import { buildCharacterTestPrompt } from '../character-test-prompt.js';
+
 const source=fs.readFileSync(new URL('../comfy-draw.js',import.meta.url),'utf8');
-const role={appearanceSource:'chinese',danbooruTag:'',id:'one',name:'林安',type:'woman',appearanceZh:'林安是30岁成年女性，黑色长发、棕色眼睛。',appearance:'red hair, green eyes',negativeTags:'男性，额外人物',outfits:[{name:'白色衬衫和蓝色长裤',tags:''}],dynamicStates:[{name:'右手拿着画笔',tags:''}]};
-function execute(start,end,env,args=[]){const fn=source.slice(source.indexOf(start),source.indexOf(end,source.indexOf(start)+start.length));return new Function(...Object.keys(env),'return ('+fn.trim()+')(...arguments[arguments.length-1]);')(...Object.values(env),args);}
-function environment(){let saved;const env={getSharedCharacterTagsFromForm:()=>{const input=structuredClone(role);delete input.appearanceSource;return [input];},characterDraftSignature:x=>JSON.stringify(x),getSharedDrawSettings:()=>({characterTags:[role],worldbooks:{uploadedBooks:[]}}),
- translateChineseAppearanceDrafts:()=>{throw new Error('unexpected translation call');},translateChineseNamedTagDrafts:()=>{throw new Error('unexpected translation call');},
- updateSharedDrawSettingsPersistent:async updater=>{const state={characterTags:[]};await updater(state);saved=state;return true;},querySettings:()=>null,querySettingsAll:()=>[],CSS:{escape:x=>x},
- toastr:{success(){},error(){}},getSharedCharacterGroupsFromForm:()=>[],getChecked:()=>false,collectFilterRules:()=>[],getValue:()=>''};return {env,get saved(){return saved;}};}
-test('saving one Chinese role never calls a translation model and preserves legacy values',async()=>{const h=environment();assert.equal(await execute('async function saveSingleComfyCharacterCard(','function openCharacterTestPreview(',h.env,['one']),true);assert.deepEqual(h.saved.characterTags[0],role);});
-test('saving the complete Chinese role library is a pure persistent save',async()=>{const h=environment();assert.equal(await execute('async function saveSharedDrawSettings(','async function saveAllSettings(',h.env,[{}]),true);assert.deepEqual(h.saved.characterTags[0],role);});
-test('this-turn English translation takes precedence over stale English when Chinese authority exists',()=>{
- const tasks=buildDirectDrawTasks([{prompt:'adult female painter, sunny studio',after:'林安推开了画室的窗户。',characters:[{name:'林安',appear:'black long hair, brown eyes',costume:'white shirt, blue trousers',state:'holding a paintbrush',uc:'male, extra people'}]}],{maxImages:1},{knownCharacters:[role],sourceText:'林安推开了画室的窗户。'});
- const p=tasks[0].characterPrompts[0];assert.match(p.prompt,/black long hair/);assert.doesNotMatch(p.prompt,/red hair|green eyes/);assert.doesNotMatch(p.prompt,/[\u3400-\u9fff]/u);assert.match(p.uc,/male/);assert.doesNotMatch(p.uc,/[\u3400-\u9fff]/u);
- const compiled=compile(tasks,{host:'http://fixture.invalid',workflowMode:'simple',params:{model:'fixture',width:768,height:1024,cfg:1,steps:8},knownCharacters:[role],seeds:[1],timeout:1000,delayMs:0});
- const final=compiled.artifacts[0].promptData;assert.match(final.positive,/black long hair/);assert.doesNotMatch(final.positive,/red hair|green eyes/);assert.doesNotMatch(final.positive,/[\u3400-\u9fff]/u);assert.doesNotMatch(final.negative,/[\u3400-\u9fff]/u);
+const role={danbooruTag:'',id:'one',name:'林安',type:'woman',appearanceZh:'林安是30岁成年女性，黑色长发、棕色眼睛',
+  negativeTags:'男性，额外人物',outfits:[{name:'白色衬衫和蓝色长裤'}],dynamicStates:[{name:'右手拿着画笔'}]};
+function execute(start,end,env,args=[]){
+  const begin=source.indexOf(start),finish=source.indexOf(end,begin+start.length);
+  assert.ok(begin>=0 && finish>begin,'save entrypoint must exist');
+  const fn=source.slice(begin,finish);
+  return new Function(...Object.keys(env),'return ('+fn.trim()+')(...arguments[arguments.length-1]);')(...Object.values(env),args);
+}
+function environment(){
+  let saved;
+  const env={getSharedCharacterTagsFromForm:()=>[structuredClone(role)],characterDraftSignature:x=>JSON.stringify(x),
+    getSharedDrawSettings:()=>({characterTags:[role],worldbooks:{uploadedBooks:[]}}),
+    updateSharedDrawSettingsPersistent:async updater=>{const state={characterTags:[]};await updater(state);saved=state;return true;},
+    querySettings:()=>null,querySettingsAll:()=>[],CSS:{escape:x=>x},
+    toastr:{success(){},error(){}},getSharedCharacterGroupsFromForm:()=>[],getChecked:()=>false,collectFilterRules:()=>[],getValue:()=>''};
+  return {env,get saved(){return saved;}};
+}
+test('single role save persists only Chinese descriptions',async()=>{
+  const h=environment();
+  assert.equal(await execute('async function saveSingleComfyCharacterCard(','function openCharacterTestPreview(',h.env,['one']),true);
+  assert.deepEqual(h.saved.characterTags[0],role);
 });
-test('old roles without Chinese descriptions retain the canonical English identity',()=>{const old={...role,appearanceZh:'',negativeTags:'bad hands'};const tasks=buildDirectDrawTasks([{prompt:'artist at window',characters:[{name:'林安',appear:'random new hair'}]}],{maxImages:1},{knownCharacters:[old]});assert.match(tasks[0].characterPrompts[0].prompt,/red hair, green eyes/);assert.doesNotMatch(tasks[0].characterPrompts[0].prompt,/random/);});
-test('generation instructions request English character fields in the same reply from saved Chinese facts',()=>{const instruction=buildDirectDrawInstruction({characters:[role]});assert.match(instruction,/本轮.*翻译/);assert.match(instruction,/appearanceZh/);assert.match(instruction,/林安是30岁/);assert.match(instruction,/不.*额外.*(?:请求|调用)/);});
-test('Chinese-only manual role preview does not require a saved English translation',()=>{const prompt=buildCharacterTestPrompt({...role,appearance:''});assert.match(prompt.positive,/黑色长发/);assert.match(prompt.positive,/白色衬衫和蓝色长裤/);});
-
-
-test('Chinese authority survives normalization and replacing the same imported role without losing legacy English',()=>{
- const normalized=normalizeCharacter(role);assert.equal(normalized.appearanceSource,'chinese');
- const incoming=parseCharacterImport({type:"novel-draw-characters",version:4,characters:[role],groups:[]});
- const result=planCharacterImport({characters:[{...role,appearanceSource:undefined,appearanceZh:'旧中文'}],groups:[]},incoming);
- assert.equal(result.library.characters[0].appearanceSource,'chinese');assert.equal(result.library.characters[0].appearance,role.appearance);
+test('complete role library save persists only Chinese descriptions',async()=>{
+  const h=environment();
+  assert.equal(await execute('async function saveSharedDrawSettings(','async function saveAllSettings(',h.env,[{}]),true);
+  assert.deepEqual(h.saved.characterTags[0],role);
 });
-
-test('Chinese description stays visible but never replaces the English drawing prompt', async () => {
-    const { normalizeCharacter, exportCharacters, parseCharacterImport } = await import('../../../shared/character-library.js');
-    const original = {
-        id: 'alice-1', name: 'Alice', type: 'woman',
-        appearance: 'short brown hair, softly rounded face',
-        appearanceZh: '\u68d5\u8272\u77ed\u53d1\uff0c\u5706\u6da6\u7684\u8138\u578b',
-        negativeTags: '', aliases: [], outfits: [], dynamicStates: [],
-    };
-    const normalized = normalizeCharacter(original);
-    assert.equal(normalized.appearance, original.appearance);
-    assert.equal(normalized.appearanceZh, original.appearanceZh);
-    const exported = exportCharacters({characters:[normalized],groups:[]});
-    const imported = parseCharacterImport(exported);
-    assert.equal(imported.entries[0].character.appearance, original.appearance);
-    assert.equal(imported.entries[0].character.appearanceZh, original.appearanceZh);
+test('this-turn English translation wins without any stale English library field',()=>{
+  const withLegacy={...role,appearance:'red hair, green eyes',outfits:[{name:'白色衬衫和蓝色长裤',tags:'red coat'}]};
+  const tasks=buildDirectDrawTasks([{prompt:'adult female painter, sunny studio',after:'林安推开了画室的窗户。',
+    characters:[{name:'林安',appear:'black long hair, brown eyes',costume:'white shirt, blue trousers',state:'holding a paintbrush',uc:'male, extra people'}]}],
+    {maxImages:1},{knownCharacters:[withLegacy],sourceText:'林安推开了画室的窗户。'});
+  const p=tasks[0].characterPrompts[0];
+  assert.match(p.prompt,/black long hair/);assert.doesNotMatch(p.prompt,/red hair|green eyes|red coat/);
+  const compiled=compile(tasks,{host:'http://fixture.invalid',workflowMode:'simple',params:{model:'fixture',width:768,height:1024,cfg:1,steps:8},
+    knownCharacters:[withLegacy],seeds:[1],timeout:1000,delayMs:0});
+  assert.doesNotMatch(compiled.artifacts[0].promptData.positive,/red hair|green eyes|red coat/);
 });
-
+test('legacy English-only role cannot override current scene description',()=>{
+  const old={...role,appearanceZh:'',appearance:'red hair, green eyes'};
+  const tasks=buildDirectDrawTasks([{prompt:'artist at window',characters:[{name:'林安',appear:'black hair, brown eyes'}]}],{maxImages:1},{knownCharacters:[old]});
+  assert.match(tasks[0].characterPrompts[0].prompt,/black hair, brown eyes/);
+  assert.doesNotMatch(tasks[0].characterPrompts[0].prompt,/red hair|green eyes/);
+});
+test('generation instructions supply Chinese facts but no old English tags',()=>{
+  const instruction=buildDirectDrawInstruction({characters:[{...role,appearance:'red hair',outfits:[{name:'白色衬衫',tags:'red coat'}]}]});
+  assert.match(instruction,/appearanceZh/);
+  assert.match(instruction,/黑色长发/);
+  assert.doesNotMatch(instruction,/red hair|red coat/);
+});
+test('manual role preview uses Chinese without saved English translation',()=>{
+  const prompt=buildCharacterTestPrompt({...role,appearance:'red hair',outfits:[{name:'白色衬衫和蓝色长裤',tags:'red coat'}]});
+  assert.match(prompt.positive,/黑色长发/);
+  assert.match(prompt.positive,/白色衬衫和蓝色长裤/);
+  assert.doesNotMatch(prompt.positive,/red hair|red coat/);
+});
+test('normalization and import drop legacy English while preserving Chinese facts',()=>{
+  const old={...role,appearance:'red hair, green eyes',appearanceSource:'chinese',
+    outfits:[{name:'白色衬衫和蓝色长裤',tags:'red coat'}],
+    dynamicStates:[{name:'右手拿着画笔',tags:'left hand'}]};
+  const normalized=normalizeCharacter(old);
+  assert.equal(normalized.appearanceZh,role.appearanceZh);
+  assert.equal(Object.hasOwn(normalized,'appearance'),false);
+  assert.equal(Object.hasOwn(normalized,'appearanceSource'),false);
+  assert.deepEqual(normalized.outfits,[{name:'白色衬衫和蓝色长裤'}]);
+  assert.deepEqual(normalized.dynamicStates,[{name:'右手拿着画笔'}]);
+  const legacyImport=parseCharacterImport({type:'novel-draw-characters',version:4,characters:[old],groups:[]});
+  assert.ok(legacyImport.warnings.some(w=>w.code==='legacy-english-ignored'));
+  assert.equal(Object.hasOwn(legacyImport.entries[0].character,'appearance'),false);
+  assert.deepEqual(legacyImport.entries[0].character.outfits,[{name:'白色衬衫和蓝色长裤'}]);
+  const incoming=parseCharacterImport(exportCharacters({characters:[normalized],groups:[]}));
+  const result=planCharacterImport({characters:[{...old,appearanceZh:'旧中文'}],groups:[]},incoming);
+  assert.equal(result.library.characters[0].appearanceZh,role.appearanceZh);
+  assert.equal(Object.hasOwn(result.library.characters[0],'appearance'),false);
+});

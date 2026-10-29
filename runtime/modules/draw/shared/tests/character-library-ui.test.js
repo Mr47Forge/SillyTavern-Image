@@ -14,7 +14,7 @@ import { CHARACTER_EXPORT_TYPE } from '../character-library.js';
 // ── 测试夹具：用与 SD / ComfyUI 面板相同的卡片结构，验证共享模块与卡片约定 ──
 
 function char(id, name, extra = {}) {
-    return { id, enabled: true, name, aliases: [], type: 'girl', appearance: `${name} look`, negativeTags: '', danbooruTag: '', outfits: [], dynamicStates: [], ...extra };
+    return { id, enabled: true, name, aliases: [], type: 'girl', appearanceZh: `${name} look`, negativeTags: '', danbooruTag: '', outfits: [], dynamicStates: [], ...extra };
 }
 
 function field(document, name, value, multiline = false) {
@@ -47,7 +47,7 @@ function makeRenderCard(document) {
         header.append(title, actions);
         card.appendChild(header);
         card.appendChild(field(document, 'name', character.name || ''));
-        card.appendChild(field(document, 'appearance', character.appearance || '', true));
+        card.appendChild(field(document, 'appearanceZh', character.appearanceZh || '', true));
         return card;
     };
 }
@@ -60,13 +60,13 @@ function readCardCharacters(document) {
             name: card.querySelector('[data-sd-char-field="name"]').value.trim(),
             aliases: [],
             type: 'girl',
-            appearance: card.querySelector('[data-sd-char-field="appearance"]').value.trim(),
+            appearanceZh: card.querySelector('[data-sd-char-field="appearanceZh"]').value.trim(),
             negativeTags: '',
             danbooruTag: '',
             outfits: [],
             dynamicStates: [],
         }))
-        .filter(item => keepEmpty || item.name || item.appearance);
+        .filter(item => keepEmpty || item.name || item.appearanceZh);
 }
 
 function memoryStorage(initial = {}) {
@@ -439,7 +439,7 @@ test('library operations keep unsaved edits, blank new cards and the original ar
 
     // 先制造几处未保存的改动：改字段、关掉启用开关、新增一张空白卡
     view.type('c1', 'name', '小猫（已编辑）');
-    view.type('c3', 'appearance', 'silver hair, edited');
+    view.type('c3', 'appearanceZh', 'silver hair, edited');
     const toggleBox = view.cardOf('c2').querySelector('[data-character-enabled-control]');
     toggleBox.checked = false;
     view.fire(toggleBox, 'change');
@@ -455,7 +455,7 @@ test('library operations keep unsaved edits, blank new cards and the original ar
     assert.deepEqual(library.groups.map(group => group.name), ['宠物', '改名后']);
     assert.deepEqual(library.groups.map(group => group.enabled), [false, undefined], '宠物组被切换为关闭');
     assert.equal(library.characters.find(item => item.id === 'c1').name, '小猫（已编辑）');
-    assert.equal(library.characters.find(item => item.id === 'c3').appearance, 'silver hair, edited');
+    assert.equal(library.characters.find(item => item.id === 'c3').appearanceZh, 'silver hair, edited');
     assert.equal(library.characters.find(item => item.id === 'c2').enabled, false);
     assert.equal(library.characters.find(item => item.id === blankId).groupId, 'g1', '空白新卡片仍在原分组');
     // 数组顺序：原有三项保持相对顺序，新卡片排在其所属分组的末尾
@@ -472,13 +472,13 @@ test('library operations keep unsaved edits, blank new cards and the original ar
 test('moving a character through the card group picker keeps edits in other cards', () => {
     const view = mount({ library: sampleLibrary() });
     view.type('c1', 'name', '阿璃（改）');
-    view.type('c4', 'appearance', 'edited cat');
+    view.type('c4', 'appearanceZh', 'edited cat');
     const picker = view.cardOf('c1').querySelector('.lwb-cl-card-group');
     Array.from(picker.querySelectorAll('option')).find(option => option.value === 'g2').selected = true;
     view.fire(picker, 'change');
     assert.deepEqual(view.idsInGroup('g2'), ['c4', 'c1']);
     assert.equal(view.cardOf('c1').querySelector('[data-sd-char-field="name"]').value, '阿璃（改）');
-    assert.equal(view.cardOf('c4').querySelector('[data-sd-char-field="appearance"]').value, 'edited cat');
+    assert.equal(view.cardOf('c4').querySelector('[data-sd-char-field="appearanceZh"]').value, 'edited cat');
     // 回到未分组
     const back = view.cardOf('c1').querySelector('.lwb-cl-card-group');
     Array.from(back.querySelectorAll('option')).find(option => option.value === '').selected = true;
@@ -557,14 +557,14 @@ test('group actions: add in group, rename, move, delete (dissolve or with member
 
 test('card duplicate button copies the draft in place with the NovelAI copy naming', () => {
     const view = mount({ library: sampleLibrary() });
-    view.type('c2', 'appearance', 'unsaved look');
+    view.type('c2', 'appearanceZh', 'unsaved look');
     view.click(view.cardOf('c2').querySelector('[data-lwb-card-action="duplicate"]'));
     const ids = view.idsInGroup('g1');
     assert.equal(ids.length, 3);
     assert.equal(ids[0], 'c2');
     const copy = view.ui.getLibrary().characters.find(item => item.id === ids[1]);
     assert.equal(copy.name, '芙蕾雅 副本');
-    assert.equal(copy.appearance, 'unsaved look');
+    assert.equal(copy.appearanceZh, 'unsaved look');
     assert.equal(copy.groupId, 'g1');
 });
 
@@ -910,7 +910,7 @@ test('import opens the shared dialog, applies to the draft only and reminds the 
         version: 4,
         groups: [{ id: 'fg', name: '远征队' }],
         characters: [
-            char('c2', '芙蕾雅', { appearance: 'from file', groupId: 'fg' }),
+            char('c2', '芙蕾雅', { appearanceZh: 'from file', groupId: 'fg' }),
             char('n1', '新人甲', { groupId: 'fg' }),
         ],
     }));
@@ -923,7 +923,7 @@ test('import opens the shared dialog, applies to the draft only and reminds the 
     assert.equal(view.$('[data-role="dialog"]'), null);
 
     const library = view.ui.getLibrary();
-    assert.equal(library.characters.find(item => item.id === 'c2').appearance, 'from file', '按 id 替换');
+    assert.equal(library.characters.find(item => item.id === 'c2').appearanceZh, 'from file', '按 id 替换');
     assert.equal(library.characters.find(item => item.id === 'c2').groupId, 'g1', '自动模式保留本地分组');
     const imported = library.characters.find(item => item.id === 'n1');
     assert.ok(imported.groupId, '新角色按文件分组名归位到新建分组');

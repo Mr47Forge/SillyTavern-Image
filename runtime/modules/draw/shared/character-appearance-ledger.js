@@ -29,7 +29,7 @@ export function pinImageCharacterAppearances(characters=[],recent=new Map(),know
         const name=key(person?.name);
         // A registered user character's configured appearance is authoritative.
         const registered=known.find(item=>[item.name,...(item.aliases||[])].some(alias=>key(alias)===name));
-        if(String(registered?.appearanceZh||registered?.appearance||registered?.danbooruTag||'').trim())return person;
+        if(String(registered?.appearanceZh||registered?.danbooruTag||'').trim())return person;
         const quote=String(person.appear_evidence||'').trim();
         const names=[person.name,...(registered?.aliases||[])].filter(Boolean);
         // Exact source facts override generated translations. A model-authored

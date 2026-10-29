@@ -36,7 +36,7 @@ function localLibrary() {
 function sampleFile() {
     return fileOf(
         [
-            char('c2', '芙蕾雅', { appearance: 'updated look', groupId: 'fg' }),
+            char('c2', '芙蕾雅', { appearanceZh: '更新后的外貌', groupId: 'fg' }),
             char('n1', '新人甲'),
             char('n2', '新人乙', { groupId: 'fg' }),
         ],
@@ -152,7 +152,7 @@ test('导入到已有分组时点击导入得到落入该分组的结果', () =>
     assert.equal(options.groupId, 'g2');
     const byId = Object.fromEntries(plan.library.characters.map(item => [item.id, item]));
     assert.equal(byId.c2.groupId, 'g2');
-    assert.equal(byId.c2.appearance, 'updated look');
+    assert.equal(byId.c2.appearanceZh, '更新后的外貌');
     const added = plan.library.characters.filter(item => ['新人甲', '新人乙'].includes(item.name));
     assert.equal(added.length, 2);
     assert.ok(added.every(item => item.groupId === 'g2'));
