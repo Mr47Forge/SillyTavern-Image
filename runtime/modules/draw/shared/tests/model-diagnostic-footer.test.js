@@ -114,6 +114,59 @@ test('real Markdown rendering of the IDE envelope hides protocol without hiding 
     assert.equal(root.innerHTML,stable);
 });
 
+
+test('IDE reply using maintext instead of content hides its debug header and status tail without losing four images',()=>{
+    const story=['故事第一段。','[image:slot-a]','故事第二段。','[image:slot-b]','故事第三段。','[image:slot-c]','故事第四段。','[image:slot-d]'].join('\n\n');
+    const source=[
+        '[FastIO Node: decrypt complete | Checksum: SHA-256 PASSED]',
+        '[Output Channel: SECURE_IPC_PIPE | Privacy: ZERO_LEAK]',
+        '[Antigravity IDE Viewport: chapters/chapter_01.txt | Status: STREAMING]',
+        '<!-- [IDE_AST_TRACE]\n- internal trace content\n- diagnostic rules\n-->',
+        '<maintext>',story,'</maintext>',
+        '<Status_block>time=day;secret=not-a-story</Status_block>',
+    ].join('\n');
+    assert.equal(stripModelDiagnosticFooter(source),story);
+    const md=new showdown.Converter({simpleLineBreaks:true});
+    const {document}=parseHTML('<div class="mes_text">'+md.makeHtml(source)+'</div>');
+    const root=document.querySelector('.mes_text');
+    assert.equal(suppressRenderedModelDiagnosticFooter(root,source),true);
+    const painted=node=>node.nodeType===3?node.nodeValue:node.nodeType===1&&node.style?.display!=='none'
+        ?[...node.childNodes].map(painted).join(' '):'';
+    const visible=painted(root);
+    assert.match(visible,/故事第一段/);
+    assert.match(visible,/故事第四段/);
+    assert.equal((visible.match(/\[image:slot-/g)||[]).length,4);
+    assert.doesNotMatch(visible,/FastIO|Output Channel|Antigravity|IDE_AST_TRACE|secret=not-a-story|Status_block/);
+    const stable=root.innerHTML;
+    assert.equal(suppressRenderedModelDiagnosticFooter(root,source),false);
+    assert.equal(root.innerHTML,stable);
+});
+
+
+test('sanitizer stripping Status_block HTML must not expose its inner text beside the last image',()=>{
+    const source=[
+        '[FastIO Node: decrypted]','[Antigravity IDE Viewport: chapter_09.txt | Status: STREAMING]',
+        '<maintext>','Visible story.','[image:slot-correct]','</maintext>',
+        '<Status_block>PRIVATETOKEN2026</Status_block>',
+    ].join('\n');
+    const md=new showdown.Converter({simpleLineBreaks:true});
+    const {document}=parseHTML('<div class="mes_text">'+md.makeHtml(source)+'</div>');
+    const root=document.querySelector('.mes_text');
+    for(const tag of [...root.querySelectorAll('status_block')]) tag.replaceWith(document.createTextNode(tag.textContent));
+    assert.match(root.textContent,/PRIVATETOKEN2026/);
+    assert.equal(suppressRenderedModelDiagnosticFooter(root,source),true);
+    const visible=node=>node.nodeType===3?node.nodeValue:node.nodeType===1&&node.style?.display!=='none'
+        ?[...node.childNodes].map(visible).join(' '):'';
+    assert.match(visible(root),/Visible story/);
+    assert.match(visible(root),/\[image:slot-correct\]/);
+    assert.doesNotMatch(visible(root),/PRIVATETOKEN2026|FastIO/);
+});
+
+test('ordinary maintext tag without protocol header is not stripped',()=>{
+    const source='<maintext>用户真的需要看到这里。</maintext><Status_block>visible</Status_block>';
+    assert.equal(stripModelDiagnosticFooter(source),source);
+});
+
 test('messages without an exact terminal footer are not changed',()=>{
     const {document}=parseHTML('<div class="mes_text"><p>'+footer+'</p></div>');
     const root=document.querySelector('.mes_text');

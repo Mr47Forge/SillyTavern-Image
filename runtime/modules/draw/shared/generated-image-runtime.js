@@ -1,5 +1,6 @@
 import { hashStableValue, stableSerialize } from './generation-fingerprint.js';
 import { DRAW_SLOT_COPY } from './image-record.js';
+import { getImageCacheOwner, imageCacheDatabaseName, assertImageCacheOwner } from './image-cache-owner.js';
 
 const DB_NAME = 'sti_draw_generated_images';
 const DB_STORE = 'images';
@@ -7,7 +8,7 @@ const DB_VERSION = 1;
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
 
 const inflightRequests = new Map();
-let databasePromise = null;
+const databasePromises = new Map();
 
 function createAbortError() {
     try {
@@ -36,6 +37,7 @@ function buildDescriptor(input = {}) {
     const prompt = String(payload.prompt || '').trim();
     if (!prompt) throw new Error('无效的图片标签');
     const cacheEnabled = payload.cache !== false;
+    const owner = getImageCacheOwner();
     const provider = String(facade.getProvider?.() || 'disabled');
     const generationPlan = typeof facade.prepareGeneration === 'function'
         ? facade.prepareGeneration(payload)
@@ -47,11 +49,13 @@ function buildDescriptor(input = {}) {
                 : { prompt },
         };
     const fingerprint = stableSerialize({
+        owner,
         namespace: String(payload.cacheNamespace || 'shared'),
         cacheEnabled,
         generation: generationFingerprint,
     });
     return {
+        owner,
         cacheEnabled,
         cacheKey: hashStableValue(fingerprint, 'draw'),
         facade,
@@ -63,10 +67,11 @@ function buildDescriptor(input = {}) {
     };
 }
 
-function openDatabase() {
-    if (databasePromise) return databasePromise;
-    databasePromise = new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
+function openDatabase(owner) {
+    assertImageCacheOwner(owner);
+    if (databasePromises.has(owner)) return databasePromises.get(owner);
+    const opening = new Promise((resolve, reject) => {
+        const request = indexedDB.open(imageCacheDatabaseName(DB_NAME, owner), DB_VERSION);
         request.onerror = () => reject(request.error);
         request.onsuccess = () => resolve(request.result);
         request.onupgradeneeded = (event) => {
@@ -76,23 +81,27 @@ function openDatabase() {
             }
         };
     }).catch((error) => {
-        databasePromise = null;
+        databasePromises.delete(owner);
         throw error;
     });
-    return databasePromise;
+    databasePromises.set(owner, opening);
+    return opening;
 }
 
 async function readCache(descriptor, strict = false) {
     if (!descriptor.cacheEnabled || typeof indexedDB === 'undefined') return null;
     try {
-        const database = await openDatabase();
-        return await new Promise((resolve, reject) => {
+        assertImageCacheOwner(descriptor.owner);
+        const database = await openDatabase(descriptor.owner);
+        assertImageCacheOwner(descriptor.owner);
+        const base64 = await new Promise((resolve, reject) => {
             const transaction = database.transaction(DB_STORE, 'readonly');
             const request = transaction.objectStore(DB_STORE).get(descriptor.cacheKey);
             let cached = null;
             request.onsuccess = () => {
                 const record = request.result;
                 const valid = record
+                    && record.owner === descriptor.owner
                     && record.provider === descriptor.provider
                     && record.prompt === descriptor.prompt
                     && Date.now() - Number(record.timestamp || 0) < CACHE_TTL;
@@ -102,6 +111,8 @@ async function readCache(descriptor, strict = false) {
             request.onerror = () => strict ? reject(request.error) : resolve(null);
             transaction.onabort = () => strict ? reject(transaction.error || new Error(DRAW_SLOT_COPY.cacheReadFailed)) : resolve(null);
         });
+        assertImageCacheOwner(descriptor.owner);
+        return base64;
     } catch (error) {
         if (strict) throw error;
         return null;
@@ -111,13 +122,16 @@ async function readCache(descriptor, strict = false) {
 async function writeCache(descriptor, base64) {
     if (!descriptor.cacheEnabled || !base64 || typeof indexedDB === 'undefined') return;
     try {
-        const database = await openDatabase();
+        assertImageCacheOwner(descriptor.owner);
+        const database = await openDatabase(descriptor.owner);
+        assertImageCacheOwner(descriptor.owner);
         await new Promise((resolve, reject) => {
             const transaction = database.transaction(DB_STORE, 'readwrite');
             transaction.oncomplete = () => resolve();
             transaction.onerror = () => reject(transaction.error);
             transaction.onabort = () => reject(transaction.error);
             transaction.objectStore(DB_STORE).put({
+                owner: descriptor.owner,
                 cacheKey: descriptor.cacheKey,
                 provider: descriptor.provider,
                 prompt: descriptor.prompt,
@@ -125,6 +139,7 @@ async function writeCache(descriptor, base64) {
                 timestamp: Date.now(),
             });
         });
+        assertImageCacheOwner(descriptor.owner);
     } catch { }
 }
 
@@ -202,6 +217,7 @@ function createRequest(descriptor) {
     };
     entry.promise = (async () => {
         const cached = await readCache(descriptor);
+        assertImageCacheOwner(descriptor.owner);
         if (entry.controller.signal.aborted) throw createAbortError();
         if (cached) return cached;
         const runtimeOptions = {
@@ -216,7 +232,9 @@ function createRequest(descriptor) {
                 ...runtimeOptions,
             });
         if (entry.controller.signal.aborted) throw createAbortError();
+        assertImageCacheOwner(descriptor.owner);
         await writeCache(descriptor, base64);
+        assertImageCacheOwner(descriptor.owner);
         return base64;
     })().finally(() => {
         if (inflightRequests.get(descriptor.fingerprint) === entry) {
@@ -259,7 +277,9 @@ export function clearSharedImageRequests() {
 export async function clearExpiredGeneratedImageCache() {
     if (typeof indexedDB === 'undefined') return;
     try {
-        const database = await openDatabase();
+        const owner = getImageCacheOwner();
+        const database = await openDatabase(owner);
+        assertImageCacheOwner(owner);
         const cutoff = Date.now() - CACHE_TTL;
         await new Promise((resolve, reject) => {
             const transaction = database.transaction(DB_STORE, 'readwrite');

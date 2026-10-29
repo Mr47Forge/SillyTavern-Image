@@ -3079,6 +3079,10 @@ async function saveSingleComfyCharacterCard(characterId) {
         draft.characterTags = chars;
     }, '当前角色已保存', { notify: false, silent: false });
     if (!ok) return false;
+    // The user may keep typing while persistence is in flight. The saved
+    // snapshot is committed, but must not overwrite a newer unsaved draft.
+    const liveDraft = getSharedCharacterTagsFromForm().find(person => String(person.id) === id);
+    if (!liveDraft || characterDraftSignature(liveDraft) !== characterDraftSignature(before)) return true;
     const card = querySettings('.sd-char-card[data-character-id="' + CSS.escape(id) + '"]');
     if (card) {
         const chinese = card.querySelector('[data-sd-char-field="appearanceZh"]');
@@ -3808,6 +3812,10 @@ async function saveSharedDrawSettings({ notify = false } = {}) {
             const id = String(card.dataset.characterId || '');
             const person = savedById.get(id);
             if (!person) return;
+            // A successful save acknowledges its captured draft, not edits made
+            // while the server was writing. Do not overwrite newer form state.
+            const current = getSharedCharacterTagsFromForm().find(value => String(value.id) === id);
+            if (!current || characterDraftSignature(current) !== characterDraftSignature(person)) return;
             const chinese = card.querySelector('[data-sd-char-field="appearanceZh"]');
             if (chinese) chinese.value = person.appearanceZh || '';
             for (const category of ['outfits', 'dynamicStates']) {
