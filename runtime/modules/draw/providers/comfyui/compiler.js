@@ -359,6 +359,18 @@ export function buildComfyImageRequest({ prompt, negativePrompt = '', params = {
     };
 }
 
+function sceneAlreadyDescribesCharacter(scene, characterPrompt) {
+    // Direct image instructions contain a complete visual scene AND structured
+    // character metadata. Re-appending the same physical traits can cause the
+    // image model to draw two or three instances of the same person.
+    const normalizedScene = String(scene || '').toLocaleLowerCase().replace(/\s+/g, ' ');
+    if (!normalizedScene) return false;
+    const distinctiveTraits = String(characterPrompt || '').split(/[,，;；]/u)
+        .map(part => part.trim().toLocaleLowerCase().replace(/\s+/g, ' '))
+        .filter(part => part.length >= 7);
+    return distinctiveTraits.filter(trait => normalizedScene.includes(trait)).length >= 2;
+}
+
 export function compileComfyPromptForTask(task, recipe = {}) {
     const characterPrompts = Array.isArray(task?.characterPrompts)
         ? task.characterPrompts.filter(Boolean)
@@ -374,12 +386,17 @@ export function compileComfyPromptForTask(task, recipe = {}) {
             characterPrompts,
         };
     }
-    const charPositive = characterPrompts.map(item => item.prompt).filter(Boolean).join(', ');
+    const sceneText = String(task?.scene || '').trim();
+    const charPositive = characterPrompts
+        .filter(item => !sceneAlreadyDescribesCharacter(sceneText, item.prompt))
+        .map(item => item.prompt).filter(Boolean).join(', ');
     const charNegative = characterPrompts.map(item => item.uc).filter(Boolean).join(', ');
+    // Append character fields only for genuinely sparse scene descriptions.
+    // Complete scenes already contain the same visible people and their traits.
     return {
         // [K2] post_prompt：整图追加位，拼在所有角色之后（整条提示词最末尾）。
         // joinTags 过滤空值，未提交时与改造前逐字节一致；负向不跟。
-        positive: sanitizeFinalImagePositive(reinforceChineseFaceAppearance(joinTags(recipe.positivePrefix, task?.scene, charPositive, task?.post_prompt))),
+        positive: sanitizeFinalImagePositive(reinforceChineseFaceAppearance(joinTags(recipe.positivePrefix, sceneText, charPositive, task?.post_prompt))),
         negative: task?.negativePrompt ?? joinTags(recipe.negativePrefix, negativeOverride, task?.extraNegativePrompt, charNegative),
         characterPrompts,
     };
