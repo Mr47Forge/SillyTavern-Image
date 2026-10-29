@@ -359,17 +359,6 @@ export function buildComfyImageRequest({ prompt, negativePrompt = '', params = {
     };
 }
 
-const SOLO_COMPOSITION_POSITIVE = 'exactly one person, solitary subject, one human figure, single frame';
-const SOLO_COMPOSITION_NEGATIVE = 'two people, multiple people, duplicate person, cloned person, twins, extra face, extra body, mirror duplicate, split screen, collage';
-
-function isSoloComposition(task) {
-    const chars = Array.isArray(task?.chars) ? task.chars.filter(person => person?.name) : [];
-    const scene = String(task?.scene || '');
-    const explicitlySolo = /(?:^|[,;\s])(?:solo|1girl|1woman|1boy|1man|one person)(?:$|[,;\s])/i.test(scene);
-    const explicitlyGroup = /(?:^|[,;\s])(?:duo|trio|group|couple|2girls|3girls|2boys|2women|2men|two people|multiple people|crowd)(?:$|[,;\s])/i.test(scene);
-    return !explicitlyGroup && (chars.length === 1 || (chars.length === 0 && explicitlySolo));
-}
-
 export function compileComfyPromptForTask(task, recipe = {}) {
     const characterPrompts = Array.isArray(task?.characterPrompts)
         ? task.characterPrompts.filter(Boolean)
@@ -387,14 +376,11 @@ export function compileComfyPromptForTask(task, recipe = {}) {
     }
     const charPositive = characterPrompts.map(item => item.prompt).filter(Boolean).join(', ');
     const charNegative = characterPrompts.map(item => item.uc).filter(Boolean).join(', ');
-    // At CFG=1 the negative branch is skipped. Preserve post_prompt as the
-    // final suffix while making single-person framing explicit in positive.
-    const solo = isSoloComposition(task);
     return {
         // [K2] post_prompt：整图追加位，拼在所有角色之后（整条提示词最末尾）。
         // joinTags 过滤空值，未提交时与改造前逐字节一致；负向不跟。
-        positive: sanitizeFinalImagePositive(reinforceChineseFaceAppearance(joinTags(recipe.positivePrefix, task?.scene, charPositive, solo ? SOLO_COMPOSITION_POSITIVE : '', task?.post_prompt))),
-        negative: joinTags(task?.negativePrompt ?? joinTags(recipe.negativePrefix, negativeOverride, task?.extraNegativePrompt, charNegative), solo ? SOLO_COMPOSITION_NEGATIVE : ''),
+        positive: sanitizeFinalImagePositive(reinforceChineseFaceAppearance(joinTags(recipe.positivePrefix, task?.scene, charPositive, task?.post_prompt))),
+        negative: task?.negativePrompt ?? joinTags(recipe.negativePrefix, negativeOverride, task?.extraNegativePrompt, charNegative),
         characterPrompts,
     };
 }
