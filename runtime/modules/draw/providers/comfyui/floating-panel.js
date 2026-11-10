@@ -341,7 +341,8 @@ const STYLES = `
 .nd-label {
     font-size: 11px;
     color: var(--nd-text-muted);
-    width: 32px;
+    width: 36px;
+    white-space: nowrap;
     flex-shrink: 0;
 }
 .nd-select {
@@ -474,13 +475,22 @@ function createPersistMenuBtn(arrow) {
 function fillPresetSelect(selectEl) {
     if (!selectEl) return;
     const settings = getSettings();
-    const presets = settings.presets || [];
-    const currentId = settings.selectedPresetId;
+    const presets = settings.workflowPresets || [];
+    const currentId = settings.workflowMode === 'custom' ? settings.selectedWorkflowPresetId : null;
     selectEl.replaceChildren();
+    selectEl.disabled = presets.length === 0;
+    if (!presets.some((preset) => preset.id === currentId)) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = presets.length ? '选择工作流' : '暂无已保存工作流';
+        opt.disabled = true;
+        opt.selected = true;
+        selectEl.appendChild(opt);
+    }
     presets.forEach((preset) => {
         const opt = document.createElement('option');
         opt.value = preset.id;
-        opt.textContent = preset.name || '未命名';
+        opt.textContent = preset.name || '未命名工作流';
         if (preset.id === currentId) opt.selected = true;
         selectEl.appendChild(opt);
     });
@@ -576,8 +586,9 @@ function createMenu(isAuto = false) {
     const menu = createEl('div', 'nd-menu');
     const card = createEl('div', 'nd-card');
     const rowPreset = createEl('div', 'nd-row');
-    rowPreset.appendChild(createEl('span', 'nd-label', '预设'));
+    rowPreset.appendChild(createEl('span', 'nd-label', '工作流'));
     const presetSelect = createEl('select', 'nd-select nd-preset-select');
+    presetSelect.setAttribute('aria-label', '工作流');
     fillPresetSelect(presetSelect);
     rowPreset.appendChild(presetSelect);
     const innerSep = createEl('div', 'nd-inner-sep');
@@ -991,9 +1002,17 @@ async function persistQuickSetting(mutator, afterSave) {
 }
 
 async function setQuickPreset(value) {
-    return persistQuickSetting((settings) => {
-        settings.selectedPresetId = value;
+    if (!getSettings().workflowPresets?.some((preset) => preset.id === value)) {
+        toastr?.warning?.('工作流已变化，请重新选择');
+        updateAllPresetSelects();
+        return false;
+    }
+    const ok = await persistQuickSetting((settings) => {
+        settings.selectedWorkflowPresetId = value;
+        settings.workflowMode = 'custom';
     }, updateAllPresetSelects);
+    if (!ok) updateAllPresetSelects();
+    return ok;
 }
 
 async function setQuickSize(value) {
