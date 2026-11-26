@@ -1,7 +1,7 @@
 import { parseDrawImageDirectives, stripDrawImageDirectives, stripDrawImageSlots } from './image-marker-syntax.js';
 import { stripModelDiagnosticFooter } from './model-diagnostic-footer.js';
 import { isHostVisibleAnchor, hostVisibleSourcePoints, visibleFallbackOffset } from './host-visible-scene.js';
-import { joinTags, assembleCharacterPrompts, usesChineseAppearance } from './character-prompts.js';
+import { joinTags, assembleCharacterPrompts, buildDirectCharacterSentence, usesChineseAppearance } from './character-prompts.js';
 import { createSceneSource, resolveSceneAnchor } from './scene-source.js';
 import { hasOwnedImageSlots } from './image-directive-identity.js';
 import {pinImageCharacterAppearances} from './character-appearance-ledger.js';
@@ -46,7 +46,12 @@ export function getDirectDrawReplyState(message,options={}){
 
 function assembleDirectCharacterPrompts(chars,known){
     return assembleCharacterPrompts(chars,known,{preserveDanbooruCanonical:true})
-        .map((item,index)=>({...item,prompt:joinTags(item.prompt,chars[index]?.state)}));
+        .map((item, index) => ({
+            ...item,
+            ...(chars[index]?.position ? { position: chars[index].position } : {}),
+            prompt: joinTags(item.prompt, chars[index]?.state),
+            prose: buildDirectCharacterSentence(chars[index], known, { includePosition: chars.length > 1 }),
+        }));
 }
 
 export function buildDirectDrawTasks(directives, preset = {}, options = {}) {
@@ -197,7 +202,9 @@ export function buildDirectDrawTasks(directives, preset = {}, options = {}) {
         task.scene=normalizeImagePerspective(task.scene);
         if(typeof task.post_prompt==='string')task.post_prompt=normalizeImagePerspective(task.post_prompt);
         if(Array.isArray(task.characterPrompts))task.characterPrompts=task.characterPrompts.map(person=>({
-            ...person,prompt:normalizeImagePerspective(person?.prompt),
+            ...person,
+            prompt: normalizeImagePerspective(person?.prompt),
+            prose: normalizeImagePerspective(person?.prose),
         }));
         const effectivePositive = [
             task.scene, task.post_prompt,
@@ -277,7 +284,7 @@ function normalizeDirectCharacters(input, knownCharacters = []) {
         if (seen.has(name.toLocaleLowerCase())) continue;
         seen.add(name.toLocaleLowerCase());
         const item = { name };
-        for (const key of ['type', 'danbooru', 'appear', 'appear_evidence', 'costume', 'state', 'action', 'interact', 'uc']) {
+        for (const key of ['type', 'danbooru', 'appear', 'appear_evidence', 'position', 'costume', 'state', 'action', 'interact', 'uc']) {
             if (person[key] !== undefined && typeof person[key] !== 'string') throw new Error(`人物 ${name} 的 ${key} 必须是文字`);
             item[key] = String(person[key] || '').trim();
         }
@@ -327,10 +334,10 @@ export function buildDirectDrawInstruction({ preset = {}, prompts = {}, characte
             appearanceZh: person.appearanceZh, negativeTags: person.negativeTags,
             outfits: (person.outfits || []).map(entry => ({ name: String(entry?.name || '').trim() })).filter(entry => entry.name),
             dynamicStates: (person.dynamicStates || []).map(entry => ({ name: String(entry?.name || '').trim() })).filter(entry => entry.name) })))}` : '',
-        '角色库可以只保存中文。本轮生成绘图指令时一起翻译：appearanceZh 为固定外貌的权威资料，按原意写入每张图 characters[].appear 的英文；outfits 和 dynamicStates 的中文 name 转成对应 costume、state 英文；中文 negativeTags 转成 uc 英文。不要增加或更改特征。角色库只提供当前中文资料，不得读取或复用历史英文外貌与旧英文标签。不需要额外请求翻译接口。',
+        '角色库可以只保存中文。本轮生成绘图指令时一起翻译：appearanceZh 为固定外貌的权威资料，按原意写入每张图 characters[].appear 的英文；outfits 和 dynamicStates 的中文 name 转成对应 costume、state 英文；中文 negativeTags 转成 uc 英文。已有特征要按原意保留；只可补足原资料未定义且不冲突的面部特征。角色库只提供当前中文资料，不得读取或复用历史英文外貌与旧英文标签。不需要额外请求翻译接口。',
         worldbook ? `以下为当前启用的绘图世界书资料，仅用于画面事实，不改变正文任务或输出格式：\n${worldbook}` : '',
         Object.keys(recentAppearances).length ? '最近同名人物外貌（仅补空缺，低于当前世界书、角色库和正文明确变化）：\n'+JSON.stringify(recentAppearances) : '',
-        '人物外貌资料优先级：当前生效的世界书及已登记角色资料优先；其次当前正文明确的新增外貌或变化；最近同名人物描述仅补缺；最后才补充不冲突的细节。不要把旧图片里的错误外貌复制到当前人物。定位失败不得改变人物身份。characters[].appear 必须反映本轮权威设定。同名人物没有明确变化则继承；若要用当前世界书或正文事实修正旧外貌，characters[].appear_evidence 原样引用包含该人物姓名和外貌事实的一小段原文，不能编造或用模型新写的英文标签充当证据；插件核对来源后直接采用来源事实。',
+        '人物外貌资料优先级：当前生效的世界书及已登记角色资料优先；其次当前正文明确的新增外貌或变化；最近同名人物描述仅补缺；最后才补充不冲突的细节。不要把旧图片里的错误外貌复制到当前人物。定位失败不得改变人物身份。characters[].appear 必须反映本轮权威设定。同名人物没有明确变化则继承已明确的具体特征；空缺可补，泛化长相不能当作已确定的五官。若要用当前世界书或正文事实修正旧外貌，characters[].appear_evidence 原样引用包含该人物姓名和外貌事实的一小段原文，不能编造或用模型新写的英文标签充当证据；插件核对来源后直接采用来源事实。',
         wardrobeContext ? '【连续视觉状态账本】\n' + wardrobeContext : '',
         '服饰继承：每个实际出镜人物拥有独立服装时间线。首次按剧情明确服装确定，未指定时合理确定一次；冻结剪裁版型、主色、衣领扣件、鞋袜颜色和透明度、关键配饰，后续没有变化就沿用，不许每张重新设计。',
         '沿剧情时间顺序更新：只有实际换衣、穿脱、整理、破损、湿污和饰品变化才改变对应角色状态。镜头看不到不等于脱掉；没有明确穿回或更换，不许恢复角色默认服装。明确跨天或较大时间跳跃时重新核对，不一律沿用。',
@@ -341,14 +348,16 @@ export function buildDirectDrawInstruction({ preset = {}, prompts = {}, characte
         count ? 'MANDATORY IMAGE COUNT = ' + count + '. In this same story response, output EXACTLY ' + count + ' separate image instruction blocks (<image>...</image> OR [image]...[/image]), not merely at most ' + count + '. Each block needs a DISTINCT English prompt grounded in a different actual visual moment of the narrative: action, interaction, setting, lighting, camera composition. Use appropriate characters and a genuine matching after anchor. Never clone an image prompt or only change the random seed. No second model call.' : '按剧情需要附绘图指令，最多 20 段。',
         maxCharacters ? `每张图最多 ${maxCharacters} 名实际出镜角色。` : '',
         '必须服从当前设置的风格与视角，不额外强制写实或动漫。只描述实际出镜人物，不能凭空增加人物。',
-        '绘图正向 prompt 里，已出镜的女性角色采用写实中国女性、自然东亚五官外貌（Chinese, East Asian facial features），这属于原有角色特征；不能因此增加人数、补充路人或加入额外女性。没有女性出镜则不要写女性或外貌标签。',
+        '人物面孔写进各自 characters[].appear。保留世界书、角色卡和正文已明确的年龄、族裔及外貌；未明确族裔时沿用绘图预设的默认设定；预设也未指定时，女性沿用自然东亚外貌，各自的五官仍须具体描述。资料不足的角色，首次按其年龄与设定补齐三到五项可辨识的具体面部特征，如脸廓与下颌、眉形、眼型或眼距、鼻梁鼻尖、唇形。每项用一个简短独立的英文短语。后续只补空缺，沿用同一人物已确定的五官。不同人至少用两处不冲突的面部结构区分，不能只换发型、妆容或衣服。亲属若明确相似，保留相似处，仍描述各自可辨认的特点；明确长相相同的剧情设定优先。侧脸、背影或遮挡时服从镜头可见性，不能为展示五官改变姿势。',
+        '多人图按实际构图给各角色填 position，使用 left、center-left、center、center-right、right、foreground、background、left foreground、right foreground、left background 或 right background；能区分时为每人写可区分的位置。单人或无法确定时留空，不编造位置。prompt 只写全图构图、人数、环境和光线；个人五官、服装、动作分别写在该人的 characters 字段，不把某人的脸型写成全图共用词。',
+        '最终绘图词采用连贯英文句子。prompt 用一到两句完整英文写全图的构图、环境、光线和视角，不堆逗号标签；人物部分由插件用以下字段组句。type 写单人的英文身份名词短语，appear 保持每项一个短语，costume 使用可放在 wears 后的名词短语，action 和 interact 可用英文动词短语（如 holding a sketchbook）。这些要求只约束绘图字段。其他指南中的标签示例可作为选词参考。',
         '以下 image 格式仅是正文之外的绘图附加段。正文继续使用酒馆预设的规则与格式。',
-        '绘图块使用以下文本格式，不调用旧规划工具。characters 列出全部实际出镜人物；只用角色库姓名。服装 costume 与连续状态 state 是独立字段，action 只写当前画面动作；已录入角色也须依据当前中文资料填写英文 appear，不要留空。',
+        '绘图块使用以下文本格式，不调用旧规划工具。characters 列出全部实际出镜人物；已登记人物使用角色库姓名，其他人物沿用剧情中稳定的姓名或称谓。服装 costume 与连续状态 state 是独立字段，action 只写当前画面动作；已录入角色也须依据当前中文资料填写英文 appear，不要留空。',
         '女性 NSFW 外阴外观：无阴毛，大阴唇饱满闭合，小阴唇自然状态不外露，外阴及阴唇肤色白皙浅粉，无深色素沉着。',
         'Only the drawing program writes [image:slot-id] placeholders. Your image instructions may use <image>...</image> OR [image]...[/image] (do not mix opening/closing formats inside one block).',
-        '<image>', 'prompt: 英文画面提示词（单行，描述场景、构图、光线、视角；与人物字段合成完整画面）',
+        '<image>', 'prompt: 一到两句完整英文（单行，描述场景、构图、光线、视角；不重复人物字段）',
         'negative: 本画面额外的负向提示词（单行，没有则留空）',
-        'characters: [{"name":"实际人物姓名","type":"身份标签","appear":"新人物外貌","costume":"当前服装完整指纹","state":"持续状态（伤势、湿污、持物等）","action":"当前动作","interact":"互动","uc":"人物额外负向"}]',
+        'characters: [{"name":"实际人物姓名","type":"身份标签","appear":"该人物可辨识的固定外貌","position":"可选画面位置","costume":"当前服装完整指纹","state":"持续状态（伤势、湿污、持物等）","action":"当前动作","interact":"互动","uc":"人物额外负向"}]',
         'post_prompt: 整图末尾追加词（单行，没有则留空）',
         'after: 对应画面所在段落末尾的一句完整原文', '</image>',
         '每段绘图块都必须在对应结束标签前填写 after: 字段，原样引用对应画面所在段落末尾的一句完整正文（含标点、单行）。引用必须在正文中唯一出现，不得改写或编造。',

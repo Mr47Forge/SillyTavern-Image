@@ -25,7 +25,7 @@ const stubs={
  export const syncMesToSwipe=()=>{};export const messageFormatting=t=>t;
  export const setExtensionPrompt=(...args)=>h.prompts.push(args);
  export const extension_prompt_types={IN_PROMPT:0,IN_CHAT:1};export const extension_prompt_roles={USER:1};`,
- 'utils.js':`export const uuidv4=()=>crypto.randomUUID();
+ 'utils.js':`export const debounce=fn=>fn;export const uuidv4=()=>crypto.randomUUID();
  export const saveBase64AsFile=async()=>'/user/images/fixture/image-'+(++globalThis.__drawingChain.uploads)+'.png';`,
  'debug-core.js':'export const xbLog={warn(){},error(){},info(){}};',
  'event-manager.js':'export const createModuleEvents=()=>({on(){},cleanup(){}});export const event_types={};',

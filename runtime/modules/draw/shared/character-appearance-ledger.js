@@ -1,6 +1,32 @@
 // Image-only character identity: reuse the latest explicit appearance for the
 // same person. No edits to SillyTavern story, worldbooks, system prompts or chat.
 const key = value => String(value || '').normalize('NFKC').trim().toLocaleLowerCase();
+
+const FACE_TRAITS = [
+    /\b(?:jaw(?:line)?|chin|(?:round|oval|square|heart[- ]shaped|long|narrow|broad|angular|oblong|diamond[- ]shaped) face)\b|脸型|圆脸|方脸|长脸|鹅蛋脸|瓜子脸|下颌|下巴/iu,
+    /\b(?:cheekbones?|(?:high|flat|full) cheeks?)\b|颧骨|脸颊/iu,
+    /\b(?:brows?|eyebrows?)\b|眉/iu,
+    /\b(?:eyelids?|monolids?|(?:wide[- ]set|close[- ]set|deep[- ]set|hooded|almond(?:[- ]shaped)?|round|narrow|upturned|downturned|slanted|small|large) eyes?)\b|眼型|眼距|眼尾|眼睑|单双眼皮|单眼皮|双眼皮|内双|杏眼|圆眼|细长眼/iu,
+    /\b(?:brown|black|blue|green|grey|gray|hazel|amber|dark|light) eyes?\b|\biris\b|瞳色|虹膜|[棕褐黑蓝绿灰]色眼/iu,
+    /\b(?:nose|nostrils?)\b|鼻/iu,
+    /\b(?:lips?|philtrum|cupid.s bow|mouth shape)\b|唇|嘴型/iu,
+];
+
+// An older record can be incomplete. Fill only missing facial categories from
+// short appearance clauses, leaving existing identity and non-face traits alone.
+function fillMissingFaceTraits(prior, current) {
+    const occupied = new Set(FACE_TRAITS.filter(pattern => pattern.test(prior)));
+    const additions = [];
+    for (const raw of String(current || '').split(/[,，、;；。\n]+/u)) {
+        const part = raw.trim();
+        if (!part || /\b(?:hair|haired|wig|makeup|eyeliner|lipstick|clothing|dress|shirt|coat|skin)\b|发型|头发|刘海|妆|服装|肤色/iu.test(part)) continue;
+        const matches = FACE_TRAITS.filter(pattern => pattern.test(part));
+        if (!matches.length || matches.some(pattern => occupied.has(pattern))) continue;
+        additions.push(part);
+        matches.forEach(pattern => occupied.add(pattern));
+    }
+    return [prior, ...additions].join(', ');
+}
 export function buildRecentAppearanceLedger(chat=[], { readDirectives, excludeMessage, maxMessages=80 }={}) {
     const ledger=new Map();
     if(typeof readDirectives!=='function')return ledger;
@@ -38,6 +64,6 @@ export function pinImageCharacterAppearances(characters=[],recent=new Map(),know
             &&[sources.worldbook,sources.narrative].some(s=>String(s||'').includes(quote)))
             return {...person,appear:quote};
         const prior=recent.get(name);
-        return prior?{...person,appear:prior}:person;
+        return prior ? {...person, appear:fillMissingFaceTraits(prior, person.appear)} : person;
     });
 }

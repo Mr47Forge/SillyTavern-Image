@@ -43,6 +43,66 @@ function normalizeCharacterCenter(center, { acceptGrid = true } = {}) {
     return { x: 0.5, y: 0.5 };
 }
 
+export const IMAGE_POSITIONS = new Map([
+    ['left', 'on the left'], ['center-left', 'at center-left'], ['center', 'in the center'],
+    ['center-right', 'at center-right'], ['right', 'on the right'], ['foreground', 'in the foreground'],
+    ['background', 'in the background'], ['left foreground', 'in the left foreground'],
+    ['right foreground', 'in the right foreground'], ['left background', 'in the left background'],
+    ['right background', 'in the right background'],
+]);
+
+function naturalList(parts) {
+    if (parts.length < 2) return parts[0] || '';
+    if (parts.length === 2) return parts.join(' and ');
+    return parts.slice(0, -1).join(', ') + ', and ' + parts.at(-1);
+}
+
+function nounPhrase(value) {
+    if (/^(?:a|an|the|and|her|his|their|some|no)\b/iu.test(value)
+        || /(?:[^s]s|hair|skin|makeup|denim|jewelry|clothing|lipstick|eyeliner|waistwear)$/iu.test(value)
+        || !/^[a-z]/iu.test(value)) return value;
+    return (/^[aeiou]/iu.test(value) ? 'an ' : 'a ') + value;
+}
+
+const splitDescription = value => String(value || '').split(/[,，;；、]+/u)
+    .map(part => part.trim().replace(/[.。]+$/u, '')).filter(Boolean);
+
+function describingAction(value) {
+    const action = String(value || '').trim().replace(/[.。]+$/u, '');
+    if (!action) return '';
+    if (/^(?:is|has|holds|looks|stands|sits|walks|wears|leans|faces|smiles|rests|reaches|turns)\b/iu.test(action)) return action;
+    return /^[a-z-]+ing\b/iu.test(action) ? 'is ' + action : 'is shown ' + action;
+}
+
+// Build from the effective character fields after appearance and wardrobe
+// continuity have resolved. A model-authored second copy could use stale traits.
+export function buildDirectCharacterSentence(character, knownCharacters, { includePosition = false } = {}) {
+    const known = findEnabledCharacterByName(character.name, knownCharacters);
+    const [type, ...typeDetails] = splitDescription(character.type || known?.type);
+    const subjectType = { '1girl':'girl', '1boy':'boy', female:'woman', male:'man' };
+    const typeKey = type?.toLowerCase();
+    const subject = Object.hasOwn(subjectType, typeKey) ? subjectType[typeKey] : type || 'person';
+    const location = includePosition && IMAGE_POSITIONS.get(String(character.position || '').toLowerCase().trim());
+    const appearance = String(character.appear || known?.appearanceZh || '').trim();
+    const quotedAppearance = appearance === String(character.appear_evidence || '').trim() && appearance;
+    const physical = naturalList([...typeDetails, ...splitDescription(quotedAppearance ? '' : appearance)].map(nounPhrase));
+    const clothes = naturalList(splitDescription(character.costume).map(nounPhrase));
+    const predicates = [
+        clothes && 'wears ' + clothes,
+        describingAction(character.action),
+        describingAction(character.interact),
+    ].filter(Boolean);
+    const first = location ? location[0].toUpperCase() + location.slice(1) + ', ' + nounPhrase(subject)
+        : nounPhrase(subject).replace(/^./u, char => char.toUpperCase());
+    const state = naturalList(splitDescription(character.state).map(nounPhrase));
+    const designTag = String(known?.danbooruTag || character.danbooru || '').trim();
+    const sentence = first + (physical ? ' with ' + physical : '') + ' '
+        + (naturalList(predicates) || 'appears in the scene') + (state ? ', with ' + state : '') + '.';
+    return sentence
+        + (quotedAppearance ? ' The same person matches this appearance description: “' + quotedAppearance + '”.' : '')
+        + (designTag ? ' This character is depicted as ' + designTag.replace(/[.。]+$/u, '') + '.' : '');
+}
+
 export function assembleCharacterPrompts(sceneCharacters = [], knownCharacters = [], options = {}) {
     const characters = Array.isArray(sceneCharacters) ? sceneCharacters : [];
     return characters.map((character) => {

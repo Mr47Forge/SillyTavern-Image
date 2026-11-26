@@ -8,6 +8,7 @@ import {
     getPreview,
     getGallerySummary,
     clearExpiredCache,
+    trackServerChatImages,
     clearAllCache,
     deletePreview,
     getPreviewDisplayUrl,
@@ -47,6 +48,7 @@ import {
     buildComfyImageRequest,
     buildSimpleWorkflow,
     compile as compileComfyScenePlan,
+    compileComfyPromptForTask,
     COMFY_REQUEST_DELAY_MS,
     parseComfyApiWorkflowJson,
     resolveComfyDirectOutputImage,
@@ -178,6 +180,13 @@ const DEFAULT_COMFY_DRAW_SETTINGS = {
 };
 
 let moduleInitialized = false;
+let imageRetentionTimer = null;
+let imageRetentionRunning = null;
+function cleanExpiredImages() {
+    imageRetentionRunning ||= clearExpiredCache()
+        .finally(() => { imageRetentionRunning = null; });
+    return imageRetentionRunning;
+}
 let moduleLifecycleGeneration = 0;
 let settingsCache = null;
 let settingsLoaded = false;
@@ -1744,17 +1753,24 @@ function bindOverlayEvents() {
         });
         if (ok) {
             setValue('comfy-gallery-cache-days', nextDays);
+            try {
+                const cleaned = await cleanExpiredImages();
+                updateStatusText('comfy-gallery-status', 'success', `已保存 ${nextDays} 天；H28K 删除 ${cleaned.server} 张，浏览器清理 ${cleaned.local} 条`);
+                await renderGalleryManagement();
+            } catch (error) {
+                updateStatusText('comfy-gallery-status', 'error', `天数已保存，清理未完成：${error.message}`);
+            }
         }
     });
     querySettings('#comfy-gallery-clear-expired')?.addEventListener('click', async () => {
         updateStatusText('comfy-gallery-status', '', '正在清理...');
         try {
-            const cleaned = await clearExpiredCache(getSharedDrawSettings().cacheDays);
-            updateStatusText('comfy-gallery-status', 'success', `已清理/瘦身 ${cleaned} 条`);
+            const cleaned = await cleanExpiredImages();
+            updateStatusText('comfy-gallery-status', 'success', `H28K 删除 ${cleaned.server} 张，浏览器清理 ${cleaned.local} 条`);
             await renderGalleryManagement();
         } catch (error) {
             console.warn('[ComfyDraw] clearExpiredCache failed:', error);
-            updateStatusText('comfy-gallery-status', 'error', '清理失败，请重试');
+            updateStatusText('comfy-gallery-status', 'error', '清理未完成：' + error.message);
         }
     });
     querySettings('#comfy-gallery-clear-all')?.addEventListener('click', async () => {
@@ -4710,19 +4726,11 @@ function syncContainerToPreview(container, preview, historyCount = 1, currentInd
 }
 
 function buildEditedPromptData(sceneTags, characterPrompts = [], params = getEffectiveParams(getSettings()), postPrompt = '') {
-    const charPositive = (Array.isArray(characterPrompts) ? characterPrompts : [])
-        .map(item => item?.prompt)
-        .filter(Boolean)
-        .join(', ');
-    const charNegative = (Array.isArray(characterPrompts) ? characterPrompts : [])
-        .map(item => item?.uc)
-        .filter(Boolean)
-        .join(', ');
-    return {
-        // 追加位拼在所有角色之后，与 compileComfyPromptForTask 的顺序保持一致
-        positive: joinTags(params.positivePrefix || '', sceneTags, charPositive, postPrompt),
-        negative: joinTags(params.negativePrefix || '', charNegative),
-    };
+    return compileComfyPromptForTask({
+        scene: sceneTags,
+        characterPrompts: Array.isArray(characterPrompts) ? characterPrompts : [],
+        post_prompt: postPrompt,
+    }, params);
 }
 
 function appendEditGroup(container, { label, value, type, index = null }) {
@@ -5250,11 +5258,14 @@ export async function initComfyDraw() {
     }
     const [floatingPanel] = await Promise.all([
         import('./floating-panel.js'),
-        openDB().then(() => clearExpiredCache(sharedDrawSettings.cacheDays)).catch(() => {}),
+        openDB().then(() => cleanExpiredImages()).catch(error => console.warn('[ComfyDraw] 过期图片清理未完成:', error.message)),
     ]);
     if (initGeneration !== moduleLifecycleGeneration || window?.isStImageEnabled === false) return false;
 
     moduleInitialized = true;
+    imageRetentionTimer = setInterval(() => {
+        void cleanExpiredImages().catch(error => console.warn('[ComfyDraw] 自动清理未完成:', error.message));
+    }, 10 * 60000);
     backendJobMonitors.activate();
     ensureDrawImageStyles();
     setupImageDelegation();
@@ -5263,6 +5274,21 @@ export async function initComfyDraw() {
     reportComfyDrawPanelStateRef = floatingPanel.setStateForMessage;
     floatingPanel.initFloatingPanel?.();
     startSharedDrawPreviewRuntime();
+
+    const cleanDeletedChatImages = async () => {
+        await imageRetentionRunning?.catch(() => {});
+        try {
+            const cleaned = await cleanExpiredImages();
+            if (cleaned.server || cleaned.local) globalThis.toastr?.info(`会话图片已清理：H28K ${cleaned.server} 张，浏览器 ${cleaned.local} 条`);
+        } catch (error) {
+            globalThis.toastr?.warning('会话已删除，图片清理未完成，将自动重试：' + error.message);
+        }
+    };
+    events.on(event_types.CHAT_DELETED, cleanDeletedChatImages);
+    events.on(event_types.GROUP_CHAT_DELETED, cleanDeletedChatImages);
+    events.on(event_types.CHAT_CHANGED, () => {
+        void trackServerChatImages().catch(error => console.warn('[ComfyDraw] 会话图片登记未完成:', error.message));
+    });
 
     events.on(event_types.CHARACTER_MESSAGE_RENDERED, (data) => {
         const messageId = typeof data === 'number' ? data : data?.messageId ?? data?.mesId;
@@ -5337,6 +5363,8 @@ export async function initComfyDraw() {
 }
 
 export function cleanupComfyDraw() {
+    clearInterval(imageRetentionTimer);
+    imageRetentionTimer = null;
     preparedImageDispose?.();
     preparedImageDispose = null;
     moduleLifecycleGeneration++;

@@ -34,6 +34,8 @@ import { findImageJobDeliverySlot } from './image-job-delivery-target.js';
 import { createDrawImageSlotRegex, stripDrawImageDirectives } from './image-marker-syntax.js';
 import { hasPreviewImage, PreviewStatus, DRAW_SLOT_COPY, DRAW_SLOT_ERRORS } from './image-record.js';
 import { getSlotActivity } from './slot-activity.js';
+import { getSharedDrawSettings } from './draw-settings.js';
+import { isExpiredSavedImage } from './image-retention.js';
 import { classifyScenePlannerErrorForUi } from "./scene-planner-error-ui.js";
 import { detectPresentCharacters } from './present-characters.js';
 import { joinTags } from './character-prompts.js';
@@ -563,6 +565,7 @@ function sanitizeImgId(value) {
 function normalizeDrawSavedEntry(slotId, data = {}) {
     const safeUrl = sanitizeSavedUrl(data && data.savedUrl);
     if (!slotId || !safeUrl) return null;
+    if (isExpiredSavedImage(data, getSharedDrawSettings().cacheDays)) return null;
     return {
         slotId,
         imgId: sanitizeImgId(data.imgId),
@@ -587,7 +590,7 @@ export function getDrawSavedEntry(message, slotId) {
 
 export function getDrawSavedPreview(message, slotId, messageId, chatId) {
     const saved = getDrawSavedEntry(message, slotId);
-    return saved ? { ...saved, imgId: saved.imgId || `saved-${slotId}`,
+    return saved ? { ...saved, timestamp: saved.updatedAt || undefined, imgId: saved.imgId || `saved-${slotId}`,
         messageId, chatId, characterName: message.name || '', status: PreviewStatus.SUCCESS } : null;
 }
 
