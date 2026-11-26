@@ -1,4 +1,4 @@
-import { assembleCharacterPrompts, joinTags } from '../../shared/character-prompts.js';
+import { assembleCharacterPrompts, IMAGE_POSITIONS, joinTags } from '../../shared/character-prompts.js';
 import {sanitizeFinalImagePositive} from '../../shared/male-image-exclusion.js';
 import { applyRolePhotoReference } from './role-photo-reference.js';
 
@@ -301,20 +301,11 @@ function injectPromptIntoWorkflow(workflow, positive, negative, width, height, n
     return pruneComfyOutputNodes(result, nodeMap.saveImage);
 }
 
-const CHINESE_FACE_ANCHOR = 'authentic Han Chinese facial appearance, natural East Asian facial structure and proportions, realistic Chinese facial identity';
-
-function reinforceChineseFaceAppearance(prompt) {
-    const text = String(prompt || '').trim();
-    if (!/(?:\b[1-9]\d*\s*(?:girls?|women?|females?)\b|\b(?:girl|girls|woman|women|female|females)\b)/i.test(text)) return text;
-    if (text.includes(CHINESE_FACE_ANCHOR)) return text;
-    return CHINESE_FACE_ANCHOR + ', ' + text;
-}
-
 export function buildComfyImageRequest({ prompt, negativePrompt = '', params = {}, recipe = {}, seed, taskCharacters = [] } = {}) {
     const effective = requireObject(params, 'ComfyUI params');
     const generationRecipe = requireObject(recipe, 'ComfyUI generationRecipe');
     const normalizedSeed = normalizeSeed(seed);
-    const positive = reinforceChineseFaceAppearance(String(prompt || '').trim());
+    const positive = String(prompt || '').trim();
     const negative = String(negativePrompt || '').trim();
     if (!positive) throw new Error('Prompt 不能为空');
     const width = clampNumber(effective.width, 1024, 64, 2048);
@@ -359,20 +350,28 @@ export function buildComfyImageRequest({ prompt, negativePrompt = '', params = {
     };
 }
 
-function sceneAlreadyDescribesCharacter(scene, characterPrompt) {
-    // Direct image instructions contain a complete visual scene AND structured
-    // character metadata. Re-appending the same physical traits can cause the
-    // image model to draw two or three instances of the same person.
-    const normalizedScene = String(scene || '').toLocaleLowerCase().replace(/\s+/g, ' ');
-    if (!normalizedScene) return false;
-    const distinctiveTraits = String(characterPrompt || '').split(/[,，;；]/u)
-        .map(part => part.trim().toLocaleLowerCase().replace(/\s+/g, ' '))
-        .filter(part => part.length >= 7);
-    return distinctiveTraits.filter(trait => normalizedScene.includes(trait)).length >= 2;
+function comparablePrompt(text) {
+    return String(text || '').toLocaleLowerCase().replace(/[^\p{L}\p{N}_-]+/gu, ' ').trim();
+}
+
+function composeCharacterText(scene, characters) {
+    const normalizedScene = ' ' + comparablePrompt(scene) + ' ';
+    return characters.map(item => {
+        const prompt = String(item.prompt || '').trim();
+        if (!prompt) return '';
+        const position = characters.length > 1 && IMAGE_POSITIONS.get(String(item.position || '').toLowerCase().trim());
+        // Keep positional subjects whole. Removing matching attributes would
+        // detach them from the person and make them global again.
+        if (position) return 'Person ' + position + ': ' + prompt;
+        return joinTags(...prompt.split(/[,，;；]+/u).filter(part => {
+            const trait = comparablePrompt(part);
+            return trait && !normalizedScene.includes(' ' + trait + ' ');
+        }));
+    }).filter(Boolean).join(characters.some(item => IMAGE_POSITIONS.has(String(item.position || '').toLowerCase().trim())) ? '. ' : ', ');
 }
 
 export function compileComfyPromptForTask(task, recipe = {}) {
-    const characterPrompts = Array.isArray(task?.characterPrompts)
+    const sourceCharacters = Array.isArray(task?.characterPrompts)
         ? task.characterPrompts.filter(Boolean)
         : assembleCharacterPrompts(task?.chars || [], recipe.knownCharacters || [], {
             preserveDanbooruCanonical: true,
@@ -381,22 +380,27 @@ export function compileComfyPromptForTask(task, recipe = {}) {
     const negativeOverride = String(recipe.negativePromptOverride || '').trim();
     if (promptOverride) {
         return {
-            positive: sanitizeFinalImagePositive(reinforceChineseFaceAppearance(joinTags(recipe.positivePrefix, promptOverride))),
+            positive: sanitizeFinalImagePositive(joinTags(recipe.positivePrefix, promptOverride)),
             negative: task?.negativePrompt ?? joinTags(recipe.negativePrefix, negativeOverride),
-            characterPrompts,
+            characterPrompts: sourceCharacters,
         };
     }
+    const characterPrompts = sourceCharacters.map(({prose, ...item}) => prose
+        ? {...item, prompt:prose, format:'prose'} : item);
     const sceneText = String(task?.scene || '').trim();
-    const charPositive = characterPrompts
-        .filter(item => !sceneAlreadyDescribesCharacter(sceneText, item.prompt))
-        .map(item => item.prompt).filter(Boolean).join(', ');
+    const hasProse = characterPrompts.some(item => item.format === 'prose');
+    const charPositive = hasProse
+        ? characterPrompts.map(item => String(item.prompt || '').trim()).filter(Boolean).join(' ')
+        : composeCharacterText(sceneText, characterPrompts);
+    // Saved cards retain the actual character sentences. Editing and regenerating
+    // them therefore uses the same paragraph order without reconstructing fields.
+    const positive = hasProse
+        ? [charPositive, sceneText && (/[.!?。！？]$/u.test(sceneText) ? sceneText : sceneText + '.'), recipe.positivePrefix, task?.post_prompt]
+            .map(part => sanitizeFinalImagePositive(part || '')).filter(Boolean).join('\n\n')
+        : sanitizeFinalImagePositive(joinTags(recipe.positivePrefix, sceneText, charPositive, task?.post_prompt));
     const charNegative = characterPrompts.map(item => item.uc).filter(Boolean).join(', ');
-    // Append character fields only for genuinely sparse scene descriptions.
-    // Complete scenes already contain the same visible people and their traits.
     return {
-        // [K2] post_prompt：整图追加位，拼在所有角色之后（整条提示词最末尾）。
-        // joinTags 过滤空值，未提交时与改造前逐字节一致；负向不跟。
-        positive: sanitizeFinalImagePositive(reinforceChineseFaceAppearance(joinTags(recipe.positivePrefix, sceneText, charPositive, task?.post_prompt))),
+        positive,
         negative: task?.negativePrompt ?? joinTags(recipe.negativePrefix, negativeOverride, task?.extraNegativePrompt, charNegative),
         characterPrompts,
     };

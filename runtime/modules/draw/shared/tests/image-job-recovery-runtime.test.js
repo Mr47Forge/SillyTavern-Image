@@ -37,6 +37,7 @@ const stubs = {
     `,
     'gallery-cache.js': `
         const host = globalThis.__drawRecoveryTest;
+        export const trackServerChatImages = async () => {};
         export const getPreview = async id => host.previews.get(id);
         export const storePreview = async value => host.previews.set(value.imgId, {status:'success',...value});
         export const storeFailedPlaceholder = async value => storePreview({ ...value, status: 'failed' });

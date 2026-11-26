@@ -8,6 +8,9 @@ import { getContext } from "/scripts/extensions.js";
 import { saveBase64AsFile } from "/scripts/utils.js";
 import { hasPreviewImage, DRAW_SLOT_COPY, PreviewStatus } from './image-record.js';
 import { writeImageError, openImageDiagnostics } from './image-diagnostics.js';
+import { getSlotActivity } from './slot-activity.js';
+import { getPendingImageJobSlots } from './pending-image-jobs.js';
+import { isGeneratedSavedImage } from './image-retention.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 常量
@@ -752,7 +755,7 @@ export async function storePreview(opts,{ifAbsent=false}={}) {
                 negativePrompt,
                 postPrompt,
                 promptTrace,
-                timestamp: Date.now()
+                timestamp: Number.isFinite(opts.timestamp) && opts.timestamp > 0 ? opts.timestamp : Date.now()
             };
             const store=tx.objectStore(DB_STORE);
             if(ifAbsent){const found=store.get(imgId);found.onsuccess=()=>{if(!found.result)store.put(record);};}
@@ -1102,26 +1105,55 @@ export async function getCacheStats() {
     });
 }
 
-export async function clearExpiredCache(cacheDays = 3) {
-    const cutoff = Date.now() - cacheDays * 24 * 60 * 60 * 1000;
+export async function trackServerChatImages() {
+    const { getRequestHeaders } = await import('/script.js');
+    const response = await fetch('/api/plugins/sillytavern-image-server/v1/images/track-chats', {
+        method: 'POST', headers: getRequestHeaders(), credentials: 'same-origin', signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok || !(await response.json()).ok) throw new Error('H28K 会话图片登记未完成');
+}
+
+export async function clearExpiredCache() {
+    const owner = getImageCacheOwner();
+    const { getRequestHeaders } = await import('/script.js');
+    const response = await fetch('/api/plugins/sillytavern-image-server/v1/images/cleanup', {
+        method: 'POST', headers: getRequestHeaders(), credentials: 'same-origin',
+        signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) throw new Error(`H28K 图片清理失败（${response.status}），浏览器原图已保留`);
+    const result = await response.json();
+    if (!result.ok || !Number.isFinite(result.cutoff) || !Array.isArray(result.expired) || !Array.isArray(result.deleted))
+        throw new Error('H28K 图片未全部清理成功，浏览器原图已保留');
+    assertImageCacheOwner(owner);
+    const expired = new Set(result.expired);
+    const deletedChats = new Set(Array.isArray(result.deletedChatIds) ? result.deletedChatIds : []);
+    const pending = await getPendingImageJobSlots();
+    const cutoff = result.cutoff;
     const database = await openDB();
+    assertImageCacheOwner(owner);
     let cleaned = 0;
 
     return galleryOperation((resolve, reject, transaction) => {
         try {
-            const tx = transaction(database, DB_STORE, 'readwrite');
+            const tx = transaction(database, [DB_STORE, DB_SELECTIONS_STORE], 'readwrite');
             const store = tx.objectStore(DB_STORE);
             store.openCursor().onsuccess = (e) => {
                 const cursor = e.target.result;
                 if (cursor) {
                     const record = cursor.value;
-                    const isExpiredUnsaved = record.timestamp < cutoff && !record.savedUrl;
-                    const isFailed = record.status === 'failed' || (!record.base64 && !record.savedUrl);
-                    // A saved H28K URL is NOT grounds to erase the user's
-                    // on-device cache. Only unsaved/failed expired records expire.
-                    if (isExpiredUnsaved || (isFailed && record.timestamp < cutoff)) {
+                    const active = pending.has(record.slotId) || getSlotActivity(record.slotId)
+                        || ['pending', 'unknown'].includes(record.status);
+                    const serverDeleted = isGeneratedSavedImage(record.savedUrl)
+                        && expired.has(decodeURIComponent(record.savedUrl));
+                    const deletedChat = deletedChats.has(String(record.chatId));
+                    if (!active && (record.timestamp < cutoff || serverDeleted || deletedChat)) {
                         revokePreviewObjectUrl(record.imgId);
                         cursor.delete();
+                        const selections = tx.objectStore(DB_SELECTIONS_STORE);
+                        const selected = selections.get(record.slotId);
+                        selected.onsuccess = () => {
+                            if (selected.result?.selectedImgId === record.imgId) selections.delete(record.slotId);
+                        };
                         cleaned++;
                         cursor.continue();
                         return;
@@ -1133,10 +1165,11 @@ export async function clearExpiredCache(cacheDays = 3) {
             tx.oncomplete = () => {
                 invalidateCache();
                 if (cleaned > 0) publishCacheChange(null);
-                resolve(cleaned);
+                resolve({ local: cleaned, server: result.deleted.length });
             };
-        } catch {
-            resolve(0);
+            tx.onerror = tx.onabort = () => reject(storageWriteError(tx));
+        } catch (error) {
+            reject(error);
         }
     });
 }

@@ -1,5 +1,5 @@
 import { getContext } from '/scripts/extensions.js';
-import { getPreview, savePreviewImage } from './gallery-cache.js';
+import { getPreview, savePreviewImage, trackServerChatImages } from './gallery-cache.js';
 import { syncDrawSavedFromPreview } from './draw-common.js';
 import { isSceneSlotAlive } from './scene-placement.js';
 
@@ -33,6 +33,7 @@ export async function saveComfyImageToServer(imgId, {
         }
         const synced = await syncDrawSavedFromPreview(messageId, preview, { slotId, savedUrl });
         if (!synced) throw new Error('图片已存服务器，但聊天图片地址未保存');
+        await trackServerChatImages().catch(error => console.warn('[ComfyDraw] 图片已保存，会话关联登记待重试:', error.message));
     }
     return savedUrl;
 }

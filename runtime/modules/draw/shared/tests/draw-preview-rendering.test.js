@@ -23,8 +23,8 @@ const stubs = {
     'image-diagnostics.js': 'export const writeImageError=async()=>{};export const openImageDiagnostics=()=>{};',
     'extensions.js': 'export const getContext = () => globalThis.__drawPreviewTest.ctx;',
     'user.js': 'export const getCurrentUserHandle = () => "fixture";',
-    'script.js': 'export const messageFormatting = text => globalThis.__drawPreviewTest.messageFormatting(text);export const setExtensionPrompt=()=>{};export const extension_prompt_types={IN_CHAT:1};export const extension_prompt_roles={USER:1};',
-    'utils.js': 'export const saveBase64AsFile = async () => { throw new Error("Unexpected image upload"); };',
+    'script.js': 'export const getRequestHeaders=()=>({});export const messageFormatting = text => globalThis.__drawPreviewTest.messageFormatting(text);export const setExtensionPrompt=()=>{};export const extension_prompt_types={IN_CHAT:1};export const extension_prompt_roles={USER:1};',
+    'utils.js': 'export const debounce=fn=>fn;export const saveBase64AsFile = async () => { throw new Error("Unexpected image upload"); };',
     'event-manager.js': `
         export const createModuleEvents = () => ({ on() {}, cleanup() {} });
         export const event_types = { MESSAGE_UPDATED: 'message_updated' };
